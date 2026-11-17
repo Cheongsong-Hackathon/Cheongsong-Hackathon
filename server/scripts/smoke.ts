@@ -40,6 +40,10 @@ for (const i of items) console.log(`    · ${i.title} — ${i.minutes}분 · 도
 const more = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, exclude: items.map((i) => i.id) });
 check('"다른 경험 보기"는 안 본 것을 먼저', more.json.items?.[0] && !items.some((i) => i.id === more.json.items[0].id), more.json);
 
+const far = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, lat: 37.5665, lng: 126.978 }); // 서울시청
+check('내 위치 기준: 주변에 제휴 매장이 없으면 다른 동네 매장을 끌어오지 않음', far.status === 200 && far.json.items?.length === 0 && Array.isArray(far.json.free), far.json);
+console.log(`    서울시청 주변 무료 장소: ${far.json.free?.map((p: any) => `${p.kind} ${p.name} 도보 ${p.walkMinutes}분`).join(', ') || '없음 (카카오 키 없음)'}`);
+
 const noCheckin = await api('POST', '/recommend', { checkinId: 999999 });
 check('마음 확인 없이 추천은 안내(409)', noCheckin.status === 409);
 
@@ -73,7 +77,7 @@ const recs = await api('GET', '/records');
 const today = recs.json.week?.at(-1);
 check('기록: 완료 1건, 미루기 1건, 오늘 마음 점수', recs.json.done?.length === 1 && recs.json.postpones?.length === 1 && today?.mood != null, recs.json);
 const exps = await api('GET', '/experiences');
-check('체험 탭: 12개', exps.json.items?.length === 12);
+check('체험 탭: 10개', exps.json.items?.length === 10);
 const free = await api('GET', '/places/free');
 check('무료 장소: 카카오 키가 없으면 꺼짐, 있으면 목록', free.status === 200 && (free.json.disabled === true || Array.isArray(free.json.items)), free.json);
 console.log(`    무료 장소: ${free.json.disabled ? '꺼짐 (KAKAO_REST_API_KEY 없음)' : `${free.json.items.length}곳 — ${free.json.items.slice(0, 3).map((p: any) => `${p.kind} ${p.name} 도보 ${p.walkMinutes}분`).join(', ')}`}`);

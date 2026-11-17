@@ -2,8 +2,11 @@
 import { z } from 'zod';
 import { config } from '../config.js';
 import { query, toId } from '../db.js';
-import { validLatLng, type LatLng } from '../geo.js';
+import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
+import { freePlaces, pickFree } from './kakao.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
+
+export { walkMinutes };
 import { placeService, type Place } from './places.js';
 import { isSafeMode, SAFETY_BLOCK } from './safety.js';
 
@@ -30,7 +33,6 @@ export type Candidate = Experience & {
 export type Cond = { minutes: number; walk: number; budget: number; energy: number; emotion: string | null };
 export type Item = Candidate & { reason: string };
 
-export const walkMinutes = (m: number) => Math.max(1, Math.ceil(m / config.WALK_M_PER_MIN));
 export const addMinutes = (hhmm: string, mins: number) => {
   const t = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5)) + mins;
   return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
@@ -132,17 +134,13 @@ export async function loadExperiences(): Promise<Experience[]> {
   );
 }
 
-/** 위치가 없거나(동의 안 함), 체험 모드에서 주변에 매장이 없으면 DEMO_CENTER 기준으로 찾는다. */
+/** 위치가 있으면 그 위치 기준으로만 찾는다 (주변에 제휴 매장이 없으면 없는 대로).
+ *  위치 동의를 안 했을 때만 DEMO_CENTER(기본 동네) 기준. */
 export async function nearbyCandidates(pos: LatLng | null) {
   const now = config.demoMode ? null : nowHHMM();
-  let center = pos ?? config.demoCenter;
-  let places = await placeService.openNearby(center);
-  if (!places.length && pos && config.demoMode) {
-    center = config.demoCenter;
-    places = await placeService.openNearby(center);
-  }
-  const source = pos && center === pos ? 'here' : 'demo';
-  return { cands: toCandidates(await loadExperiences(), places, now), source };
+  const center = pos ?? config.demoCenter;
+  const places = await placeService.openNearby(center);
+  return { cands: toCandidates(await loadExperiences(), places, now), center, source: pos ? 'here' : 'demo' };
 }
 
 export async function recommend(userId: number, body: any, client = defaultClient) {
@@ -162,8 +160,10 @@ export async function recommend(userId: number, body: any, client = defaultClien
   };
   await query(`UPDATE checkins SET minutes = $2, walk_minutes = $3, budget = $4 WHERE id = $1`, [ck.id, cond.minutes, cond.walk, cond.budget]);
 
-  const { cands, source } = await nearbyCandidates(validLatLng(body?.lat, body?.lng));
+  const { cands, center, source } = await nearbyCandidates(validLatLng(body?.lat, body?.lng));
   const { items, widened } = filterExperiences(cands, cond);
+  // 같은 위치 기준의 무료 장소 (카카오). 제휴 매장이 없는 동네에서는 이것만 추천된다.
+  const freeP = freePlaces(center).then((f) => pickFree(f ?? [], cond.walk));
   const exclude: string[] = Array.isArray(body?.exclude) ? body.exclude.filter((x: unknown) => typeof x === 'string').slice(0, 50) : [];
 
   const state = { 한줄: ck.text, 감정: ck.emotion, 에너지: `${cond.energy}%`, 기분점수: ck.mood, 쓸수있는시간: `${cond.minutes}분`, 도보: `${cond.walk}분 이내`, 예산: `${cond.budget}원` };
@@ -174,9 +174,16 @@ export async function recommend(userId: number, body: any, client = defaultClien
   const out = list.length ? await callJson(client, BUNNY_PROMPT + PICK_FORMAT, `친구 상태: ${JSON.stringify(state)}\n후보: ${JSON.stringify(list)}`, PickOut) : null;
 
   // 기다리는 사이 안전 모드가 됐으면 추천을 내보내지 않는다
+  const free = await freeP;
   if (await isSafeMode(userId)) return SAFETY_BLOCK;
   return {
     status: 200,
-    body: { items: finalizePicks(items, out?.picks ?? null, exclude), widened, locationSource: source, ...(out ? {} : { fallback: true }) },
+    body: {
+      items: finalizePicks(items, out?.picks ?? null, exclude),
+      free,
+      widened: widened && items.length > 0,
+      locationSource: source,
+      ...(out ? {} : { fallback: true }),
+    },
   };
 }

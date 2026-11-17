@@ -1,4 +1,9 @@
+import { config } from './config.js';
+
 export type LatLng = { lat: number; lng: number };
+
+/** 도보 분 = 직선거리 ÷ 분당 67m (올림, 최소 1분) */
+export const walkMinutes = (m: number) => Math.max(1, Math.ceil(m / config.WALK_M_PER_MIN));
 
 const R = 6371000;
 const rad = (d: number) => (d * Math.PI) / 180;

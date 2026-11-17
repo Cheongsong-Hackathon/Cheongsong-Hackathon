@@ -41,6 +41,7 @@ export type FreePlace = {
   address: string;
   url: string;
 };
+export type FreeRec = FreePlace & { reason: string };
 export type Character = {
   level: number;
   exp: number;
@@ -94,7 +95,8 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<Re
 export const api = {
   checkin: (b: { text: string; emotion: string | null; energy: number; mood: number }) => call<Checkin>('POST', '/checkin', b),
   recommend: (b: { checkinId: number; minutes: number; walk: number; budget: number; exclude: string[] } & Partial<LatLng>) =>
-    call<{ items?: Item[]; widened?: boolean; locationSource?: string }>('POST', '/recommend', b),
+    // items: 제휴 매장 체험 (내 위치 주변에 없으면 빈 배열), free: 같은 위치 기준 무료 장소
+    call<{ items?: Item[]; free?: FreeRec[]; widened?: boolean; locationSource?: string }>('POST', '/recommend', b),
   experiences: (pos: LatLng | null) => call<{ items?: Item[] }>('GET', `/experiences${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
   book: (b: { checkinId: number | null; experienceId: string; slotTime: string }) => call<Booking>('POST', '/bookings', b),
   active: () => call<{ booking: Booking | null }>('GET', '/bookings/active'),
