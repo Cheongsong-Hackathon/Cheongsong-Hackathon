@@ -10,6 +10,14 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'records', label: '기록', icon: 'M6 3h12v18l-6-4-6 4z' },
   { id: 'partners', label: '제휴 매장', icon: 'M4 9l1-5h14l1 5v2h-1v9H5v-9H4zM9 20v-5h6v5' },
 ];
+const CRISIS = /죽고싶|죽을래|사라지고싶|없어지고싶|자해|자살|살기싫/;
+const store = (op: 'get' | 'set', v = '') => {
+  try {
+    return op === 'get' ? localStorage.getItem('neuri.sessionId') : (localStorage.setItem('neuri.sessionId', v), v);
+  } catch {
+    return null; // 사생활 보호 모드 등: 저장 없이 동작
+  }
+};
 const GREETING: Msg = { who: 'snail', text: '안녕, 나는 느리야. 천천히 와도 돼. 오늘 기분 어때?' };
 
 export default function App() {
@@ -18,7 +26,11 @@ export default function App() {
   const [runs, setRuns] = useState<{ active: Run | null; done: Run[] }>({ active: null, done: [] });
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionId, setSessionIdState] = useState<number | null>(() => Number(store('get')) || null);
+  const setSessionId = (id: number) => {
+    setSessionIdState(id);
+    store('set', String(id));
+  };
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [quick, setQuick] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -35,6 +47,16 @@ export default function App() {
     setTimeout(() => setToast(''), 3200);
   };
 
+  // 안전 모드에 들어가면 추천 카드와 진행 중 시트(게임 요소)를 모두 치운다
+  const enterSafety = () => {
+    setSafety(true);
+    setSheet(null);
+    setParty(null);
+    setQuick([]);
+    setMsgs((prev) => prev.filter((m) => m.who !== 'recs'));
+    recommended.current = false;
+  };
+
   const refresh = useCallback(async () => {
     const [c, r, w] = await Promise.all([api.character(), api.runs(), api.rewards()]);
     if (!c.error && c.status === 200) setCh(c);
@@ -44,13 +66,15 @@ export default function App() {
   useEffect(() => {
     refresh();
     api.partners().then((p) => p.items && setPartners(p.items));
+    // 새로고침해도 안전 모드가 유지되게 서버의 세션 상태를 다시 읽는다
+    if (sessionId) api.session(sessionId).then((s) => s.state === 'SAFETY' && enterSafety());
   }, [refresh]);
 
   const demo = ch?.demoMode ?? false;
 
   async function recommend(sid: number) {
     const r = await api.recommend(sid, demo ? null : await getPos(), seen.current);
-    if (r.blocked) return setSafety(true);
+    if (r.blocked) return enterSafety();
     if (!r.items?.length) return push({ who: 'snail', text: r.error ?? '지금은 고르기가 어렵네. 조금 있다가 다시 물어봐 줘.' });
     recommended.current = true;
     seen.current.push(...r.items.map((i) => i.templateId));
@@ -63,10 +87,14 @@ export default function App() {
     setQuick([]);
     push({ who: 'me', text });
     const r = await api.chat(sessionId, text);
-    if (!r.reply) push({ who: 'snail', text: r.error ?? '잠깐 생각이 느려졌어. 다시 말해 줄래?' });
+    if (!r.reply) {
+      // 서버에 닿지 못해도 위기 표현은 놓치지 않는다
+      if (CRISIS.test(text.replace(/\s+/g, ''))) enterSafety();
+      else push({ who: 'snail', text: r.error ?? '잠깐 생각이 느려졌어. 다시 말해 줄래?' });
+    }
     else {
       if (r.sessionId) setSessionId(r.sessionId);
-      if (r.state === 'SAFETY') setSafety(true);
+      if (r.state === 'SAFETY') enterSafety();
       else {
         push({ who: 'snail', text: r.reply });
         setQuick(r.quickReplies ?? []);
@@ -90,7 +118,7 @@ export default function App() {
     const pos: LatLng | null = item.tier === 'NEAR' && !demo ? await getPos() : null;
     const r = await api.startRun(sessionId, item.templateId, pos);
     setBusy(false);
-    if (r.blocked) return setSafety(true);
+    if (r.blocked) return enterSafety();
     if (!r.runId) return notify(r.error ?? '시작하지 못했어. 다시 해 볼래?');
     setSheet({ runId: r.runId, title: item.title, tier: item.tier, minutes: item.minutes, exp: item.exp, placeName: item.place?.name });
     refresh();
@@ -99,6 +127,7 @@ export default function App() {
   function finished(result: VerifyResult) {
     setSheet(null);
     refresh();
+    if (result.blocked) return enterSafety();
     if (!result.verified) return notify(result.reason ?? '이번 활동은 닫혔어.');
     setParty(result);
     recommended.current = false; // 다음 대화에서 새로 추천받을 수 있게

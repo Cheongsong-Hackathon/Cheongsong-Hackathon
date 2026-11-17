@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { config, type Energy } from '../config.js';
-import { query } from '../db.js';
+import { query, toId } from '../db.js';
 import { callJson, defaultClient, SNAIL_PROMPT } from './llm.js';
 import { SAFETY_REPLY, SafetyGuard } from './safety.js';
 
@@ -18,13 +18,14 @@ const QUICK_REPLY: Record<Energy, string> = {
   HIGH: '오, 나갈 힘이 있구나! 동네에서 할 만한 걸 찾아볼게.',
 };
 
-const ChatOut = z.object({
-  reply: z.string().min(1),
-  mood: z.string().nullish(),
+export const ChatOut = z.object({
+  // 다른 필드가 어긋나도 risk 판단은 잃지 않도록 필드마다 너그럽게 받는다
+  reply: z.string().catch(''),
+  mood: z.string().nullish().catch(null),
   energy: z.enum(['LOW', 'MID', 'HIGH', 'UNKNOWN']).catch('UNKNOWN'),
   freeMinutes: z.number().nullish().catch(null),
   budget: z.number().nullish().catch(null),
-  risk: z.enum(['NONE', 'WATCH', 'CRISIS']),
+  risk: z.preprocess((v) => (typeof v === 'string' ? v.trim().toUpperCase() : v), z.enum(['NONE', 'WATCH', 'CRISIS'])).catch('NONE'),
   readyToRecommend: z.boolean().catch(false),
 });
 
@@ -37,9 +38,9 @@ const CHAT_FORMAT = `
 type Session = { id: number; state: string };
 
 async function getOrCreateSession(sessionId: unknown): Promise<Session> {
-  if (Number.isInteger(sessionId)) {
+  if (toId(sessionId) > 0) {
     const [s] = await query<Session>(`SELECT id, state FROM chat_sessions WHERE id = $1 AND user_id = $2`, [
-      sessionId,
+      toId(sessionId),
       config.USER_ID,
     ]);
     if (s) return s;
@@ -50,8 +51,17 @@ async function getOrCreateSession(sessionId: unknown): Promise<Session> {
 
 const say = (sessionId: number, role: string, text: string) =>
   query(`INSERT INTO messages(session_id, role, text) VALUES ($1,$2,$3)`, [sessionId, role, text]);
+// 안전 모드는 "대화로 돌아갈래"(resumeSession)로만 풀린다. 늦게 끝난 다른 요청이 덮어쓰지 못한다.
 const setState = (sessionId: number, state: string) =>
-  query(`UPDATE chat_sessions SET state = $2 WHERE id = $1`, [sessionId, state]);
+  query(`UPDATE chat_sessions SET state = $2 WHERE id = $1 AND ($2 = 'SAFETY' OR state <> 'SAFETY')`, [sessionId, state]);
+
+export async function sessionState(sessionId: number) {
+  const [s] = await query<{ state: string }>(`SELECT state FROM chat_sessions WHERE id = $1 AND user_id = $2`, [
+    sessionId,
+    config.USER_ID,
+  ]);
+  return s ?? null;
+}
 
 export async function handleChat(sessionId: unknown, message: string, client = defaultClient) {
   const s = await getOrCreateSession(sessionId);
@@ -80,7 +90,7 @@ export async function handleChat(sessionId: unknown, message: string, client = d
 
   const energy: Energy | 'UNKNOWN' =
     quick?.energy ?? (out && out.energy !== 'UNKNOWN' ? out.energy : (mood?.energy ?? 'UNKNOWN'));
-  const reply = out?.reply ?? (quick ? QUICK_REPLY[quick.energy] : energy === 'UNKNOWN' ? DEFAULT_REPLY : '응, 듣고 있어. 천천히 해도 괜찮아.');
+  const reply = out?.reply || (quick ? QUICK_REPLY[quick.energy] : energy === 'UNKNOWN' ? DEFAULT_REPLY : '응, 듣고 있어. 천천히 해도 괜찮아.');
 
   await query(
     `INSERT INTO mood_states(session_id, mood, energy, free_minutes, budget) VALUES ($1,$2,$3,$4,$5)
@@ -104,7 +114,8 @@ export async function handleChat(sessionId: unknown, message: string, client = d
   };
 }
 
-const toInt = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n) : null);
+const toInt = (n: number | null | undefined) =>
+  typeof n === 'number' && n >= 0 && n <= 1e9 ? Math.round(n) : null;
 
 export async function resumeSession(sessionId: number) {
   await query(`UPDATE chat_sessions SET state = 'CHATTING' WHERE id = $1 AND user_id = $2 AND state = 'SAFETY'`, [

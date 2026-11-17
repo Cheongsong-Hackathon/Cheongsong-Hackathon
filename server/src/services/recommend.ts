@@ -117,7 +117,13 @@ export async function recommend(sessionId: number, center: LatLng | null, exclud
   )}`;
   const out = await callJson(client, SNAIL_PROMPT + PICK_FORMAT, user, PickOut);
 
-  if (s.state !== 'IN_PROGRESS') await query(`UPDATE chat_sessions SET state = 'RECOMMENDED' WHERE id = $1`, [sessionId]);
+  // LLM을 기다리는 사이 안전 모드가 됐으면 추천을 내보내지 않는다
+  const [now] = await query(
+    `UPDATE chat_sessions SET state = CASE WHEN state IN ('SAFETY','IN_PROGRESS') THEN state ELSE 'RECOMMENDED' END
+     WHERE id = $1 RETURNING state`,
+    [sessionId],
+  );
+  if (now?.state === 'SAFETY') return { status: 403, body: { blocked: true, state: 'SAFETY' } };
   // center는 지도 미리보기용으로 돌려줄 뿐, 저장하지 않는다
   return { status: 200, body: { items: finalizePicks(candidates, out?.picks ?? null, exclude), center, ...(out ? {} : { fallback: true }) } };
 }

@@ -1,5 +1,5 @@
 import { config, type Tier } from '../config.js';
-import { query, tx } from '../db.js';
+import { query, toId, tx } from '../db.js';
 import { haversineM, validLatLng, type LatLng } from '../geo.js';
 import { GrowthService } from './growth.js';
 
@@ -11,7 +11,7 @@ const expireSql = `UPDATE activity_runs SET status = 'EXPIRED', start_lat = NULL
 
 export async function startRun(body: { sessionId?: unknown; templateId?: unknown; lat?: unknown; lng?: unknown }) {
   const [s] = await query(`SELECT state FROM chat_sessions WHERE id = $1 AND user_id = $2`, [
-    Number.isInteger(body.sessionId) ? body.sessionId : -1,
+    toId(body.sessionId),
     config.USER_ID,
   ]);
   if (!s) return fail(404, '세션을 찾을 수 없어.');
@@ -32,7 +32,7 @@ export async function startRun(body: { sessionId?: unknown; templateId?: unknown
      VALUES ($1,$2,$3, now() + make_interval(mins => $4), $5, $6) RETURNING id, expires_at`,
     [body.sessionId, t.id, t.place_id, config.RUN_TTL_MIN, start?.lat ?? null, start?.lng ?? null],
   );
-  await query(`UPDATE chat_sessions SET state = 'IN_PROGRESS' WHERE id = $1`, [body.sessionId]);
+  await query(`UPDATE chat_sessions SET state = 'IN_PROGRESS' WHERE id = $1 AND state <> 'SAFETY'`, [body.sessionId]);
   return { status: 200, body: { runId: run.id, expiresAt: run.expires_at } };
 }
 
@@ -60,7 +60,7 @@ export function checkVerification(
 
 export async function verifyRun(runId: number, body: { method?: unknown; lat?: unknown; lng?: unknown; photo?: unknown }) {
   const [run] = await query(
-    `SELECT r.id, r.session_id, r.status, r.expires_at < now() AS expired, r.start_lat, r.start_lng, r.place_id,
+    `SELECT r.id, r.session_id, s.state AS session_state, r.status, r.expires_at < now() AS expired, r.start_lat, r.start_lng, r.place_id,
             t.tier, t.exp, t.title, p.lat AS place_lat, p.lng AS place_lng
      FROM activity_runs r JOIN activity_templates t ON t.id = r.template_id
      JOIN chat_sessions s ON s.id = r.session_id LEFT JOIN places p ON p.id = r.place_id
@@ -68,6 +68,8 @@ export async function verifyRun(runId: number, body: { method?: unknown; lat?: u
     [runId, config.USER_ID],
   );
   if (!run) return fail(404, '그런 활동은 없어.');
+  // 안전 모드에서는 게임 요소(인증·경험치)를 모두 멈춘다
+  if (run.session_state === 'SAFETY') return { status: 403, body: { blocked: true, state: 'SAFETY' } };
   if (run.status === 'DONE') return { status: 200, body: { verified: true, already: true, ...NO_GAIN } };
   if (run.status === 'EXPIRED' || run.expired) {
     await query(`${expireSql} WHERE id = $1 AND status <> 'DONE'`, [runId]);
@@ -102,18 +104,17 @@ export async function verifyRun(runId: number, body: { method?: unknown; lat?: u
     const g = await GrowthService.grant(q, config.USER_ID, { tier: run.tier, exp: run.exp, placeId: run.place_id, title: run.title });
     await q(`UPDATE activity_runs SET exp_gained = $2 WHERE id = $1`, [runId, g.expGained]);
     await q(`INSERT INTO verifications(run_id, method, status) VALUES ($1,$2,'VERIFIED')`, [runId, method]);
-    await q(`UPDATE chat_sessions SET state = 'REWARDED' WHERE id = $1`, [run.session_id]);
+    await q(`UPDATE chat_sessions SET state = 'REWARDED' WHERE id = $1 AND state <> 'SAFETY'`, [run.session_id]);
     return g;
   });
   return { status: 200, body: { verified: true, ...result } };
 }
 
+/** 시간이 지난 활동을 닫고 시작 좌표를 지운다. 서버가 주기적으로 부른다. */
+export const sweepExpired = () => query(`${expireSql} WHERE status = 'IN_PROGRESS' AND expires_at < now()`);
+
 export async function listRuns() {
-  await query(
-    `${expireSql} WHERE status = 'IN_PROGRESS' AND expires_at < now()
-       AND session_id IN (SELECT id FROM chat_sessions WHERE user_id = $1)`,
-    [config.USER_ID],
-  );
+  await sweepExpired();
   const rows = await query(
     `SELECT r.id AS "runId", r.status, r.template_id AS "templateId", t.title, t.tier, t.minutes, t.exp,
             r.exp_gained AS "expGained", r.expires_at AS "expiresAt", r.completed_at AS "completedAt",

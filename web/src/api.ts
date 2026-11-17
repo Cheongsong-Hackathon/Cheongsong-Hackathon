@@ -47,6 +47,7 @@ export type VerifyResult = {
   reason?: string;
   note?: string;
   expired?: boolean;
+  blocked?: boolean;
   error?: string;
 };
 
@@ -68,6 +69,7 @@ export const api = {
   chat: (sessionId: number | null, message: string) =>
     call<{ sessionId: number | null; reply: string; state: string; energy?: string; risk: string; quickReplies?: string[]; readyToRecommend?: boolean }>(
       'POST', '/chat', { sessionId, message }),
+  session: (sessionId: number) => call<{ state?: string }>('GET', `/sessions/${sessionId}`),
   resume: (sessionId: number) => call<{ state: string }>('POST', `/sessions/${sessionId}/resume`),
   recommend: (sessionId: number, pos: LatLng | null, exclude: string[]) =>
     call<{ items?: Item[]; center?: LatLng | null; blocked?: boolean }>('POST', '/recommend', { sessionId, ...pos, exclude }),

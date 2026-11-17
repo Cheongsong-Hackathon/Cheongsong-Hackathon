@@ -83,6 +83,26 @@ const sRec = await api('POST', '/recommend', { sessionId: s1.json.sessionId });
 check('안전 모드에서는 추천이 막힌다 (403)', sRec.status === 403 && !sRec.json.items, sRec.json);
 const sRun = await api('POST', '/runs', { sessionId: s1.json.sessionId, templateId: 'home-water' });
 check('안전 모드에서는 활동 시작도 막힌다', sRun.status === 403, sRun.json);
+// 활동을 하던 중에 위기 신호가 나온 경우: 인증·경험치도 멈춘다
+const mid = await api('POST', '/chat', { message: '나갈 힘 있어' });
+const midRun = await api('POST', '/runs', { sessionId: mid.json.sessionId, templateId: 'home-window' });
+await api('POST', '/chat', { sessionId: mid.json.sessionId, message: '사실 자해 생각이 나' });
+const before = (await api('GET', '/character')).json.exp;
+const midV = await api('POST', `/runs/${midRun.json.runId}/verify`, {});
+const midState = await api('GET', `/sessions/${mid.json.sessionId}`);
+check(
+  '진행 중이던 활동도 안전 모드에서는 인증되지 않는다',
+  midV.status === 403 && (await api('GET', '/character')).json.exp === before && midState.json.state === 'SAFETY',
+  [midV.json, midState.json],
+);
+const bad = await Promise.all([
+  api('POST', '/runs/abc/verify', {}),
+  api('POST', '/runs/99999999999/verify', {}),
+  api('POST', '/recommend', { sessionId: 1e12 }),
+  api('POST', '/sessions/1.5/resume'),
+  api('POST', '/rewards/x/redeem'),
+]);
+check('이상한 id는 5xx 없이 처리', bad.every((b) => b.status < 500), bad.map((b) => b.status));
 const s2 = await api('POST', '/chat', { sessionId: s1.json.sessionId, message: '음' });
 check('안전 모드는 유지된다', s2.json.state === 'SAFETY', s2.json);
 const resume = await api('POST', `/sessions/${s1.json.sessionId}/resume`);

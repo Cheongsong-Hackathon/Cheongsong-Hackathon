@@ -1,9 +1,9 @@
 // Controller: 라우터 6개 (chat, recommend, runs, character, rewards, partners)
 import { Router } from 'express';
 import { config } from './config.js';
-import { query } from './db.js';
+import { query, toId } from './db.js';
 import { validLatLng } from './geo.js';
-import { handleChat, resumeSession } from './services/chat.js';
+import { handleChat, resumeSession, sessionState } from './services/chat.js';
 import { stageOf, todayExpSql } from './services/growth.js';
 import { llmCallCount } from './services/llm.js';
 import { placeRepo } from './services/places.js';
@@ -17,7 +17,12 @@ chat.post('/chat', async (req, res) => {
   if (!message) return res.status(400).json({ error: '메시지를 적어 줘.' });
   res.json(await handleChat(req.body.sessionId, message));
 });
-chat.post('/sessions/:id/resume', async (req, res) => res.json(await resumeSession(Number(req.params.id))));
+chat.post('/sessions/:id/resume', async (req, res) => res.json(await resumeSession(toId(req.params.id))));
+// 새로고침해도 안전 모드가 풀리지 않게 화면이 세션 상태를 다시 읽는다
+chat.get('/sessions/:id', async (req, res) => {
+  const s = await sessionState(toId(req.params.id));
+  s ? res.json(s) : res.status(404).json({ error: '세션을 찾을 수 없어.' });
+});
 
 export const recommendRouter = Router();
 recommendRouter.post('/recommend', async (req, res) => {
@@ -25,7 +30,7 @@ recommendRouter.post('/recommend', async (req, res) => {
   // DEMO_MODE에서는 현재 위치를 DEMO_CENTER로 간주한다 (실내 시연)
   const center = config.demoMode ? config.demoCenter : validLatLng(lat, lng);
   const r = await recommend(
-    Number.isInteger(sessionId) ? sessionId : -1,
+    toId(sessionId),
     center,
     Array.isArray(exclude) ? exclude.filter((x) => typeof x === 'string').slice(0, 50) : [],
   );
@@ -39,7 +44,7 @@ runs.post('/runs', async (req, res) => {
   res.status(r.status).json(r.body);
 });
 runs.post('/runs/:id/verify', async (req, res) => {
-  const r = await verifyRun(Number(req.params.id) || -1, req.body ?? {});
+  const r = await verifyRun(toId(req.params.id), req.body ?? {});
   res.status(r.status).json(r.body);
 });
 
@@ -74,7 +79,7 @@ rewards.get('/rewards', async (_req, res) =>
 );
 rewards.post('/rewards/:id/redeem', async (req, res) => {
   const [r] = await query(`UPDATE rewards SET used = true WHERE id = $1 AND user_id = $2 RETURNING id, code, used`, [
-    Number(req.params.id) || -1,
+    toId(req.params.id),
     config.USER_ID,
   ]);
   r ? res.json(r) : res.status(404).json({ error: '그런 쿠폰은 없어.' });

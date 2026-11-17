@@ -27,6 +27,15 @@ test('SafetyGuard: 위기 키워드는 잡고 관용구는 통과', () => {
   assert.equal(SafetyGuard.check('오늘 좀 심심해'), false);
 });
 
+test('LLM의 CRISIS 판단은 다른 필드가 어긋나도 잃지 않는다', async () => {
+  const { ChatOut } = await import('../src/services/chat.js');
+  assert.equal(ChatOut.parse({ reply: '', risk: 'crisis', mood: 3 }).risk, 'CRISIS');
+  assert.equal(ChatOut.parse({ risk: ' CRISIS ', budget: '많이' }).risk, 'CRISIS');
+  assert.equal(ChatOut.parse({ reply: '응', risk: 'NONE' }).energy, 'UNKNOWN');
+  const { toId } = await import('../src/db.js');
+  assert.deepEqual([5, '7', 'abc', 1.5, 1e12, -1, null].map(toId), [5, 7, -1, -1, -1, -1, -1]);
+});
+
 test('extractJson: 설명과 코드펜스가 붙어도 꺼낸다', () => {
   assert.deepEqual(extractJson('알겠어!\n```json\n{"a":1,"s":"}{"}\n```\n끝'), { a: 1, s: '}{' });
   assert.throws(() => extractJson('JSON 아님'));

@@ -55,7 +55,7 @@ export function RunSheet(p: { run: Run; demo: boolean; onClose: () => void; onDo
     const pos = run.tier !== 'HOME' && !p.demo ? await getPos() : null;
     const r = await api.verify(run.runId, { ...pos, ...(photo ? { photo } : {}) });
     setBusy(false);
-    if (r.verified || r.expired) return p.onDone(r);
+    if (r.verified || r.expired || r.blocked) return p.onDone(r);
     setMsg(r.reason ?? r.error ?? '확인하지 못했어. 다시 해 볼래?');
   }
 
