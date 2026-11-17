@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { won, type Booking, type Character, type Growth, type Item, type Records as RecordsData } from './api';
+import { useEffect, useState, type ReactNode } from 'react';
+import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
 import Arrival from './Arrival';
@@ -9,7 +9,7 @@ import { useOutfit } from './Outfit';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장·가격·예약은 가상입니다</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장 이름·위치만 실제이고, 제휴·가격·예약은 예시예요</p>;
 
 function Logo() {
   return (
@@ -199,7 +199,10 @@ function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; c
   );
 }
 
-export function Recs(p: { items: Item[]; widened: boolean; busy: boolean; onPick: (i: Item) => void; onMore: () => void; onBack: () => void }) {
+// 무료 장소 카드 그림: 체험 그림 중 비슷한 것을 빌려 쓴다
+const FREE_ART: Record<string, string> = { 카페: 'tea', 도서관: 'book', 공원: 'meditation' };
+
+export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy: boolean; onPick: (i: Item) => void; onMore: () => void; onBack: () => void }) {
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
@@ -207,24 +210,51 @@ export function Recs(p: { items: Item[]; widened: boolean; busy: boolean; onPick
         지금 너에게 어울리는 경험<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       {p.widened && <p className="notice">딱 맞는 게 부족해서 조건을 조금 넓혔어.</p>}
-      {!p.items.length && <div className="card soft">
+      {!p.items.length && !p.free.length && <div className="card soft">
         <Bunny size={90} peek />
         <strong>지금 조건에 맞는 체험이 없어.</strong>
         <p className="small mute">조건이나 기준 주소를 바꿔서 다시 찾아보자.</p>
         <button className="btn ghost" onClick={p.onBack}>홈으로 돌아가기</button>
       </div>}
       {p.busy && <LoadState loading message="어울리는 경험을 찾고 있어. 잠깐만 기다려 줘…" />}
+      {!p.items.length && p.free.length > 0 && <p className="notice">근처에 아직 제휴 매장이 없어서, 지금 바로 갈 수 있는 곳을 골라 봤어.</p>}
       <div className="list">
         {p.items.map((i) => (
           <ExpCard key={i.id} item={i} onPick={() => p.onPick(i)}>
+            {i.surprise && <span className="surprise-tag">✦ 평소와 다른 하나</span>}
             {i.reason && <span className="reason">“{i.reason}”</span>}
           </ExpCard>
         ))}
       </div>
-      <button className="btn ghost" disabled={p.busy} onClick={p.onMore}>
-        {p.busy ? '찾는 중…' : '다른 경험 보기'}
-      </button>
-      <p className="small center mute">가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요.</p>
+      {p.items.length > 0 && (
+        <button className="btn ghost" disabled={p.busy} onClick={p.onMore}>
+          {p.busy ? '찾는 중…' : '다른 경험 보기'}
+        </button>
+      )}
+      {p.free.length > 0 && (
+        <>
+          <h2 className="label">돈 안 드는 곳</h2>
+          <div className="list">
+            {p.free.map((f) => (
+              <a key={f.id} className="card exp" href={f.url} target="_blank" rel="noreferrer">
+                <Art category={FREE_ART[f.kind] ?? 'book'} className="thumb" />
+                <span className="exp-body">
+                  <strong>{f.name}</strong>
+                  <span className="meta">
+                    {f.kind} · 도보 {f.walkMinutes}분
+                  </span>
+                  <span className="price">무료 · 길 안내 ›</span>
+                  <span className="reason">“{f.reason}”</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+      <p className="small center mute">
+        {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
+        {p.free.length > 0 && '돈 안 드는 곳은 카카오맵 장소 정보예요.'}
+      </p>
     </div>
   );
 }
@@ -401,6 +431,38 @@ function Face({ mood }: { mood: number | null }) {
   );
 }
 
+/** 토끼가 기억하는 것: AI가 대화에서 뽑아 둔 사실. 몰래 기억하지 않도록 보여 주고, 하나씩 지울 수 있게 한다. */
+function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
+  const [mems, setMems] = useState<Memory[] | null>(null);
+  useEffect(() => {
+    api.memories().then((r) => setMems(r.items ?? []));
+  }, [reloadKey]);
+  return (
+    <div className="card">
+      <span className="eyebrow">토끼가 기억하는 너</span>
+      {mems === null && <span className="meta">불러오는 중…</span>}
+      {mems?.length === 0 && <span className="meta">이야기를 나누다 보면 토끼가 조금씩 기억해 둘게.</span>}
+      {mems?.map((m) => (
+        <span key={m.id} className="meta mem">
+          <span>
+            <b className="mem-kind">{m.kind}</b> {m.text}
+          </span>
+          <button
+            className="mem-del"
+            aria-label={`"${m.text}" 기억 지우기`}
+            onClick={async () => {
+              const r = await api.deleteMemory(m.id);
+              if (r.code === 200) setMems((xs) => xs?.filter((x) => x.id !== m.id) ?? null);
+            }}
+          >
+            지우기
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function Records(p: { ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
   const { scarf } = useOutfit();
   const { expression, setExpression } = useCharacterExpression();
@@ -452,6 +514,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
           ))}
         </div>
       </div>
+      <MemoryCard reloadKey={p.data} />
       <div className="card">
         <span className="eyebrow">토끼 꾸미기</span>
         <h2 className="label">표정 고르기</h2>
@@ -508,7 +571,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
       {askDelete ? (
         <div className="card soft">
           <strong>기록을 모두 지울까?</strong>
-          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화가 지워져. 토끼 성장은 그대로야.</span>
+          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화, 토끼가 기억하는 것이 지워져. 토끼 성장은 그대로야.</span>
           <div className="row two">
             <button className="btn ghost" onClick={() => setAskDelete(false)}>
               그만두기

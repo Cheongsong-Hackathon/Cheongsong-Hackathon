@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, getPos, type Booking, type Character, type Item, type LatLng, type Records as RecordsData } from './api';
+import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import Launcher from './Launcher';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
@@ -104,7 +104,7 @@ export default function App() {
   const [exploreError, setExploreError] = useState('');
   const [checkin, setCheckin] = useState<{ id: number | null; reply: string; suggestPostpone: boolean } | null>(null);
   const [cond, setCond] = useState<Conditions | null>(null);
-  const [recs, setRecs] = useState<{ items: Item[]; widened: boolean; seen: string[] } | null>(null);
+  const [recs, setRecs] = useState<{ items: Item[]; free: FreeRec[]; widened: boolean; seen: string[] } | null>(null);
   const [confirm, setConfirm] = useState<Item | null>(null);
   const [requested, setRequested] = useState<Booking | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -213,10 +213,12 @@ export default function App() {
     const r = await api.recommend({ checkinId: checkin.id, ...c, exclude: seen, ...(await position()) });
     setBusy(false);
     if (r.blocked) return enterSafety();
-    if (r.code !== 200 || !r.items) return notify(r.error ?? '추천을 불러오지 못했어. 다시 눌러 줘.');
+    if (r.code !== 200) return notify(r.error ?? '지금은 고르기가 어렵네. 조금 있다가 다시 해 줘.');
+    const items = r.items ?? [];
+    const free = r.free ?? [];
     setCond(c);
     setSheet(null);
-    setRecs({ items: r.items, widened: !!r.widened, seen: [...seen, ...r.items.map((i) => i.id)] });
+    setRecs({ items, free, widened: !!r.widened, seen: [...seen, ...items.map((i) => i.id)] });
   }
 
   async function book(item: Item, slot: string) {
@@ -291,7 +293,7 @@ export default function App() {
   ) : confirm ? (
     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot)} />
   ) : recs ? (
-    <Recs items={recs.items} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
+    <Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
   ) : (
     <Home
       ch={ch}

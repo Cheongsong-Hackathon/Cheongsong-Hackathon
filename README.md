@@ -4,7 +4,7 @@
 
 - `server/` — Express + TypeScript + PostgreSQL. API와 `web/` 빌드 결과를 함께 서빙
 - `web/` — React + Vite 모바일 웹 (항상 휴대폰 테두리 안에 표시)
-- 체험 모드: 매장·가격·예약은 가상이고, 실결제는 없습니다
+- 체험 모드: 제휴 매장은 영남대 주변 실제 매장의 이름·위치를 빌려 왔고, 제휴 여부·가격·시간·예약은 예시입니다. 실결제는 없습니다
 
 ## 화면 흐름
 
@@ -30,7 +30,7 @@ docker compose up -d db              # PostgreSQL (localhost:5433)
 
 cd server && npm install
 npm run migrate                      # 테이블 생성 (server/schema.sql)
-npm run seed                         # 모든 데이터를 지우고 seed(가상 매장 8곳, 체험 12개)를 다시 넣음
+npm run seed                         # 모든 데이터를 지우고 seed(영남대 주변 매장 10곳, 체험 10개)를 다시 넣음
 
 cd ../web && npm install && npm run build
 cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
@@ -46,10 +46,11 @@ cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
 | --- | --- |
 | `PORT` | 서버 포트 (기본 3000) |
 | `DATABASE_URL` | PostgreSQL 주소. 클라우드 DB는 보통 끝에 `?sslmode=require` |
-| `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, 내 위치 주변에 매장이 없으면 `DEMO_CENTER` 기준으로 추천. `/api/demo/reset` 열림 |
-| `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 바꾸면 `npm run seed`를 다시 |
+| `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, "도착했어"의 거리를 따지지 않음. `/api/demo/reset` 열림 |
+| `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 위치가 있으면 추천은 항상 그 위치 기준(주변에 제휴 매장이 없으면 무료 장소만). 바꾸면 `npm run seed`를 다시 |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | 주 LLM (OpenAI 호환 API) |
 | `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM. 비우면 사용 안 함 |
+| `RESET_TOKEN` | 시연 초기화(`/api/demo/reset`, `npm run smoke`) 비밀 값. 비우면 서버 컴퓨터 자신(localhost)에서만 초기화 가능. **배포 서버에는 꼭 넣기** |
 | `KAKAO_REST_API_KEY` | 카카오 로컬 REST API 키. 무료 장소 검색과 주소 → 좌표. 비우면 두 기능만 꺼짐 |
 
 API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 커밋하지 않습니다.
@@ -58,10 +59,12 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 
 | 공급자 | `LLM_BASE_URL` | `LLM_MODEL` 예 |
 | --- | --- | --- |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-flash-lite` (2026-11 기준) |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 
-모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요.
+모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요. 모델이 종료되면 404 "no longer available"이 나고 모든 답이 기본 답장으로 바뀝니다. 지금 쓸 수 있는 이름은 `GET {LLM_BASE_URL}/models`(키 필요)로 볼 수 있습니다.
+
+서버를 켜면 AI를 한 번 미리 불러 둡니다(첫 호출이 8초를 넘기곤 해서). 로그에 `[llm] 준비 완료`가 나오면 정상, `준비 호출 실패`가 나오면 모델 이름과 키를 확인하세요.
 
 동작 순서: 주 공급자 → (429·타임아웃·오류) 예비 공급자 → 기본 답장. 전체 8초를 넘기면 기본 답장으로 넘어갑니다. LLM은 세 곳에만 씁니다: 마음 확인의 공감 한마디, 추천 순서와 이유, 속마음 대화. 가격·시간·장소는 AI가 만들지 않고 체험 DB 값만 보여 줍니다.
 
@@ -75,14 +78,22 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 [llm] 2026-11-20 #14 fallback ok 610ms
 ```
 
-`GET /api/health`에서도 오늘 집계를 볼 수 있습니다. 서버를 다시 시작하면 0부터 셉니다.
+`GET /api/health`에서도 지금 쓰는 모델(`llm.model`, 키가 없으면 `null`)과 오늘 집계를 볼 수 있습니다. 배포 서버는 `https://blackapple.store/api/health`. 서버를 다시 시작하면 0부터 셉니다.
+
+## 토끼의 기억 (개인화)
+
+- 마음 확인과 속마음 대화가 끝나면, 응답과 따로 AI가 "다음에 도움이 될 사실"을 뽑아 `memories` 테이블에 저장합니다. 종류는 취향·상황·사건이고, 사용자당 최대 20개입니다 (`server/src/services/memory.ts`).
+- 다음 마음 확인·추천·속마음에는 이 기억과 "다녀온 체험의 기분 변화(예: 도자기 4 → 8)"를 함께 넣습니다. 그래서 토끼가 "지난번 도자기 하고 기분이 8까지 올랐으니"처럼 말합니다.
+- 무엇을 기억할지는 AI가 정하고, 안전장치는 코드가 정합니다. 위기·건강·연락처는 저장하지 않고, 사건 기억은 AI가 지우지 못하며(사용자만), 기록 탭에서 하나씩 지우거나 "모두 지우기"로 함께 지울 수 있습니다.
+- 추천 끝에는 "평소와 다른 하나"를 섞습니다. 오늘 감정에 어울리지 않고 다녀온 적 없는 종류 중에서 무작위로 고르고, 예산·시간은 지킵니다. 에너지 20% 이하인 날에는 넣지 않습니다.
+- **시연:** 주소 끝에 `?demo`를 붙여 열면 일주일 남짓 써 온 시연용 사용자가 됩니다 (기록·기억이 미리 들어 있음, `npm run seed`나 초기화 때 다시 만들어짐). 원래 사용자로 돌아가려면 브라우저 사이트 데이터를 지우세요.
 
 ## 시연 전 확인
 
 ```bash
 cd server
 npm run smoke                                   # 로컬 서버 (.env의 PORT)
-BASE_URL=https://배포주소 npm run smoke          # 배포 서버  (PowerShell: $env:BASE_URL='https://...'; npm run smoke)
+BASE_URL=https://배포주소 RESET_TOKEN=서버와같은값 npm run smoke   # 배포 서버  (PowerShell: $env:BASE_URL='https://...'; $env:RESET_TOKEN='...'; npm run smoke)
 ```
 
 "마음 확인 → 조건 → 추천 → 예약 요청 → 기분 기록 → 성장"과 "위기 표현 → 안전 모드"를 API로 한 번에 돌리고 단계마다 ✓/✗를 찍습니다. **모든 사용자의 데이터를 초기화하므로** `DEMO_MODE=true` 서버에서만 동작하고, 끝나면 깨끗한 상태로 되돌려 놓습니다. 팀원들이 쓰고 있는 배포 서버에서 돌리면 그 사람들의 기록과 토끼도 지워집니다.
@@ -119,7 +130,7 @@ docker run -p 3000:3000 --env-file .env -e DATABASE_URL=postgres://... moodpass
 server/schema.sql            테이블: users, characters, places, partners, experiences, experience_slots,
                              checkins, bookings, postpones, chat_sessions, messages
 server/src/config.ts         환경 변수 + 숫자 설정값 (반경, 도보 속도, 경험치, 단계 기준 등)
-server/src/setup.ts          migrate, seed (가상 제휴 매장·체험·시간대)
+server/src/setup.ts          migrate, seed (제휴 매장·체험·시간대, 체험 모드)
 server/src/routes.ts         API
 server/src/services/
   checkin.ts                 01 마음 확인 (위기 감지 → 공감 한마디)
@@ -141,7 +152,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | | |
 | --- | --- |
 | `POST /api/checkin` | `{text, emotion, energy, mood}` → `{checkinId, reply, suggestPostpone}` |
-| `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items(2~5개), widened}` |
+| `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items, free, widened}`. `items`: 위치 주변 제휴 매장 체험(많아도 5개, 없으면 빈 배열), `free`: 같은 위치의 무료 장소(도보 조건 안, 종류별 가장 가까운 곳) |
 | `GET /api/experiences` | 전체 체험 (도보 분 포함) |
 | `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 예약 요청 (가격은 DB 값) |
 | `GET /api/bookings/active` | 진행 중인 예약 요청 (`arrivedAt`: 도착 확인 시각) |
@@ -151,6 +162,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | `POST /api/bookings/:id/complete` | `{moodAfter}` → 체험 전/후, 경험치, 새 아이템 |
 | `POST /api/bookings/:id/cancel` | 예약 요청 취소 |
 | `POST /api/postpone` | `{task}` → 오늘 할 일 하나 미루기 |
+| `GET /api/memories`, `DELETE /api/memories/:id` | 토끼가 기억하는 것 보기, 하나씩 지우기 |
 | `GET/DELETE /api/records` | 기록 조회 / 모두 지우기 (성장은 유지) |
 | `GET /api/character`, `POST /api/character/equip` | 캐릭터, 꾸미기 |
 | `POST /api/chat` | 속마음 대화 |
@@ -166,3 +178,5 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 - 경험치와 단계는 줄지 않습니다. 쉬는 날 불이익이나 강제 알림이 없습니다.
 - 기록은 비공개이고, "내 기록 모두 지우기"를 제공합니다.
 - LLM이나 DB가 실패해도 기본 응답으로 화면이 이어집니다.
+- 요청 수 제한 (1분에): 전체 API는 IP당 300번, AI를 부르는 마음 확인·추천·속마음은 IP당 60번·사용자당 20번. 넘으면 429와 "조금 천천히 해 줘". 위기 표현이 담긴 요청은 제한하지 않습니다. 숫자는 `config.ts`
+- 시연 초기화는 `RESET_TOKEN`을 아는 사람만 (없으면 서버 컴퓨터 자신만) 할 수 있습니다.

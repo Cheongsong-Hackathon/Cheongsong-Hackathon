@@ -3,7 +3,9 @@ import { Router, type Response } from 'express';
 import { config } from './config.js';
 import { query, toId } from './db.js';
 import { validLatLng } from './geo.js';
+import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
+import { deleteMemory, listMemories } from './services/memory.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
 import { handleChat } from './services/chat.js';
 import { handleCheckin } from './services/checkin.js';
@@ -19,9 +21,11 @@ export const api = Router();
 
 // ---- 사용자 없이 쓰는 것 ----
 api.get('/health', (_req, res) => res.json({ ok: true, demoMode: config.demoMode, llm: llmCallCount() }));
-// 시연 리허설용 초기화. DEMO_MODE에서만 열린다. 모든 사용자의 데이터가 지워진다.
-api.post('/demo/reset', async (_req, res) => {
+// 시연 리허설용 초기화. DEMO_MODE에서만 열린다. 모든 사용자의 데이터가 지워지므로
+// RESET_TOKEN을 아는 사람(또는 서버 컴퓨터 자신)만 쓸 수 있다.
+api.post('/demo/reset', async (req, res) => {
   if (!config.demoMode) return res.status(404).end();
+  if (!resetAllowed(req, config.resetToken)) return res.status(403).json({ error: '초기화 권한이 없어.' });
   await seed();
   res.json({ ok: true });
 });
@@ -44,10 +48,13 @@ api.use(async (req, res, next) => {
 });
 const uid = (res: Response) => res.locals.userId as number;
 
+// AI를 부르는 요청은 IP와 사용자 키 양쪽으로 횟수를 제한한다 (무료 LLM 사용량 보호)
+const aiLimit = [rateLimit('ai-ip', config.RATE_AI_PER_IP, byIp), rateLimit('ai-user', config.RATE_AI_PER_USER, byUserKey)];
+
 // 01 마음 확인
-api.post('/checkin', async (req, res) => res.json(await handleCheckin(uid(res), req.body)));
+api.post('/checkin', ...aiLimit, async (req, res) => res.json(await handleCheckin(uid(res), req.body)));
 // 02 조건 확인 + 03 경험 추천
-api.post('/recommend', async (req, res) => send(res, await recommend(uid(res), req.body)));
+api.post('/recommend', ...aiLimit, async (req, res) => send(res, await recommend(uid(res), req.body)));
 
 // 체험 탭: 제휴 매장의 전체 체험
 api.get('/experiences', async (req, res) => {
@@ -86,6 +93,12 @@ api.post('/postpone', async (req, res) => send(res, await postpone(uid(res), req
 api.get('/records', async (_req, res) => res.json(await records(uid(res))));
 api.delete('/records', async (_req, res) => res.json(await deleteRecords(uid(res))));
 
+// 토끼가 기억하는 것: 보기, 하나씩 지우기 (모두 지우기는 DELETE /records에 포함)
+api.get('/memories', async (_req, res) => res.json({ items: await listMemories(uid(res)) }));
+api.delete('/memories/:id', async (req, res) =>
+  (await deleteMemory(uid(res), toId(req.params.id))) ? res.json({ deleted: true }) : res.status(404).json({ error: '그런 기억은 없어.' }),
+);
+
 // 캐릭터
 api.get('/character', async (_req, res) => {
   const [c] = await query(
@@ -112,7 +125,7 @@ api.post('/character/equip', async (req, res) => {
 });
 
 // 선택형 속마음 대화
-api.post('/chat', async (req, res) => {
+api.post('/chat', ...aiLimit, async (req, res) => {
   const message = typeof req.body?.message === 'string' ? req.body.message.trim().slice(0, 500) : '';
   if (!message) return res.status(400).json({ error: '메시지를 적어 줘.' });
   res.json(await handleChat(uid(res), req.body.sessionId, message));

@@ -324,3 +324,15 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
   .thumb.sm { width: 56px; height: 52px; }
 }
 
+
+/* 무료 장소 카드는 카카오맵 링크(a)라서 기본 링크 색·밑줄을 지운다 */
+a.card { color: inherit; text-decoration: none; }
+
+/* 추천 끝의 "평소와 다른 하나" */
+.surprise-tag { align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--purple-d); background: var(--lav); border-radius: 999px; padding: 2px 8px; }
+
+/* 토끼가 기억하는 너 */
+.mem { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mem-kind { font-weight: 600; color: var(--purple); margin-right: 4px; }
+.mem-del { border: 0; background: none; color: var(--mute); font-size: 12px; cursor: pointer; white-space: nowrap; padding: 4px; }
+

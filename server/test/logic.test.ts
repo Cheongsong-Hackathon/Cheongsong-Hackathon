@@ -6,7 +6,7 @@ import { callJson, extractJson, FallbackClient, type LLMClient } from '../src/se
 import type { Place } from '../src/services/places.js';
 import { parseCheckin } from '../src/services/checkin.js';
 import { addMinutes, availableSlots, filterExperiences, finalizePicks, toCandidates, walkMinutes, type Candidate, type Experience } from '../src/services/recommend.js';
-import { toFreePlace } from '../src/services/kakao.js';
+import { pickFree, toFreePlace, type FreePlace } from '../src/services/kakao.js';
 import { SafetyGuard } from '../src/services/safety.js';
 
 const fake = (name: string, ...outs: (string | Error)[]): LLMClient & { calls: number } => ({
@@ -24,6 +24,9 @@ test('SafetyGuard: 위기 키워드는 잡고 관용구는 통과', () => {
   assert.equal(SafetyGuard.check('그냥 죽고 싶어'), true);
   assert.equal(SafetyGuard.check('죽고싶다'), true);
   assert.equal(SafetyGuard.check('다 사라지고 싶 어'), true);
+  assert.equal(SafetyGuard.check('사는 게 의미가 없는 것 같아'), true);
+  assert.equal(SafetyGuard.check('살 이유가 없어'), true);
+  assert.equal(SafetyGuard.check('이 과제는 의미가 없는 것 같아'), false);
   assert.equal(SafetyGuard.check('배고파 죽겠네'), false);
   assert.equal(SafetyGuard.check('오늘 좀 심심해'), false);
 });
@@ -186,4 +189,13 @@ test('카카오 결과 → 무료 장소: 키워드 검색에 섞인 주차장�
   assert.equal(toFreePlace('카페', cafe)?.kind, '카페');
   assert.equal(toFreePlace('공원', { ...park, distance: '' }), null);
   assert.equal(toFreePlace('공원', { ...park, y: 'x' }), null);
+});
+test('추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가장 가까운 곳 하나, 없으면 +10분까지', () => {
+  const fp = (kind: string, name: string, walkMinutes: number): FreePlace => ({ id: name, name, kind, distanceM: walkMinutes * 67, walkMinutes, lat: 0, lng: 0, address: '', url: '' });
+  const all = [fp('카페', '먼카페', 9), fp('카페', '가까운카페', 3), fp('공원', '공원', 18), fp('도서관', '도서관', 7)];
+  assert.deepEqual(pickFree(all, 10).map((p) => p.name), ['가까운카페', '도서관']);
+  assert.ok(pickFree(all, 10).every((p) => p.reason));
+  assert.deepEqual(pickFree([fp('공원', '공원', 18)], 10).map((p) => p.name), ['공원']); // 10분 안에 없으면 20분까지
+  assert.deepEqual(pickFree([fp('공원', '공원', 25)], 10), []);
+  assert.deepEqual(pickFree([], 20), []);
 });
