@@ -50,6 +50,7 @@ cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
 | `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 위치가 있으면 추천은 항상 그 위치 기준(주변에 제휴 매장이 없으면 무료 장소만). 바꾸면 `npm run seed`를 다시 |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | 주 LLM (OpenAI 호환 API) |
 | `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM. 비우면 사용 안 함 |
+| `RESET_TOKEN` | 시연 초기화(`/api/demo/reset`, `npm run smoke`) 비밀 값. 비우면 서버 컴퓨터 자신(localhost)에서만 초기화 가능. **배포 서버에는 꼭 넣기** |
 | `KAKAO_REST_API_KEY` | 카카오 로컬 REST API 키. 무료 장소 검색과 주소 → 좌표. 비우면 두 기능만 꺼짐 |
 
 API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 커밋하지 않습니다.
@@ -82,7 +83,7 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 ```bash
 cd server
 npm run smoke                                   # 로컬 서버 (.env의 PORT)
-BASE_URL=https://배포주소 npm run smoke          # 배포 서버  (PowerShell: $env:BASE_URL='https://...'; npm run smoke)
+BASE_URL=https://배포주소 RESET_TOKEN=서버와같은값 npm run smoke   # 배포 서버  (PowerShell: $env:BASE_URL='https://...'; $env:RESET_TOKEN='...'; npm run smoke)
 ```
 
 "마음 확인 → 조건 → 추천 → 예약 요청 → 기분 기록 → 성장"과 "위기 표현 → 안전 모드"를 API로 한 번에 돌리고 단계마다 ✓/✗를 찍습니다. **모든 사용자의 데이터를 초기화하므로** `DEMO_MODE=true` 서버에서만 동작하고, 끝나면 깨끗한 상태로 되돌려 놓습니다. 팀원들이 쓰고 있는 배포 서버에서 돌리면 그 사람들의 기록과 토끼도 지워집니다.
@@ -166,3 +167,5 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 - 경험치와 단계는 줄지 않습니다. 쉬는 날 불이익이나 강제 알림이 없습니다.
 - 기록은 비공개이고, "내 기록 모두 지우기"를 제공합니다.
 - LLM이나 DB가 실패해도 기본 응답으로 화면이 이어집니다.
+- 요청 수 제한 (1분에): 전체 API는 IP당 300번, AI를 부르는 마음 확인·추천·속마음은 IP당 60번·사용자당 20번. 넘으면 429와 "조금 천천히 해 줘". 위기 표현이 담긴 요청은 제한하지 않습니다. 숫자는 `config.ts`
+- 시연 초기화는 `RESET_TOKEN`을 아는 사람만 (없으면 서버 컴퓨터 자신만) 할 수 있습니다.

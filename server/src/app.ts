@@ -1,13 +1,19 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { config } from './config.js';
+import { byIp, rateLimit } from './limit.js';
 import { api } from './routes.js';
 import { DEFAULT_REPLY } from './services/chat.js';
 import { DEFAULT_CHECKIN_REPLY } from './services/checkin.js';
 import { SAFETY_REPLY, SafetyGuard } from './services/safety.js';
 
 export const app = express();
+// 배포에서는 Caddy 뒤에 있어서, 실제 접속자 IP는 Caddy가 붙여 준 X-Forwarded-For에서 읽는다 (요청 수 제한용)
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '100kb' }));
+// 사용자 키를 마구 만들어 DB를 채우는 것을 막는 전체 제한 (대회장처럼 여럿이 같은 와이파이를 써도 넉넉하게)
+app.use('/api', rateLimit('api', config.RATE_API_PER_IP, byIp));
 app.use('/api', api);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));
 
