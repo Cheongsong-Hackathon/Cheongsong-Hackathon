@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { config } from './config.js';
-import { query, tx } from './db.js';
+import { query, tx, type Q } from './db.js';
+import { mmdd } from './services/memory.js';
 
 export async function migrate() {
   await query(await readFile(new URL('../schema.sql', import.meta.url), 'utf8'));
@@ -40,7 +41,7 @@ const EXPERIENCES: [string, string, string, string, number, number, string[], nu
 export async function seed() {
   await tx(async (q) => {
     await q(`TRUNCATE users, characters, chat_sessions, messages, places, partners, experiences, experience_slots,
-             checkins, bookings, postpones RESTART IDENTITY CASCADE`);
+             checkins, bookings, postpones, memories RESTART IDENTITY CASCADE`);
     await q(`INSERT INTO users(nickname) VALUES ('테스트')`);
     await q(`INSERT INTO characters(user_id) VALUES ($1)`, [config.USER_ID]);
 
@@ -63,5 +64,47 @@ export async function seed() {
       );
       for (const s of slots) await q(`INSERT INTO experience_slots VALUES ($1,$2)`, [id, s]);
     }
+    await seedDemoUser(q);
   });
+}
+
+/** 시연용 사용자: 일주일 남짓 써 온 사람처럼 기록·기억을 미리 넣는다. 화면에서 `?demo`로 열면 이 사용자가 된다. */
+export const DEMO_USER_KEY = 'demo-moodpass';
+async function seedDemoUser(q: Q) {
+  const daysAgo = (n: number) => `now() - interval '${n} days'`; // n은 아래에 쓴 숫자만 (사용자 입력 아님)
+  const dayLabel = (n: number) => mmdd(new Date(Date.now() - n * 86_400_000));
+  const [{ id: uid }] = await q(`INSERT INTO users(nickname, client_key) VALUES ('시연', $1) RETURNING id`, [DEMO_USER_KEY]);
+  // 체험 2번(+20씩) + 미루기 1번(+5) = 45 → 2단계, 리본
+  await q(`INSERT INTO characters(user_id, level, exp, stage, items, equipped) VALUES ($1, 2, 45, 2, '["ribbon"]', 'ribbon')`, [uid]);
+
+  const checkin = async (n: number, text: string, emotion: string, energy: number, mood: number) =>
+    (await q(`INSERT INTO checkins(user_id, text, emotion, energy, mood_score, risk, created_at) VALUES ($1,$2,$3,$4,$5,'NONE',${daysAgo(n)}) RETURNING id`, [uid, text, emotion, energy, mood]))[0].id;
+  const done = async (n: number, ck: number, exp: string, slot: string, before: number, after: number) =>
+    q(
+      `INSERT INTO bookings(user_id, checkin_id, experience_id, slot_time, price, status, mood_before, mood_after, created_at, completed_at)
+       SELECT $1, $2, id, $3, price, 'DONE', $4, $5, ${daysAgo(n)}, ${daysAgo(n)} + interval '2 hours' FROM experiences WHERE id = $6`,
+      [uid, ck, slot, before, after, exp],
+    );
+  await done(6, await checkin(6, '과제 몰아서 하느라 머리가 터질 것 같아', '답답해', 50, 5), 'karaoke', '19:00', 5, 5);
+  await done(3, await checkin(3, '시험 공부만 하니까 너무 지쳐. 사람 많은 데는 싫어', '지쳤어', 35, 4), 'mini-pottery', '18:00', 4, 8);
+  await checkin(1, '기말고사 첫날 끝났어', '지쳤어', 30, 5);
+  await q(`INSERT INTO postpones(user_id, task, created_at) VALUES ($1, '동아리 회의록 정리', ${daysAgo(1)})`, [uid]);
+
+  const [{ id: sid }] = await q(`INSERT INTO chat_sessions(user_id, started_at) VALUES ($1, ${daysAgo(2)}) RETURNING id`, [uid]);
+  for (const [role, text] of [
+    ['user', '오늘 같이 공부하던 친구랑 말다툼했어'],
+    ['assistant', '같이 공부하던 친구랑 부딪혀서 마음이 많이 쓰였겠다. 무슨 일이 있었는지 천천히 말해 줘도 돼.'],
+    ['user', '시험 기간이라 다들 예민한 것 같아. 나도 조용히 혼자 있고 싶었고'],
+    ['assistant', '시험 기간엔 다들 날이 서 있지. 혼자 조용히 숨 돌릴 시간이 필요했던 거구나.'],
+  ])
+    await q(`INSERT INTO messages(session_id, role, text, created_at) VALUES ($1,$2,$3,${daysAgo(2)})`, [sid, role, text]);
+
+  for (const [n, kind, text] of [
+    [6, '취향', '손으로 만드는 활동을 좋아함'],
+    [3, '취향', '사람 많은 곳에 가면 금방 지침'],
+    [2, '취향', '힘들 땐 혼자 조용히 있고 싶어 함'],
+    [3, '상황', '이번 주 기말고사 기간'],
+    [2, '사건', `${dayLabel(2)} 같이 공부하던 친구와 말다툼`],
+  ] as const)
+    await q(`INSERT INTO memories(user_id, kind, text, created_at, updated_at) VALUES ($1,$2,$3,${daysAgo(n)},${daysAgo(n)})`, [uid, kind, text]);
 }

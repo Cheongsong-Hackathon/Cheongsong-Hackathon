@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config, EMOTIONS } from '../config.js';
 import { query } from '../db.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
+import { learnFromTurn, memoryContext } from './memory.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
 const REPLY_BY_EMOTION: Record<string, string> = {
@@ -52,7 +53,7 @@ export async function handleCheckin(userId: number, body: unknown, client = defa
     ? await callJson(
         client,
         BUNNY_PROMPT + CHECKIN_FORMAT,
-        `친구가 남긴 말: "${c.text}"\n고른 감정: ${c.emotion ?? '없음'}\n에너지: ${c.energy}%\n지금 기분 점수: ${c.mood}/10`,
+        `${await memoryContext(userId)}친구가 남긴 말: "${c.text}"\n고른 감정: ${c.emotion ?? '없음'}\n에너지: ${c.energy}%\n지금 기분 점수: ${c.mood}/10`,
         CheckinOut,
       )
     : null;
@@ -63,6 +64,7 @@ export async function handleCheckin(userId: number, body: unknown, client = defa
     `INSERT INTO checkins(user_id, text, emotion, energy, mood_score, risk) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
     [userId, c.text || null, c.emotion, c.energy, c.mood, out?.risk ?? 'NONE'],
   );
+  if (c.text) void learnFromTurn(userId, c.text, client); // 기억 갱신은 기다리지 않는다
   return {
     checkinId: row.id,
     reply,

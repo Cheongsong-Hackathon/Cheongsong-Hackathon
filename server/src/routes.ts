@@ -5,6 +5,7 @@ import { query, toId } from './db.js';
 import { validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
+import { deleteMemory, listMemories } from './services/memory.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
 import { handleChat } from './services/chat.js';
 import { handleCheckin } from './services/checkin.js';
@@ -91,6 +92,12 @@ api.post('/postpone', async (req, res) => send(res, await postpone(uid(res), req
 // 05 나의 기록
 api.get('/records', async (_req, res) => res.json(await records(uid(res))));
 api.delete('/records', async (_req, res) => res.json(await deleteRecords(uid(res))));
+
+// 토끼가 기억하는 것: 보기, 하나씩 지우기 (모두 지우기는 DELETE /records에 포함)
+api.get('/memories', async (_req, res) => res.json({ items: await listMemories(uid(res)) }));
+api.delete('/memories/:id', async (req, res) =>
+  (await deleteMemory(uid(res), toId(req.params.id))) ? res.json({ deleted: true }) : res.status(404).json({ error: '그런 기억은 없어.' }),
+);
 
 // 캐릭터
 api.get('/character', async (_req, res) => {

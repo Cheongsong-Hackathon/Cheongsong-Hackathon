@@ -41,6 +41,7 @@ export const config = {
   RATE_API_PER_IP: 300,
   RATE_AI_PER_IP: 60, // 대회장 와이파이처럼 여럿이 IP 하나를 같이 써도 버티게
   RATE_AI_PER_USER: 20,
+  MEMORY_MAX: 20, // 사용자당 기억 항목 수 (다 지시문에 들어가므로 많이 늘리지 않는다)
   LOW_ENERGY: 20, // 이 이하면 추천보다 "할 일 하나 미루기"를 먼저 권한다
   USER_ID: 1, // X-User-Key 없이 부를 때(curl 등) 쓰는 기본 사용자
 };

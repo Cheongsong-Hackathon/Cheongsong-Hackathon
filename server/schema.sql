@@ -105,6 +105,16 @@ CREATE TABLE IF NOT EXISTS bookings (
 -- "도착했어"를 GPS로 확인한 시각. 좌표는 저장하지 않는다.
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS arrived_at timestamptz;
 
+-- 토끼의 기억: AI가 대화·마음 확인에서 뽑은 사실 (위기·건강 정보는 저장하지 않음, 사용자가 지울 수 있음)
+CREATE TABLE IF NOT EXISTS memories (
+  id serial PRIMARY KEY,
+  user_id int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('취향','상황','사건')),
+  text text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- 오늘 할 일 하나 미루기
 CREATE TABLE IF NOT EXISTS postpones (
   id serial PRIMARY KEY,

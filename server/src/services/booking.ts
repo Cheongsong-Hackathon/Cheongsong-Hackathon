@@ -146,6 +146,7 @@ export async function deleteRecords(userId: number) {
     await q(`DELETE FROM postpones WHERE user_id = $1`, [userId]);
     await q(`DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = $1)`, [userId]);
     await q(`DELETE FROM chat_sessions WHERE user_id = $1`, [userId]);
+    await q(`DELETE FROM memories WHERE user_id = $1`, [userId]); // 토끼의 기억도 같이
   });
   return { deleted: true };
 }

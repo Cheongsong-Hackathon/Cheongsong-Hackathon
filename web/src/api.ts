@@ -13,6 +13,7 @@ export type Item = {
   availableSlots: string[];
   slots: string[];
   reason?: string;
+  surprise?: boolean; // "평소와 다른 하나": 맞춤 추천 끝에 일부러 섞은 다른 종류 (많아도 1개)
 };
 export type Booking = {
   id: number;
@@ -42,6 +43,7 @@ export type FreePlace = {
   url: string;
 };
 export type FreeRec = FreePlace & { reason: string };
+export type Memory = { id: number; kind: '취향' | '상황' | '사건'; text: string; updatedAt: string };
 export type Character = {
   level: number;
   exp: number;
@@ -70,6 +72,8 @@ const USER_KEY = (() => {
   // randomUUID는 HTTPS·localhost에서만 있어서 http://IP로 열 때를 위한 대체 키
   const make = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   try {
+    // 시연: 주소 끝에 ?demo를 붙여 열면 기록·기억이 미리 들어 있는 시연용 사용자가 된다 (서버 seed의 DEMO_USER_KEY)
+    if (new URLSearchParams(location.search).has('demo')) localStorage.setItem('moodpass-user', 'demo-moodpass');
     let k = localStorage.getItem('moodpass-user');
     if (!k) localStorage.setItem('moodpass-user', (k = make()));
     return k;
@@ -113,6 +117,9 @@ export const api = {
   postpone: (task: string) => call<Growth & { reply: string }>('POST', '/postpone', { task }),
   records: () => call<Records>('GET', '/records'),
   deleteRecords: () => call<{ deleted: boolean }>('DELETE', '/records'),
+  // 토끼가 기억하는 것 (AI가 대화·마음 확인에서 뽑아 둔 사실). 하나씩 지울 수 있다
+  memories: () => call<{ items?: Memory[] }>('GET', '/memories'),
+  deleteMemory: (id: number) => call<{ deleted: boolean }>('DELETE', `/memories/${id}`),
   character: () => call<Character>('GET', '/character'),
   equip: (item: string | null) => call<{ equipped: string | null }>('POST', '/character/equip', { item }),
   chat: (sessionId: number | null, message: string) => call<{ sessionId: number | null; reply: string; state: string }>('POST', '/chat', { sessionId, message }),
