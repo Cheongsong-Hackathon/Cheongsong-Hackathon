@@ -75,6 +75,15 @@ export default function App() {
 
   const demo = ch?.demoMode ?? false;
 
+  // 휴대폰 테두리를 항상 보여 주고, 화면이 작으면 통째로 줄여서 맞춘다
+  const [fit, setFit] = useState(1);
+  useEffect(() => {
+    const onResize = () => setFit(Math.min(1, (window.innerWidth - 12) / 416, (window.innerHeight - 12) / 870));
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   async function recommend(sid: number) {
     const r = await api.recommend(sid, demo ? null : await getPos(), seen.current);
     if (r.blocked) return enterSafety();
@@ -148,6 +157,7 @@ export default function App() {
 
   return (
     <div className="stage">
+      <div className="phone" style={{ transform: `scale(${fit})` }}>
       <div className="frame">
         {safety ? (
           <Safety onBack={backToChat} />
@@ -193,6 +203,7 @@ export default function App() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );
