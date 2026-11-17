@@ -50,6 +50,11 @@ const bk = await api('POST', '/bookings', { checkinId: ck.json.checkinId, experi
 check('04 예약 요청: 상태 REQUESTED, 가격은 DB 값', bk.status === 200 && bk.json.status === 'REQUESTED' && bk.json.price === pickd.price, bk.json);
 const active = await api('GET', '/bookings/active');
 check('홈에 보일 진행 중 예약', active.json.booking?.id === bk.json.id);
+const arrive = await api('POST', `/bookings/${bk.json.id}/arrive`, { lat: 37.5665, lng: 126.978 }); // 서울시청: 매장에서 멂
+check('도착했어: DEMO_MODE는 거리와 상관없이 방문 확인', arrive.status === 200 && arrive.json.arrived === true && arrive.json.demo === true, arrive.json);
+check('도착 확인이 예약에 남음', !!(await api('GET', '/bookings/active')).json.booking?.arrivedAt);
+const arriveB = await api('POST', `/bookings/${bk.json.id}/arrive`, {}, 'smoke-user-b');
+check('남의 예약은 도착 확인 불가(404)', arriveB.status === 404, arriveB.json);
 
 const noMood = await api('POST', `/bookings/${bk.json.id}/complete`, {});
 check('기분 점수 없이 완료 불가', noMood.status === 400);
@@ -69,6 +74,12 @@ const today = recs.json.week?.at(-1);
 check('기록: 완료 1건, 미루기 1건, 오늘 마음 점수', recs.json.done?.length === 1 && recs.json.postpones?.length === 1 && today?.mood != null, recs.json);
 const exps = await api('GET', '/experiences');
 check('체험 탭: 12개', exps.json.items?.length === 12);
+const free = await api('GET', '/places/free');
+check('무료 장소: 카카오 키가 없으면 꺼짐, 있으면 목록', free.status === 200 && (free.json.disabled === true || Array.isArray(free.json.items)), free.json);
+console.log(`    무료 장소: ${free.json.disabled ? '꺼짐 (KAKAO_REST_API_KEY 없음)' : `${free.json.items.length}곳 — ${free.json.items.slice(0, 3).map((p: any) => `${p.kind} ${p.name} 도보 ${p.walkMinutes}분`).join(', ')}`}`);
+const geo = await api('GET', `/geocode?query=${encodeURIComponent('영남대학교')}`);
+check('주소 → 좌표: 키가 없으면 503, 있으면 좌표', geo.status === 503 || (geo.status === 200 && typeof geo.json.lat === 'number'), geo.json);
+check('주소 → 좌표: 빈 입력은 400', (await api('GET', '/geocode?query=')).status === 400);
 
 console.log('\n[2] 위기 표현 → 안전 모드');
 const crisis = await api('POST', '/checkin', { text: '그냥 다 사라지고 싶어', emotion: '지쳤어', energy: 10, mood: 1 });

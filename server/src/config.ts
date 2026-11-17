@@ -21,6 +21,7 @@ export const config = {
   demoCenter: { lat: num(env.DEMO_CENTER_LAT, 36.4359), lng: num(env.DEMO_CENTER_LNG, 129.0571) },
   llm: llm('LLM'),
   llmFallback: llm('LLM_FALLBACK'),
+  kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표. 비우면 두 기능만 꺼진다
 
   // ---- 숫자 설정값은 전부 여기 ----
   LLM_TIMEOUT_MS: 8000, // 이 시간을 넘기면 기본 답장
@@ -32,6 +33,7 @@ export const config = {
   EXP_DONE: 20, // 체험을 다녀와서 기분을 기록하면
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
   STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
+  ARRIVE_RADIUS_M: 150, // "도착했어": 장소에서 이 거리 안이면 방문 확인 (실내 GPS 오차를 감안해 넉넉히)
   LOW_ENERGY: 20, // 이 이하면 추천보다 "할 일 하나 미루기"를 먼저 권한다
   USER_ID: 1, // X-User-Key 없이 부를 때(curl 등) 쓰는 기본 사용자
 };
