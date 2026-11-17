@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Character, type Item, type LatLng, type Partner, type Reward, type Run, type VerifyResult } from './api';
 import Chat, { type Msg } from './Chat';
+import Launcher from './Launcher';
 import { Home, Partners, Party, Records, RunSheet, Safety } from './screens';
 
 type Tab = 'home' | 'chat' | 'records' | 'partners';
@@ -35,6 +36,7 @@ export default function App() {
   const [quick, setQuick] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [safety, setSafety] = useState(false);
+  const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
   const [sheet, setSheet] = useState<Run | null>(null);
   const [party, setParty] = useState<VerifyResult | null>(null);
   const [toast, setToast] = useState('');
@@ -137,6 +139,7 @@ export default function App() {
   async function backToChat() {
     if (sessionId) await api.resume(sessionId);
     setSafety(false);
+    setLaunched(true);
     setTab('chat');
     push({ who: 'snail', text: '돌아와 줘서 고마워. 하고 싶은 얘기가 있으면 천천히 해 줘.' });
   }
@@ -146,8 +149,10 @@ export default function App() {
       <div className="frame">
         {safety ? (
           <Safety onBack={backToChat} />
+        ) : !launched ? (
+          <Launcher onOpen={() => setLaunched(true)} />
         ) : (
-          <>
+          <div className="app">
             <main className="screen">
               {tab === 'home' && <Home ch={ch} active={runs.active} onChat={() => setTab('chat')} onOpenRun={setSheet} />}
               {tab === 'chat' && <Chat msgs={msgs} quick={quick} busy={busy} onSend={send} onStart={start} onMore={more} />}
@@ -174,6 +179,7 @@ export default function App() {
                 </button>
               ))}
             </nav>
+            <button className="home-bar" aria-label="휴대폰 메인 화면으로" onClick={() => setLaunched(false)} />
             {sheet && <RunSheet run={sheet} demo={demo} onClose={() => setSheet(null)} onDone={finished} />}
             {party && <Party result={party} ch={ch} onClose={() => setParty(null)} />}
             {toast && (
@@ -181,7 +187,7 @@ export default function App() {
                 {toast}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
