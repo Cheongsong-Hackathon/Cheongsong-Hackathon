@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: neuri
+      POSTGRES_PASSWORD: neuri
+      POSTGRES_DB: neuri
+    ports:
+      - "5433:5432"
+    volumes:
+      - neuri-db:/var/lib/postgresql/data
+volumes:
+  neuri-db:
