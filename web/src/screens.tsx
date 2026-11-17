@@ -536,7 +536,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">“지쳐서 빵 사는 대신, 기분에 딱 맞는 30분을 처방해 줄게”</p>
+        <p className="promise">“오늘은 고르지 않아도 돼. 기분에 딱 맞는 30분, 내가 찾아 줄게”</p>
       </div>
       <ul className="points">
         <li>
