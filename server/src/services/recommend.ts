@@ -118,5 +118,6 @@ export async function recommend(sessionId: number, center: LatLng | null, exclud
   const out = await callJson(client, SNAIL_PROMPT + PICK_FORMAT, user, PickOut);
 
   if (s.state !== 'IN_PROGRESS') await query(`UPDATE chat_sessions SET state = 'RECOMMENDED' WHERE id = $1`, [sessionId]);
-  return { status: 200, body: { items: finalizePicks(candidates, out?.picks ?? null, exclude), ...(out ? {} : { fallback: true }) } };
+  // center는 지도 미리보기용으로 돌려줄 뿐, 저장하지 않는다
+  return { status: 200, body: { items: finalizePicks(candidates, out?.picks ?? null, exclude), center, ...(out ? {} : { fallback: true }) } };
 }

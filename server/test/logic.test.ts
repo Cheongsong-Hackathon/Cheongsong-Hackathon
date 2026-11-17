@@ -52,6 +52,41 @@ test('LLM: 스키마 검증 실패는 1번 재시도, 그래도 틀리면 null',
   assert.equal(bad.calls, 2);
 });
 
+test('OpenAICompatClient: 실제 HTTP로 응답을 읽고, 느리면 타임아웃, 429면 오류', async () => {
+  const { createServer } = await import('node:http');
+  const { OpenAICompatClient } = await import('../src/services/llm.js');
+  let seen: any;
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (d) => (body += d));
+    req.on('end', () => {
+      seen = { url: req.url, auth: req.headers.authorization, body: JSON.parse(body) };
+      if (seen.body.model === 'slow') return void setTimeout(() => res.end('{}'), 2000);
+      if (seen.body.model === 'limited') return void res.writeHead(429).end('{}');
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ choices: [{ message: { content: '```json\n{"a":7}\n```' } }] }));
+    });
+  });
+  await new Promise<void>((r) => server.listen(0, r));
+  const baseUrl = `http://localhost:${(server.address() as any).port}/v1/`;
+  try {
+    const ok = new OpenAICompatClient('p', { baseUrl, model: 'm', apiKey: 'k' });
+    assert.deepEqual(await callJson(ok, 'sys', 'usr', A), { a: 7 });
+    assert.equal(seen.url, '/v1/chat/completions');
+    assert.equal(seen.auth, 'Bearer k');
+    assert.equal(seen.body.messages[0].content, 'sys');
+    const slow = new OpenAICompatClient('p', { baseUrl, model: 'slow', apiKey: 'k' });
+    await assert.rejects(slow.complete('s', 'u', 200), { name: 'TimeoutError' });
+    const limited = new OpenAICompatClient('p', { baseUrl, model: 'limited', apiKey: 'k' });
+    // 429·타임아웃 모두 예비로 넘어간다
+    assert.deepEqual(await callJson(new FallbackClient([limited, ok]), 's', 'u', A), { a: 7 });
+    assert.deepEqual(await callJson(new FallbackClient([slow, ok], 200), 's', 'u', A), { a: 7 });
+  } finally {
+    server.closeAllConnections();
+    server.close();
+  }
+});
+
 const T = (id: string, tier: Template['tier'], placeId: string | null = null): Template => ({
   id, title: id, tier, minutes: 5, exp: 5, placeId,
 });

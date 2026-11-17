@@ -9,5 +9,16 @@ services:
       - "5433:5432"
     volumes:
       - neuri-db:/var/lib/postgresql/data
+  # 배포 이미지 확인용:  docker compose --profile app up --build  →  http://localhost:3200
+  app:
+    profiles: [app]
+    build: .
+    env_file: .env
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://neuri:neuri@db:5432/neuri
+    ports:
+      - "3200:3000"
+    depends_on: [db]
 volumes:
   neuri-db:
