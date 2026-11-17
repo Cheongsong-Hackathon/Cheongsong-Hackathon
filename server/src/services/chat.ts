@@ -1,7 +1,7 @@
 // 선택형 속마음 대화: 토끼의 공감·위로. 추천이나 예약을 권하지 않는다.
 import { z } from 'zod';
 import { query, toId } from '../db.js';
-import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
+import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
 export const DEFAULT_REPLY = '응, 듣고 있어. 천천히 말해도 괜찮아.';
@@ -9,11 +9,15 @@ export const GREETING = '여기선 아무 얘기나 해도 돼. 오늘 마음에
 
 export const ChatOut = z.object({ reply: z.string().catch(''), risk: Risk });
 
-const TALK_FORMAT = `
-지금은 친구의 속마음을 들어 주는 시간이야. 공감하고 위로해 줘. 활동이나 체험, 예약을 권하지 마.
+export const TALK_FORMAT = `
+지금은 친구의 속마음을 들어 주는 시간이야. 활동이나 체험, 예약을 권하지 마.
+- 친구가 한 말을 구체적으로 받아서 공감해 (무슨 일이 있었는지, 어떤 마음인지)
+- 답마다 "쉬어도 괜찮아"로 끝내지 마
+- 질문은 매번 하지 마. 친구가 더 이야기하고 싶어 보일 때만 짧게 하나. 그 밖에는 공감이나 응원으로 끝내
+- 좋은 일을 말하면 같이 기뻐해 줘
 아래 JSON 하나만 출력해. 다른 글은 쓰지 마.
 {"reply": "토끼의 답장", "risk": "NONE|WATCH|CRISIS"}
-- risk: 자해·자살 생각이 보이면 CRISIS, 많이 지쳐 보이면 WATCH, 아니면 NONE`;
+${RISK_RULE}`;
 
 async function getOrCreateSession(userId: number, sessionId: unknown) {
   const id = toId(sessionId);

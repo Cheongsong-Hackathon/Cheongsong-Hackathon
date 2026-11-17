@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { config, EMOTIONS } from '../config.js';
 import { query } from '../db.js';
-import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
+import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
 const REPLY_BY_EMOTION: Record<string, string> = {
@@ -14,12 +14,17 @@ const REPLY_BY_EMOTION: Record<string, string> = {
 };
 export const DEFAULT_CHECKIN_REPLY = '알려 줘서 고마워. 지금 너한테 맞는 걸 천천히 찾아볼게.';
 
-const CheckinOut = z.object({ reply: z.string().catch(''), risk: Risk });
-const CHECKIN_FORMAT = `
-지금은 친구가 오늘의 마음을 알려 준 순간이야. 공감하는 말 1~2문장만 해. 아직 활동을 권하지 마.
+export const CheckinOut = z.object({ reply: z.string().catch(''), risk: Risk });
+// 이 답 바로 다음 화면이 "가까운 체험 추천"이라, "아무것도 하지 마"로 끝나면 앞뒤가 안 맞는다 (npm run prompt-eval로 확인)
+export const CHECKIN_FORMAT = `
+지금은 친구가 오늘의 마음을 알려 준 순간이야. 이 말 다음에 무드패스가 가까운 곳의 작은 기분 전환을 찾아 줄 거야.
+- 첫 문장: 친구가 한 말에 구체적으로 공감해
+- 둘째 문장: 무리하지 않아도 되는 작은 기분 전환을 같이 찾아보자고 가볍게 이어 줘. 아직 구체적인 활동 이름은 말하지 마
+- "아무것도 하지 마", "갈 필요 없어", "가만히 있자"처럼 다음 화면과 반대되는 말은 하지 마
+- 에너지가 ${config.LOW_ENERGY}% 이하면 "오늘 할 일 하나쯤 미뤄도 돼"처럼 부담을 덜어 주는 말로 이어도 좋아
 아래 JSON 하나만 출력해. 다른 글은 쓰지 마.
 {"reply": "토끼의 공감 한마디", "risk": "NONE|WATCH|CRISIS"}
-- risk: 자해·자살 생각이 보이면 CRISIS, 많이 지쳐 보이면 WATCH, 아니면 NONE`;
+${RISK_RULE}`;
 
 const clampInt = (v: unknown, min: number, max: number, d: number) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : d;

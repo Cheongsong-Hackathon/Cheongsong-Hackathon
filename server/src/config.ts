@@ -23,6 +23,8 @@ export const config = {
   llm: llm('LLM'),
   llmFallback: llm('LLM_FALLBACK'),
   kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표. 비우면 두 기능만 꺼진다
+  // 시연 초기화(/api/demo/reset) 비밀 값. 비우면 이 컴퓨터(localhost)에서만 초기화할 수 있다
+  resetToken: env.RESET_TOKEN ?? '',
 
   // ---- 숫자 설정값은 전부 여기 ----
   LLM_TIMEOUT_MS: 8000, // 이 시간을 넘기면 기본 답장
@@ -35,6 +37,10 @@ export const config = {
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
   STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
   ARRIVE_RADIUS_M: 150, // "도착했어": 장소에서 이 거리 안이면 방문 확인 (실내 GPS 오차를 감안해 넉넉히)
+  // 요청 수 제한 (1분에). AI를 부르는 요청(마음 확인·추천·속마음)은 따로 더 좁게
+  RATE_API_PER_IP: 300,
+  RATE_AI_PER_IP: 60, // 대회장 와이파이처럼 여럿이 IP 하나를 같이 써도 버티게
+  RATE_AI_PER_USER: 20,
   LOW_ENERGY: 20, // 이 이하면 추천보다 "할 일 하나 미루기"를 먼저 권한다
   USER_ID: 1, // X-User-Key 없이 부를 때(curl 등) 쓰는 기본 사용자
 };

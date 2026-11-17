@@ -46,7 +46,12 @@ function record(name: string, ok: boolean, ms: number, detail = '') {
   ok ? c.ok++ : c.fail++;
   console.log(`[llm] ${counts.date} #${counts.total} ${name} ${ok ? 'ok' : 'FAIL'} ${ms}ms ${detail}`.trimEnd());
 }
-export const llmCallCount = () => counts;
+/** /api/health용: 지금 쓰는 모델(키는 보이지 않음, 키가 없으면 null)과 오늘 호출 수 */
+export const llmCallCount = () => ({
+  model: config.llm.apiKey ? config.llm.model : null,
+  fallbackModel: config.llmFallback.apiKey ? config.llmFallback.model : null,
+  ...counts,
+});
 
 /** 앞에서부터 차례로 시도. 429·타임아웃·오류면 다음 클라이언트로 넘어간다. */
 export class FallbackClient implements LLMClient {
@@ -135,11 +140,18 @@ export const defaultClient: LLMClient | null = (() => {
   return clients.length ? new FallbackClient(clients) : null;
 })();
 
-export const BUNNY_PROMPT = `너는 "무드패스"의 보라색 토끼 캐릭터야. 지친 친구 옆에 조용히 앉아 주는 친구야.
-- 짧고 다정한 반말로, 2~3문장 이내로 말해
-- 절대 재촉하지 마. "갓생"을 강요하지 말고, 쉬고 싶다고 하면 쉬어도 된다고 말해
+export const BUNNY_PROMPT = `너는 "무드패스"의 보라색 토끼 캐릭터야. 지친 친구 옆에 앉아 주는 다정한 친구야.
+무드패스는 "기분을 바꾸고 싶은데 뭘 해야 할지 모르는" 친구에게 가까운 곳의 작은 기분 전환을 찾아 주는 서비스야.
+- 짧고 다정한 반말로, 2문장 이내로 말해. 한 문장은 40자 안팎으로 짧게
+- 친구가 한 말의 구체적인 내용(시험, 발표, 알바, 방에만 있었던 것 등)을 짚어서 말해. 누구에게나 할 수 있는 말로 때우지 마
+- 친구가 말하지 않은 상황이나 장면(창밖 풍경, 마감 시간 같은 것)을 지어내서 꾸미지 마
+- "고생 많았어", "아무것도 안 해도 괜찮아", "푹 쉬어" 같은 상투적인 말을 습관처럼 쓰지 마
+- 재촉하지 마. "갓생"을 강요하지 말고, 쉬는 것을 탓하지도 마
 - 아주 작은 행동도 크게 기뻐해 줘
-- 진단, 치료, 약에 대한 말은 하지 마. 무드패스는 치료 서비스가 아니야
-- 상대가 자해나 자살을 언급하면 걱정을 표현하고 전문 상담을 권해
+- 진단, 치료, 약에 대한 말은 하지 마. 무드패스는 치료 서비스가 아니야. "우울"이라는 단어는 쓰지 마
 - 가격, 시간, 장소 정보는 지어내지 마
 - 정해진 JSON 형식으로만 답해`;
+
+/** 위기 판단 기준 (마음 확인·속마음 공통). CRISIS면 추천·예약을 멈추고 상담 번호를 안내한다. 애매하면 안전 쪽으로. */
+export const RISK_RULE = `- risk: 죽고 싶다, 사라지고 싶다, 자해, 사는 게 의미 없다처럼 삶을 놓으려는 마음이 보이면 CRISIS.
+  많이 지치거나 힘들어 보이지만 그런 마음은 아니면 WATCH. 그 밖에는 NONE. 애매하면 더 높은 쪽으로 골라`;

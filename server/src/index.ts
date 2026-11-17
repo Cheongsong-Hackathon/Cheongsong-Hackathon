@@ -12,8 +12,13 @@ try {
   console.error('[db] 초기화 실패 — 기본 응답으로 동작합니다:', (e as Error).message);
 }
 
-app.listen(config.port, () =>
+app.listen(config.port, () => {
   console.log(
     `무드패스 서버 http://localhost:${config.port}  DEMO_MODE=${config.demoMode}  LLM=${defaultClient ? `${config.llm.model || '-'} / 예비 ${config.llmFallback.apiKey ? config.llmFallback.model : '없음'}` : '키 없음(기본 답장)'}`,
-  ),
-);
+  );
+  // 서버를 켠 뒤 첫 AI 호출은 8초를 넘기곤 해서(실측), 사용자보다 먼저 한 번 불러 깨워 둔다. 결과는 버린다.
+  defaultClient
+    ?.complete('짧게 답해.', '안녕', 20_000)
+    .then(() => console.log('[llm] 준비 완료'))
+    .catch((e) => console.warn('[llm] 준비 호출 실패 — 모델 이름과 키를 확인하세요:', e?.message ?? e));
+});
