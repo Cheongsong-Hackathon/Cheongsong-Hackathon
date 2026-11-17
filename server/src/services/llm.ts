@@ -46,7 +46,12 @@ function record(name: string, ok: boolean, ms: number, detail = '') {
   ok ? c.ok++ : c.fail++;
   console.log(`[llm] ${counts.date} #${counts.total} ${name} ${ok ? 'ok' : 'FAIL'} ${ms}ms ${detail}`.trimEnd());
 }
-export const llmCallCount = () => counts;
+/** /api/health용: 지금 쓰는 모델(키는 보이지 않음, 키가 없으면 null)과 오늘 호출 수 */
+export const llmCallCount = () => ({
+  model: config.llm.apiKey ? config.llm.model : null,
+  fallbackModel: config.llmFallback.apiKey ? config.llmFallback.model : null,
+  ...counts,
+});
 
 /** 앞에서부터 차례로 시도. 429·타임아웃·오류면 다음 클라이언트로 넘어간다. */
 export class FallbackClient implements LLMClient {
