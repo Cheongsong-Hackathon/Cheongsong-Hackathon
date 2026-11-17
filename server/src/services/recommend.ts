@@ -5,6 +5,7 @@ import { query, toId } from '../db.js';
 import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
 import { freePlaces, pickFree } from './kakao.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
+import { memoryContext } from './memory.js';
 
 export { walkMinutes };
 import { placeService, type Place } from './places.js';
@@ -31,7 +32,7 @@ export type Candidate = Experience & {
   availableSlots: string[];
 };
 export type Cond = { minutes: number; walk: number; budget: number; energy: number; emotion: string | null };
-export type Item = Candidate & { reason: string };
+export type Item = Candidate & { reason: string; surprise?: boolean };
 
 export const addMinutes = (hhmm: string, mins: number) => {
   const t = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5)) + mins;
@@ -98,6 +99,30 @@ const REASON_BY_CATEGORY: Record<string, string> = {
 };
 const reasonOf = (c: Candidate) => REASON_BY_CATEGORY[c.category] ?? DEFAULT_REASON;
 
+/**
+ * "평소와 다른 하나": 맞춤 추천만 계속하면 아는 것 안에 갇히므로, 일부러 다른 것을 하나 섞는다 (탐색).
+ * 오늘 감정에 어울리는 체험이 아니고 다녀온 적 없는 종류 중에서 무작위. 예산·시간은 지키고 거리·에너지만 조금 느슨하게.
+ * 많이 지친 날(에너지 LOW_ENERGY 이하)에는 넣지 않는다 — 반대 활동을 권하는 건 재촉이 된다.
+ */
+export function pickSurprise(all: Candidate[], picked: Item[], c: Cond, doneCategories: Set<string>, exclude: string[] = [], rand = Math.random): Item | null {
+  if (c.energy <= config.LOW_ENERGY) return null;
+  const taken = new Set([...picked.map((p) => p.id), ...exclude]);
+  const pool = all.filter(
+    (x) =>
+      !taken.has(x.id) &&
+      x.availableSlots.length > 0 &&
+      x.minutes <= c.minutes &&
+      x.price <= c.budget &&
+      x.walkMinutes <= c.walk + 10 &&
+      x.energyNeed <= c.energy + 20,
+  );
+  const different = pool.filter((x) => !(c.emotion && x.moods.includes(c.emotion)) && !doneCategories.has(x.category));
+  const from = different.length ? different : pool;
+  if (!from.length) return null;
+  const x = from[Math.floor(rand() * from.length)];
+  return { ...x, reason: '평소 고르던 것과는 좀 다른 거야. 의외로 잘 맞을지도 몰라.', surprise: true };
+}
+
 /** LLM이 고른 id 중 후보에 있는 것만 남기고(지어낸 체험 차단) 앞에 세운 뒤, 나머지 후보를 순서대로 붙인다. 많아도 RECOMMEND_MAX개. */
 export function finalizePicks(cands: Candidate[], picks: { id: string; reason: string }[] | null, exclude: string[] = []): Item[] {
   // 안 본 것만 보여 주고, 너무 적으면 이미 본 것을 뒤에 붙인다
@@ -121,6 +146,7 @@ export const PICK_FORMAT = `
 지금은 친구에게 오늘 할 만한 체험을 골라 주는 차례야. 후보 목록에 있는 것 중에서만, 지금 친구에게 어울리는 것을 어울리는 순서대로 골라. 개수는 정해져 있지 않지만 많아도 5개.
 후보에 없는 id를 지어내면 안 돼. 이유는 "지금 친구 상태에 왜 맞는지"를 토끼 말투로 한 줄. 가격과 시간 숫자는 쓰지 마.
 이유에는 친구가 한 말에 나온 사정(멀리 가기 싫음, 발표 걱정, 방에만 있었음 등)과 에너지를 반영해. 이유마다 표현을 다르게 써.
+토끼가 기억하는 친구의 취향과, 다녀온 체험에서 기분이 많이 올랐던 것이 있으면 순서와 이유에 활용해 (예: "지난번 도자기 하고 기분이 4에서 8로 올랐잖아"). 기분이 오르지 않았던 체험은 뒤로 미뤄.
 아래 JSON 하나만 출력해. 다른 글은 쓰지 마.
 {"picks":[{"id":"후보의 id","reason":"한 줄 이유"}]}`;
 
@@ -172,15 +198,26 @@ export async function recommend(userId: number, body: any, client = defaultClien
     .filter((c) => !exclude.includes(c.id))
     .slice(0, 8)
     .map((c) => ({ id: c.id, title: c.title, minutes: c.minutes, walkMinutes: c.walkMinutes, price: c.price, 어울리는감정: c.moods, 설명: c.description }));
-  const out = list.length ? await callJson(client, BUNNY_PROMPT + PICK_FORMAT, `친구 상태: ${JSON.stringify(state)}\n후보: ${JSON.stringify(list)}`, PickOut) : null;
+  const out = list.length
+    ? await callJson(client, BUNNY_PROMPT + PICK_FORMAT, `${await memoryContext(userId)}친구 상태: ${JSON.stringify(state)}\n후보: ${JSON.stringify(list)}`, PickOut)
+    : null;
 
   // 기다리는 사이 안전 모드가 됐으면 추천을 내보내지 않는다
   const free = await freeP;
   if (await isSafeMode(userId)) return SAFETY_BLOCK;
+
+  // 맞춤 추천 끝에 "평소와 다른 하나" (자리가 없으면 마지막 것과 바꾼다)
+  const picked = finalizePicks(items, out?.picks ?? null, exclude);
+  const doneCats = await query<{ category: string }>(
+    `SELECT DISTINCT e.category FROM bookings b JOIN experiences e ON e.id = b.experience_id WHERE b.user_id = $1 AND b.status = 'DONE'`,
+    [userId],
+  );
+  const surprise = picked.length ? pickSurprise(cands, picked, cond, new Set(doneCats.map((d) => d.category)), exclude) : null;
+  if (surprise) picked.splice(Math.min(picked.length, config.RECOMMEND_MAX - 1), 1, surprise);
   return {
     status: 200,
     body: {
-      items: finalizePicks(items, out?.picks ?? null, exclude),
+      items: picked,
       free,
       widened: widened && items.length > 0,
       locationSource: source,

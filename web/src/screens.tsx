@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { won, type Booking, type Character, type FreeRec, type Growth, type Item, type Records as RecordsData } from './api';
+import { useEffect, useState, type ReactNode } from 'react';
+import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
 
@@ -205,6 +205,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
       <div className="list">
         {p.items.map((i) => (
           <ExpCard key={i.id} item={i} onPick={() => p.onPick(i)}>
+            {i.surprise && <span className="surprise-tag">✦ 평소와 다른 하나</span>}
             {i.reason && <span className="reason">“{i.reason}”</span>}
           </ExpCard>
         ))}
@@ -414,6 +415,38 @@ function Face({ mood }: { mood: number | null }) {
   );
 }
 
+/** 토끼가 기억하는 것: AI가 대화에서 뽑아 둔 사실. 몰래 기억하지 않도록 보여 주고, 하나씩 지울 수 있게 한다. */
+function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
+  const [mems, setMems] = useState<Memory[] | null>(null);
+  useEffect(() => {
+    api.memories().then((r) => setMems(r.items ?? []));
+  }, [reloadKey]);
+  return (
+    <div className="card">
+      <span className="eyebrow">토끼가 기억하는 너</span>
+      {mems === null && <span className="meta">불러오는 중…</span>}
+      {mems?.length === 0 && <span className="meta">이야기를 나누다 보면 토끼가 조금씩 기억해 둘게.</span>}
+      {mems?.map((m) => (
+        <span key={m.id} className="meta mem">
+          <span>
+            <b className="mem-kind">{m.kind}</b> {m.text}
+          </span>
+          <button
+            className="mem-del"
+            aria-label={`"${m.text}" 기억 지우기`}
+            onClick={async () => {
+              const r = await api.deleteMemory(m.id);
+              if (r.code === 200) setMems((xs) => xs?.filter((x) => x.id !== m.id) ?? null);
+            }}
+          >
+            지우기
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function Records(p: { ch: Character | null; data: RecordsData | null; onEquip: (id: string | null) => void; onDelete: () => void }) {
   const [askDelete, setAskDelete] = useState(false);
   const c = p.ch;
@@ -463,6 +496,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; onE
           ))}
         </div>
       </div>
+      <MemoryCard reloadKey={p.data} />
       <div className="card">
         <span className="eyebrow">토끼 꾸미기</span>
         <div className="items">
@@ -508,7 +542,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; onE
       {askDelete ? (
         <div className="card soft">
           <strong>기록을 모두 지울까?</strong>
-          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화가 지워져. 토끼 성장은 그대로야.</span>
+          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화, 토끼가 기억하는 것이 지워져. 토끼 성장은 그대로야.</span>
           <div className="row two">
             <button className="btn ghost" onClick={() => setAskDelete(false)}>
               그만두기

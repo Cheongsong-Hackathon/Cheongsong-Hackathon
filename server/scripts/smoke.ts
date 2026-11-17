@@ -42,9 +42,10 @@ console.log(`    토끼: ${ck.json.reply}${ck.json.fallback ? '   (LLM 없이 �
 const rec = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000 });
 const items: any[] = rec.json.items ?? [];
 check('03 추천: 조건에 맞는 곳 2~5개', rec.status === 200 && items.length >= 2 && items.length <= 5, rec.json);
-check('조건 지킴: 60분·도보 20분·2만원 이하', rec.json.widened || items.every((i) => i.minutes <= 60 && i.walkMinutes <= 20 && i.price <= 20000), items);
+check('조건 지킴: 60분·도보 20분·2만원 이하 (평소와 다른 하나는 도보만 +10분)', rec.json.widened || items.every((i) => i.minutes <= 60 && i.walkMinutes <= (i.surprise ? 30 : 20) && i.price <= 20000), items);
+check('평소와 다른 하나: 많아도 1개', items.filter((i) => i.surprise).length <= 1, items);
 check('모든 추천에 이유 한 줄과 오늘 시간대', items.every((i) => i.reason && i.availableSlots?.length));
-for (const i of items) console.log(`    · ${i.title} — ${i.minutes}분 · 도보 ${i.walkMinutes}분 · ${won(i.price)} — ${i.reason}`);
+for (const i of items) console.log(`    · ${i.surprise ? '[평소와 다른 하나] ' : ''}${i.title} — ${i.minutes}분 · 도보 ${i.walkMinutes}분 · ${won(i.price)} — ${i.reason}`);
 
 const more = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, exclude: items.map((i) => i.id) });
 check('"다른 경험 보기"는 안 본 것을 먼저', more.json.items?.[0] && !items.some((i) => i.id === more.json.items[0].id), more.json);
@@ -134,6 +135,32 @@ check('이상한 입력은 5xx 없이 처리', bad.every((b) => b.status < 500),
 const del = await api('DELETE', '/records');
 const after = await api('GET', '/records');
 check('내 기록 모두 지우기 (성장은 유지)', del.json.deleted && after.json.done.length === 0 && (await api('GET', '/character')).json.exp === 25);
+
+console.log('\n[4] 토끼의 기억');
+const demoMem = await api('GET', '/memories', undefined, 'demo-moodpass');
+const demoItems: any[] = demoMem.json.items ?? [];
+check('시연 사용자(?demo): 기억이 미리 들어 있음', demoItems.length >= 5, demoMem.json);
+if (demoItems.length) {
+  const steal = await api('DELETE', `/memories/${demoItems[0].id}`, undefined, 'smoke-user-b');
+  check('남의 기억은 지울 수 없음(404)', steal.status === 404, steal.json);
+  const own = await api('DELETE', `/memories/${demoItems[0].id}`, undefined, 'demo-moodpass');
+  const after = await api('GET', '/memories', undefined, 'demo-moodpass');
+  check('내 기억 하나 지우기', own.status === 200 && after.json.items?.length === demoItems.length - 1, own.json);
+}
+const health0 = await api('GET', '/health');
+if (health0.json.llm?.model) {
+  // 기억 갱신은 답장 뒤에 따로 돌아서, 잠깐 기다리며 확인한다
+  await api('POST', '/chat', { message: '나는 사람 많은 곳보다 조용한 도서관이 훨씬 편해' }, 'smoke-user-c');
+  let learned: any[] = [];
+  for (let i = 0; i < 20 && !learned.length; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    learned = (await api('GET', '/memories', undefined, 'smoke-user-c')).json.items ?? [];
+  }
+  check('대화에서 기억을 배움 (AI)', learned.length > 0);
+  console.log(`    배운 기억: ${learned.map((m) => `[${m.kind}] ${m.text}`).join(', ') || '없음'}`);
+  const wipe = await api('DELETE', '/records', undefined, 'smoke-user-c');
+  check('내 기록 모두 지우기 → 기억도 지워짐', wipe.json.deleted && (await api('GET', '/memories', undefined, 'smoke-user-c')).json.items?.length === 0);
+} else console.log('    (LLM 키가 없어서 "대화에서 기억을 배움"은 건너뜀)');
 
 const health = await api('GET', '/health');
 console.log(`\nLLM 호출 (오늘): ${JSON.stringify(health.json.llm)}`);

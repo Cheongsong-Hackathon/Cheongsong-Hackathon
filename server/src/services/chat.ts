@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { query, toId } from '../db.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
+import { learnFromTurn, memoryContext } from './memory.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
 export const DEFAULT_REPLY = '응, 듣고 있어. 천천히 말해도 괜찮아.';
@@ -47,11 +48,12 @@ export async function handleChat(userId: number, sessionIdIn: unknown, message: 
     `SELECT role, text FROM (SELECT * FROM messages WHERE session_id = $1 ORDER BY id DESC LIMIT 10) m ORDER BY id`,
     [sessionId],
   );
-  const user = `대화:\n${history.map((m) => `${m.role === 'user' ? '친구' : '토끼'}: ${m.text}`).join('\n')}\n\n토끼의 다음 답장을 JSON으로 써 줘.`;
+  const user = `${await memoryContext(userId)}대화:\n${history.map((m) => `${m.role === 'user' ? '친구' : '토끼'}: ${m.text}`).join('\n')}\n\n토끼의 다음 답장을 JSON으로 써 줘.`;
   const out = await callJson(client, BUNNY_PROMPT + TALK_FORMAT, user, ChatOut);
   if (out?.risk === 'CRISIS') return safety();
 
   const reply = out?.reply || DEFAULT_REPLY;
   await say(sessionId, 'assistant', reply);
+  void learnFromTurn(userId, message, client); // 기억 갱신은 기다리지 않는다
   return { sessionId, reply, state: 'CHATTING', risk: out?.risk ?? 'NONE', ...(out ? {} : { fallback: true }) };
 }
