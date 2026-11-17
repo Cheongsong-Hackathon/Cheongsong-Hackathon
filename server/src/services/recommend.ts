@@ -1,4 +1,4 @@
-// 02 조건 확인 → 03 경험 추천: 체험 DB를 규칙으로 거르고, AI는 3개를 고르고 "지금 적합한 이유"만 쓴다.
+// 02 조건 확인 → 03 경험 추천: 체험 DB를 규칙으로 거르고, AI는 어울리는 순서와 "지금 적합한 이유"만 정한다.
 import { z } from 'zod';
 import { config } from '../config.js';
 import { query, toId } from '../db.js';
@@ -53,7 +53,7 @@ export function toCandidates(exps: Experience[], places: Place[], now: string | 
 }
 
 /**
- * 규칙 필터. 3개가 안 되면 한 단계씩 넓힌다.
+ * 규칙 필터. 맞는 곳이 RECOMMEND_MIN보다 적으면 한 단계씩 넓힌다.
  * 0단계: 조건 그대로 / 1단계: 시간 +30분, 거리 +10분, 예산 +1만원, 에너지 +20% / 2단계: 가까운 순 전부
  * 정렬: 고른 감정에 어울리는 것 먼저, 그다음 가까운 순.
  */
@@ -73,7 +73,7 @@ export function filterExperiences(cands: Candidate[], c: Cond): { items: Candida
     );
   for (const k of [0, 1]) {
     const items = pool.filter((x) => fits(x, k));
-    if (items.length >= config.RECOMMEND_COUNT) return { items: sort(items), widened: k > 0 };
+    if (items.length >= config.RECOMMEND_MIN) return { items: sort(items), widened: k > 0 };
   }
   return { items: sort(pool), widened: true };
 }
@@ -96,18 +96,19 @@ const REASON_BY_CATEGORY: Record<string, string> = {
 };
 const reasonOf = (c: Candidate) => REASON_BY_CATEGORY[c.category] ?? DEFAULT_REASON;
 
-/** LLM이 고른 id 중 후보에 있는 것만 남기고(지어낸 체험 차단), 모자라면 후보 순서대로 채운다. */
+/** LLM이 고른 id 중 후보에 있는 것만 남기고(지어낸 체험 차단) 앞에 세운 뒤, 나머지 후보를 순서대로 붙인다. 많아도 RECOMMEND_MAX개. */
 export function finalizePicks(cands: Candidate[], picks: { id: string; reason: string }[] | null, exclude: string[] = []): Item[] {
-  // 안 본 것을 먼저, 모자라면 이미 본 것으로 채운다
-  const pool = [...cands.filter((c) => !exclude.includes(c.id)), ...cands.filter((c) => exclude.includes(c.id))];
+  // 안 본 것만 보여 주고, 너무 적으면 이미 본 것을 뒤에 붙인다
+  const unseen = cands.filter((c) => !exclude.includes(c.id));
+  const pool = unseen.length >= config.RECOMMEND_MIN ? unseen : [...unseen, ...cands.filter((c) => exclude.includes(c.id))];
   const byId = new Map(pool.map((c) => [c.id, c]));
   const chosen = new Map<string, Item>();
   for (const p of picks ?? []) {
     const c = byId.get(p.id);
-    if (c && chosen.size < config.RECOMMEND_COUNT) chosen.set(c.id, { ...c, reason: p.reason.trim() || reasonOf(c) });
+    if (c && chosen.size < config.RECOMMEND_MAX) chosen.set(c.id, { ...c, reason: p.reason.trim() || reasonOf(c) });
   }
   for (const c of pool) {
-    if (chosen.size >= config.RECOMMEND_COUNT) break;
+    if (chosen.size >= config.RECOMMEND_MAX) break;
     if (!chosen.has(c.id)) chosen.set(c.id, { ...c, reason: reasonOf(c) });
   }
   return [...chosen.values()];
@@ -115,7 +116,7 @@ export function finalizePicks(cands: Candidate[], picks: { id: string; reason: s
 
 const PickOut = z.object({ picks: z.array(z.object({ id: z.string(), reason: z.string().catch('') })) });
 const PICK_FORMAT = `
-지금은 친구에게 오늘 할 만한 체험을 골라 주는 차례야. 후보 목록에 있는 것 중에서만 3개를 골라.
+지금은 친구에게 오늘 할 만한 체험을 골라 주는 차례야. 후보 목록에 있는 것 중에서만, 지금 친구에게 어울리는 것을 어울리는 순서대로 골라. 개수는 정해져 있지 않지만 많아도 5개.
 후보에 없는 id를 지어내면 안 돼. 이유는 "지금 친구 상태에 왜 맞는지"를 토끼 말투로 한 줄. 가격과 시간 숫자는 쓰지 마.
 아래 JSON 하나만 출력해. 다른 글은 쓰지 마.
 {"picks":[{"id":"후보의 id","reason":"한 줄 이유"}]}`;

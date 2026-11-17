@@ -220,7 +220,7 @@ export default function Launcher({ onOpen }: { onOpen: () => void }) {
           <span className="name">무드패스</span>
           <span className="tip">
             <strong>클릭!</strong>
-            오늘 기분에 맞는 체험 3개를
+            오늘 기분에 맞는 체험을
             <br />
             가까운 곳에서 찾아 줘요
           </span>

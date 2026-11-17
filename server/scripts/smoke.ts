@@ -17,7 +17,7 @@ function check(name: string, ok: boolean, detail: unknown = '') {
 }
 const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
-console.log(`대상: ${BASE}\n\n[1] 마음 확인 → 조건 → 추천 3개 → 예약 요청 → 기분 기록 → 성장`);
+console.log(`대상: ${BASE}\n\n[1] 마음 확인 → 조건 → 추천 → 예약 요청 → 기분 기록 → 성장`);
 const reset = await api('POST', '/demo/reset');
 check('초기화 (DEMO_MODE)', reset.status === 200, reset.status === 404 ? 'DEMO_MODE=true 서버에서만 돌릴 수 있어요' : reset.json);
 if (reset.status !== 200) process.exit(1);
@@ -28,7 +28,7 @@ console.log(`    토끼: ${ck.json.reply}${ck.json.fallback ? '   (LLM 없이 �
 
 const rec = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000 });
 const items: any[] = rec.json.items ?? [];
-check('03 추천 3개', rec.status === 200 && items.length === 3, rec.json);
+check('03 추천: 조건에 맞는 곳 2~5개', rec.status === 200 && items.length >= 2 && items.length <= 5, rec.json);
 check('조건 지킴: 60분·도보 20분·2만원 이하', rec.json.widened || items.every((i) => i.minutes <= 60 && i.walkMinutes <= 20 && i.price <= 20000), items);
 check('모든 추천에 이유 한 줄과 오늘 시간대', items.every((i) => i.reason && i.availableSlots?.length));
 for (const i of items) console.log(`    · ${i.title} — ${i.minutes}분 · 도보 ${i.walkMinutes}분 · ${won(i.price)} — ${i.reason}`);

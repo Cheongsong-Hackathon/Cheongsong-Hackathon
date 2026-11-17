@@ -164,7 +164,7 @@ export function ConditionSheet(p: { reply: string; suggestPostpone: boolean; bus
           <h2 className="label">예산</h2>
           <Chips label="예산" options={[[10000, '1만원'], [20000, '2만원'], [30000, '3만원']]} value={c.budget} onChange={(budget) => setC({ ...c, budget })} />
           <button className="btn big" disabled={p.busy} onClick={() => p.onSubmit(c)}>
-            {p.busy ? '어울리는 경험 찾는 중…' : '근거 있는 경험 3개 받기'}
+            {p.busy ? '어울리는 경험 찾는 중…' : '나에게 어울리는 경험 찾기'}
           </button>
         </>
       )}
@@ -548,7 +548,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
         <li>
           <b>2</b>
           <span>
-            <strong>경험 찾기</strong>가까운 체험 3개를 추천받아요
+            <strong>경험 찾기</strong>지금 갈 수 있는 가까운 체험을 골라 줘요
           </span>
         </li>
         <li>

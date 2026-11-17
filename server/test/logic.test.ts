@@ -135,7 +135,7 @@ test('필터: 시간·거리·예산·에너지를 모두 지키고, 고른 감�
   assert.deepEqual(r.items.map((c) => c.id), ['fit-mood', 'fit-near', 'fit-far']);
 });
 
-test('필터: 3개가 안 되면 조건을 넓히고 widened로 알린다', () => {
+test('필터: 맞는 곳이 2개보다 적으면 조건을 넓히고 widened로 알린다', () => {
   const cs = [C(E('a'), 2), C(E('b', { minutes: 60 }), 2), C(E('c', { price: 18000 }), 2), C(E('d', { minutes: 90 }), 40)];
   const r1 = filterExperiences(cs, cond);
   assert.equal(r1.widened, true);
@@ -149,14 +149,17 @@ test('필터: 오늘 남은 시간대가 없는 체험은 뺀다', () => {
   assert.deepEqual(filterExperiences(cs, cond).items.map((c) => c.id), ['b', 'c', 'd']);
 });
 
-test('선택 보정: 후보에 없는 id는 버리고 3개를 채운다, 가격·시간은 DB 값 그대로', () => {
+test('선택 보정: 후보에 없는 id는 버리고 AI가 고른 것을 앞에 세운다, 가격·시간은 DB 값 그대로', () => {
   const cs = ['a', 'b', 'c', 'd'].map((id, i) => C(E(id, { price: 1000 * (i + 1) }), 2));
   const items = finalizePicks(cs, [{ id: 'nope', reason: 'x' }, { id: 'c', reason: '이유', price: 0 } as any]);
-  assert.deepEqual(items.map((i) => i.id), ['c', 'a', 'b']);
+  assert.deepEqual(items.map((i) => i.id), ['c', 'a', 'b', 'd']);
   assert.equal(items[0].reason, '이유');
   assert.equal(items[0].price, 3000);
-  assert.equal(finalizePicks(cs, null).length, 3);
-  assert.deepEqual(finalizePicks(cs, null, ['a', 'b']).map((i) => i.id), ['c', 'd', 'a']);
+  assert.equal(finalizePicks(cs, null).length, 4); // 개수를 정하지 않음: 맞는 곳 전부(많아도 5개)
+  const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => C(E(id), 2));
+  assert.equal(finalizePicks(many, null).length, 5);
+  assert.deepEqual(finalizePicks(cs, null, ['a', 'b']).map((i) => i.id), ['c', 'd']); // 다른 경험 보기: 안 본 것만
+  assert.deepEqual(finalizePicks(cs, null, ['a', 'b', 'c']).map((i) => i.id), ['d', 'a', 'b', 'c']); // 안 본 게 너무 적으면 본 것을 뒤에
 });
 
 test('마음 확인 입력 정리', () => {

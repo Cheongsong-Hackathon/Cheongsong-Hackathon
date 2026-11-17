@@ -27,7 +27,8 @@ export const config = {
   LLM_PRIMARY_TIMEOUT_MS: 5000, // 예비 공급자가 있을 때 주 공급자에 주는 시간
   SEARCH_RADIUS_M: 2500, // 체험 매장 검색 반경 (도보 약 35분)
   WALK_M_PER_MIN: 67, // 도보 분 = 직선거리 ÷ 67m
-  RECOMMEND_COUNT: 3,
+  RECOMMEND_MAX: 5, // 추천은 개수를 정하지 않고, 화면이 길어지지 않게 많아도 이만큼만
+  RECOMMEND_MIN: 2, // 조건에 맞는 곳이 이보다 적으면 조건을 한 단계 넓힌다
   EXP_DONE: 20, // 체험을 다녀와서 기분을 기록하면
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
   STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
