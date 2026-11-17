@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Character, type Item, type LatLng, type Partner, type Reward, type Run, type VerifyResult } from './api';
 import Chat, { type Msg } from './Chat';
 import Launcher from './Launcher';
-import { Home, Partners, Party, Records, RunSheet, Safety } from './screens';
+import { Home, Landing, Partners, Party, Records, RunSheet, Safety } from './screens';
 
 type Tab = 'home' | 'chat' | 'records' | 'partners';
 const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -37,6 +37,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [safety, setSafety] = useState(false);
   const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
+  const [landed, setLanded] = useState(false); // 앱을 처음 열면 랜딩을 한 번 보여 준다
   const [sheet, setSheet] = useState<Run | null>(null);
   const [party, setParty] = useState<VerifyResult | null>(null);
   const [toast, setToast] = useState('');
@@ -140,6 +141,7 @@ export default function App() {
     if (sessionId) await api.resume(sessionId);
     setSafety(false);
     setLaunched(true);
+    setLanded(true);
     setTab('chat');
     push({ who: 'snail', text: '돌아와 줘서 고마워. 하고 싶은 얘기가 있으면 천천히 해 줘.' });
   }
@@ -151,6 +153,8 @@ export default function App() {
           <Safety onBack={backToChat} />
         ) : !launched ? (
           <Launcher onOpen={() => setLaunched(true)} />
+        ) : !landed ? (
+          <Landing onStart={() => setLanded(true)} />
         ) : (
           <div className="app">
             <main className="screen">

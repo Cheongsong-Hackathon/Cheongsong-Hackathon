@@ -234,3 +234,47 @@ export function Safety({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+
+/** 앱을 열면 처음 보이는 랜딩 */
+export function Landing({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="landing">
+      <div className="landing-top">
+        <Snail size={200} />
+        <h1>느리</h1>
+        <p className="tagline">
+          기분이 처지는 날,
+          <br />
+          아주 작은 것 하나부터
+        </p>
+      </div>
+      <ul className="points">
+        <li>
+          <b>1</b>
+          <span>
+            <strong>느리와 짧게 이야기해요</strong>
+            지금 기운이 어느 정도인지만 알려 주면 돼요
+          </span>
+        </li>
+        <li>
+          <b>2</b>
+          <span>
+            <strong>기운에 맞는 활동 하나</strong>
+            집 안에서, 집 앞으로, 동네까지 천천히
+          </span>
+        </li>
+        <li>
+          <b>3</b>
+          <span>
+            <strong>하면 느리가 자라요</strong>
+            쉬는 날에도 줄어들지 않아요
+          </span>
+        </li>
+      </ul>
+      <button className="btn big" onClick={onStart}>
+        시작하기
+      </button>
+      <p className="sub small">느리는 AI 캐릭터예요. 전문 상담을 대신하지 않아요.</p>
+    </div>
+  );
+}
