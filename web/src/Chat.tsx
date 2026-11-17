@@ -5,12 +5,12 @@ import { TopBar } from './screens';
 
 export type Msg = { who: 'bunny' | 'me'; text: string };
 
-export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string) => void }) {
+export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
   const [text, setText] = useState('');
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [p.msgs.length, p.busy]);
+  }, [p.msgs.length, p.busy, p.retry]);
 
   return (
     <div className="chat">
@@ -20,7 +20,7 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
         {p.msgs.map((m, i) =>
           m.who === 'bunny' ? (
             <div key={i} className="say">
-              <Bunny size={40} peek />
+              <Bunny size={40} faceOnly />
               <div className="bubble bunny">{m.text}</div>
             </div>
           ) : (
@@ -31,7 +31,7 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
         )}
         {p.busy && (
           <div className="say">
-            <Bunny size={40} peek />
+            <Bunny size={40} faceOnly />
             <div className="bubble bunny typing" aria-label="토끼가 생각하는 중">
               <i />
               <i />
@@ -39,12 +39,17 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
             </div>
           </div>
         )}
+        {p.retry && <div className="card" role="status">
+          <p>답장을 받지 못했어. 네가 보낸 말은 남겨 뒀어. 다시 보내 볼까?</p>
+          <button className="btn ghost" disabled={p.busy} onClick={p.onRetry}>다시 보내기</button>
+        </div>}
         <div ref={end} />
       </div>
       <form
         className="composer"
         onSubmit={(e) => {
           e.preventDefault();
+          if (p.busy || !text.trim()) return;
           p.onSend(text);
           setText('');
         }}
