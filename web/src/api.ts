@@ -22,11 +22,24 @@ export type Booking = {
   moodBefore: number | null;
   moodAfter: number | null;
   completedAt?: string;
+  arrivedAt?: string | null; // "도착했어" GPS 확인 시각 (없으면 아직 확인 안 함)
   experienceId: string;
   title: string;
   category: string;
   minutes: number;
   placeName: string;
+};
+/** 무료 장소 (카카오 로컬). 예약 없음, url은 카카오맵 장소 페이지. */
+export type FreePlace = {
+  id: string;
+  name: string;
+  kind: '카페' | '도서관' | '공원';
+  distanceM: number;
+  walkMinutes: number;
+  lat: number;
+  lng: number;
+  address: string;
+  url: string;
 };
 export type Character = {
   level: number;
@@ -85,6 +98,13 @@ export const api = {
   experiences: (pos: LatLng | null) => call<{ items?: Item[] }>('GET', `/experiences${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
   book: (b: { checkinId: number | null; experienceId: string; slotTime: string }) => call<Booking>('POST', '/bookings', b),
   active: () => call<{ booking: Booking | null }>('GET', '/bookings/active'),
+  // "도착했어": 지금 위치(getPos)를 보내면 매장 150m 안인지 확인. arrived:false여도 다녀왔어·기록은 그대로 가능
+  arrive: (id: number, pos: LatLng | null) =>
+    call<{ arrived: boolean; distanceM?: number | null; already?: boolean; demo?: boolean }>('POST', `/bookings/${id}/arrive`, pos ?? {}),
+  // 무료 장소. disabled면 서버에 카카오 키가 없는 것 (목록을 숨기면 됨)
+  freePlaces: (pos: LatLng | null) => call<{ items?: FreePlace[]; disabled?: boolean }>('GET', `/places/free${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
+  // 주소·장소 이름 → 좌표. 받은 좌표를 브라우저에 저장해 두고 getPos 대신 recommend·experiences·freePlaces에 넘기면 됨
+  geocode: (query: string) => call<LatLng & { label: string }>('GET', `/geocode?query=${encodeURIComponent(query)}`),
   complete: (id: number, moodAfter: number) =>
     call<Growth & { done: boolean; moodBefore: number | null; moodAfter: number; already?: boolean }>('POST', `/bookings/${id}/complete`, { moodAfter }),
   cancel: (id: number) => call<{ canceled: boolean }>('POST', `/bookings/${id}/cancel`),

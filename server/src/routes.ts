@@ -3,7 +3,8 @@ import { Router, type Response } from 'express';
 import { config } from './config.js';
 import { query, toId } from './db.js';
 import { validLatLng } from './geo.js';
-import { activeBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
+import { freePlaces, geocode } from './services/kakao.js';
+import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
 import { handleChat } from './services/chat.js';
 import { handleCheckin } from './services/checkin.js';
 import { ITEMS, stageOf } from './services/growth.js';
@@ -55,8 +56,25 @@ api.get('/experiences', async (req, res) => {
   res.json({ items: [...cands].sort((a, b) => a.walkMinutes - b.walkMinutes) });
 });
 
+// 무료 장소: 내 주변 카페·도서관·공원 (카카오 로컬). 예약 없음, 지도 링크만.
+api.get('/places/free', async (req, res) => {
+  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng)) ?? config.demoCenter;
+  const items = await freePlaces(pos);
+  res.json(items === null ? { items: [], disabled: true } : { items });
+});
+
+// 주소나 장소 이름 → 좌표. 화면은 이 좌표를 추천·체험 목록의 lat/lng로 쓴다 (서버에 저장하지 않음).
+api.get('/geocode', async (req, res) => {
+  const q = typeof req.query.query === 'string' ? req.query.query.trim().slice(0, 100) : '';
+  if (!q) return res.status(400).json({ error: '주소나 장소 이름을 적어 줘.' });
+  if (!config.kakaoKey) return res.status(503).json({ error: '주소 검색이 아직 준비되지 않았어.', disabled: true });
+  const r = await geocode(q);
+  r ? res.json(r) : res.status(404).json({ error: '그 주소를 찾지 못했어. 조금 다르게 적어 줄래?' });
+});
+
 // 04 예약 요청
 api.post('/bookings', async (req, res) => send(res, await createBooking(uid(res), req.body)));
+api.post('/bookings/:id/arrive', async (req, res) => send(res, await arriveBooking(uid(res), toId(req.params.id), req.body)));
 api.get('/bookings/active', async (_req, res) => res.json({ booking: await activeBooking(uid(res)) }));
 api.post('/bookings/:id/complete', async (req, res) => send(res, await completeBooking(uid(res), toId(req.params.id), req.body)));
 api.post('/bookings/:id/cancel', async (req, res) => send(res, await cancelBooking(uid(res), toId(req.params.id))));

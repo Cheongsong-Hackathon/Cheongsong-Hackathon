@@ -102,6 +102,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz
 );
+-- "도착했어"를 GPS로 확인한 시각. 좌표는 저장하지 않는다.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS arrived_at timestamptz;
 
 -- 오늘 할 일 하나 미루기
 CREATE TABLE IF NOT EXISTS postpones (
