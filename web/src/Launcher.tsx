@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import Snail from './Snail';
+import Bunny from './Bunny';
 
 // 꾸밈용 가짜 앱 (눌러도 아무 일 없음). iOS 기본 앱 느낌으로 직접 그린 아이콘이다.
-// 느리는 이 뒤, 셋째 줄 셋째 칸에 놓인다.
+// 무드패스는 이 뒤, 셋째 줄 셋째 칸에 놓인다.
 type App = { label: string; bg: string; art: ReactNode };
 const PETALS = ['#fbb03b', '#f7e03c', '#a8d046', '#4fc28f', '#52b6e8', '#6a7fdb', '#b267c9', '#f0605d'];
 const HANDSET = 'M7 4l3 1 1 4-2 1a10 10 0 0 0 5 5l1-2 4 1 1 3c-1 2-3 3-5 3A14 14 0 0 1 4 9c0-2 1-4 3-5z';
@@ -174,7 +174,7 @@ function Icon({ label, bg, art }: App) {
   );
 }
 
-/** 휴대폰 메인 화면. 느리 아이콘(또는 말풍선)을 누르면 앱이 열린다. */
+/** 휴대폰 메인 화면. 무드패스 아이콘(또는 말풍선)을 누르면 앱이 열린다. */
 export default function Launcher({ onOpen }: { onOpen: () => void }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -196,33 +196,33 @@ export default function Launcher({ onOpen }: { onOpen: () => void }) {
       </div>
 
       <div className="widget" aria-hidden="true">
-        <span>느리 · 오늘의 한마디</span>
+        <span>무드패스 · 오늘의 회복 제안</span>
         <strong>
-          기분이 처지는 날,
+          오늘 할 일 하나,
           <br />
-          아주 작은 것 하나만
+          미뤄도 괜찮아요
         </strong>
-        <span>누워 있어도 괜찮아요. 느리는 천천히 기다려요</span>
+        <span>대신 기분에 딱 맞는 30분을 찾아 줄게요</span>
       </div>
 
       <div className="grid">
         {apps(now).map((a) => (
           <Icon key={a.label} {...a} />
         ))}
-        <button className="app-icon neuri" onClick={onOpen} aria-label="느리 앱 열기">
+        <button className="app-icon neuri" onClick={onOpen} aria-label="무드패스 앱 열기">
           <span className="glow" />
           <span className="tile">
-            <Snail size={62} />
+            <Bunny size={60} />
           </span>
           <svg viewBox="0 0 24 24" className="hand" aria-hidden="true">
             <path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V10l5.2 1.1c1 .2 1.8 1.1 1.8 2.2l-.8 5.5A2.5 2.5 0 0 1 15.7 21H11a3 3 0 0 1-2.3-1.1l-3.9-4.7.9-.9c.5-.5 1.2-.6 1.8-.3L9 15z" />
           </svg>
-          <span className="name">느리</span>
+          <span className="name">무드패스</span>
           <span className="tip">
             <strong>클릭!</strong>
-            달팽이 느리와 대화하고
+            오늘 기분에 맞는 체험 3개를
             <br />
-            지금 기운에 맞는 활동 하나를 받아요
+            가까운 곳에서 찾아 줘요
           </span>
         </button>
       </div>

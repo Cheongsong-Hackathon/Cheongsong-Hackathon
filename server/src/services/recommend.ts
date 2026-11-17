@@ -79,6 +79,22 @@ export function filterExperiences(cands: Candidate[], c: Cond): { items: Candida
 }
 
 const DEFAULT_REASON = '지금 조건에 맞고 가까워서 골라 봤어.';
+// LLM이 없거나 이유를 비워 보냈을 때 쓰는 체험별 기본 이유
+const REASON_BY_CATEGORY: Record<string, string> = {
+  book: '말 없이 머물러도 되는 곳이라 지친 날에 딱이야.',
+  pottery: '손으로 흙을 만지다 보면 머릿속이 잠깐 조용해져.',
+  perfume: '좋아하는 향을 고르다 보면 마음이 조금 풀릴 거야.',
+  flower: '꽃을 고르는 30분이 생각보다 기분을 바꿔 줘.',
+  drawing: '잘 그릴 필요 없어. 선만 그어도 괜찮아.',
+  candle: '천천히 녹이고 기다리는 시간이 마음을 가라앉혀 줘.',
+  cookie: '따뜻한 걸 만들어서 들고 오는 기분, 좋잖아.',
+  meditation: '누워서 소리만 들으면 돼. 기운이 없어도 괜찮아.',
+  tea: '차 한 잔 우리는 동안은 아무것도 안 해도 돼.',
+  boardgame: '머리를 다른 데 쓰면 답답함이 좀 풀릴 거야.',
+  karaoke: '소리 내서 부르고 나면 속이 시원해질 거야.',
+  climbing: '몸을 쓰면 꽉 막힌 게 조금 빠져나가.',
+};
+const reasonOf = (c: Candidate) => REASON_BY_CATEGORY[c.category] ?? DEFAULT_REASON;
 
 /** LLM이 고른 id 중 후보에 있는 것만 남기고(지어낸 체험 차단), 모자라면 후보 순서대로 채운다. */
 export function finalizePicks(cands: Candidate[], picks: { id: string; reason: string }[] | null, exclude: string[] = []): Item[] {
@@ -88,11 +104,11 @@ export function finalizePicks(cands: Candidate[], picks: { id: string; reason: s
   const chosen = new Map<string, Item>();
   for (const p of picks ?? []) {
     const c = byId.get(p.id);
-    if (c && chosen.size < config.RECOMMEND_COUNT) chosen.set(c.id, { ...c, reason: p.reason.trim() || DEFAULT_REASON });
+    if (c && chosen.size < config.RECOMMEND_COUNT) chosen.set(c.id, { ...c, reason: p.reason.trim() || reasonOf(c) });
   }
   for (const c of pool) {
     if (chosen.size >= config.RECOMMEND_COUNT) break;
-    if (!chosen.has(c.id)) chosen.set(c.id, { ...c, reason: DEFAULT_REASON });
+    if (!chosen.has(c.id)) chosen.set(c.id, { ...c, reason: reasonOf(c) });
   }
   return [...chosen.values()];
 }

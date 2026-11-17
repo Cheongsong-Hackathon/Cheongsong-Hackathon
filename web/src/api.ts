@@ -1,117 +1,97 @@
-export type Tier = 'HOME' | 'NEAR' | 'TOWN';
 export type LatLng = { lat: number; lng: number };
 export type Item = {
-  templateId: string;
-  placeId?: string;
+  id: string;
   title: string;
-  tier: Tier;
+  category: string;
   minutes: number;
-  exp: number;
-  distanceM?: number;
-  isPartner: boolean;
-  benefit?: string;
-  place?: LatLng & { name: string };
-  reason: string;
+  price: number;
+  moods: string[];
+  description: string;
+  placeName: string;
+  walkMinutes: number;
+  distanceM: number;
+  availableSlots: string[];
+  slots: string[];
+  reason?: string;
+};
+export type Booking = {
+  id: number;
+  status: 'REQUESTED' | 'DONE' | 'CANCELED';
+  slotTime: string;
+  price: number;
+  moodBefore: number | null;
+  moodAfter: number | null;
+  completedAt?: string;
+  experienceId: string;
+  title: string;
+  category: string;
+  minutes: number;
+  placeName: string;
 };
 export type Character = {
-  nickname: string;
   level: number;
   exp: number;
   stage: number;
-  patterns: { tier: Tier; title: string }[];
+  items: string[];
+  equipped: string | null;
+  safeMode: boolean;
   stageMinExp: number;
   nextStageExp: number | null;
-  todayExp: number;
-  dailyCap: number;
+  allItems: { id: string; name: string; stage: number; unlocked: boolean }[];
   demoMode: boolean;
 };
-export type Run = {
-  runId: number;
-  title: string;
-  tier: Tier;
-  minutes: number;
-  exp: number;
-  expGained?: number;
-  placeName?: string | null;
-  isPartner?: boolean;
-  completedAt?: string;
-};
-export type Reward = { id: number; code: string; used: boolean; placeName: string; benefit: string };
-export type Partner = { id: string; name: string; category: string; couponPolicy: string };
-export type VerifyResult = {
-  verified: boolean;
-  expGained: number;
-  levelUp: boolean;
-  stageUp?: boolean;
-  newRewards: Reward[];
-  reason?: string;
-  note?: string;
-  expired?: boolean;
-  blocked?: boolean;
-  error?: string;
+export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems: { id: string; name: string }[] };
+export type Checkin = { checkinId: number | null; reply: string; state: string; risk: string; suggestPostpone?: boolean };
+export type Records = {
+  done: Booking[];
+  week: { date: string; dow: number; mood: number | null }[];
+  postpones: { id: number; task: string; createdAt: string }[];
 };
 
+type Res<T> = T & { error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
+
 // 네트워크·서버 오류가 나도 던지지 않는다. 화면은 { error }를 보고 부드럽게 안내한다.
-async function call<T>(method: string, path: string, body?: unknown): Promise<T & { error?: string; status: number }> {
+async function call<T>(method: string, path: string, body?: unknown): Promise<Res<T>> {
   try {
     const res = await fetch(`/api${path}`, {
       method,
       headers: body === undefined ? undefined : { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return { ...(await res.json().catch(() => ({}))), status: res.status };
+    return { ...(await res.json().catch(() => ({}))), code: res.status };
   } catch {
-    return { error: '연결이 잠깐 끊겼어. 조금 있다가 다시 해 줘.', status: 0 } as any;
+    return { error: '연결이 잠깐 끊겼어. 조금 있다가 다시 해 줘.', code: 0 } as Res<T>;
   }
 }
 
 export const api = {
-  chat: (sessionId: number | null, message: string) =>
-    call<{ sessionId: number | null; reply: string; state: string; energy?: string; risk: string; quickReplies?: string[]; readyToRecommend?: boolean }>(
-      'POST', '/chat', { sessionId, message }),
-  session: (sessionId: number) => call<{ state?: string }>('GET', `/sessions/${sessionId}`),
-  resume: (sessionId: number) => call<{ state: string }>('POST', `/sessions/${sessionId}/resume`),
-  recommend: (sessionId: number, pos: LatLng | null, exclude: string[]) =>
-    call<{ items?: Item[]; center?: LatLng | null; blocked?: boolean }>('POST', '/recommend', { sessionId, ...pos, exclude }),
-  startRun: (sessionId: number, templateId: string, pos: LatLng | null) =>
-    call<{ runId?: number; expiresAt?: string; blocked?: boolean }>('POST', '/runs', { sessionId, templateId, ...pos }),
-  verify: (runId: number, body: Partial<LatLng> & { photo?: string }) => call<VerifyResult>('POST', `/runs/${runId}/verify`, body),
-  runs: () => call<{ active: Run | null; done: Run[] }>('GET', '/runs'),
+  checkin: (b: { text: string; emotion: string | null; energy: number; mood: number }) => call<Checkin>('POST', '/checkin', b),
+  recommend: (b: { checkinId: number; minutes: number; walk: number; budget: number; exclude: string[] } & Partial<LatLng>) =>
+    call<{ items?: Item[]; widened?: boolean; locationSource?: string }>('POST', '/recommend', b),
+  experiences: (pos: LatLng | null) => call<{ items?: Item[] }>('GET', `/experiences${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
+  book: (b: { checkinId: number | null; experienceId: string; slotTime: string }) => call<Booking>('POST', '/bookings', b),
+  active: () => call<{ booking: Booking | null }>('GET', '/bookings/active'),
+  complete: (id: number, moodAfter: number) =>
+    call<Growth & { done: boolean; moodBefore: number | null; moodAfter: number; already?: boolean }>('POST', `/bookings/${id}/complete`, { moodAfter }),
+  cancel: (id: number) => call<{ canceled: boolean }>('POST', `/bookings/${id}/cancel`),
+  postpone: (task: string) => call<Growth & { reply: string }>('POST', '/postpone', { task }),
+  records: () => call<Records>('GET', '/records'),
+  deleteRecords: () => call<{ deleted: boolean }>('DELETE', '/records'),
   character: () => call<Character>('GET', '/character'),
-  rewards: () => call<{ items: Reward[] }>('GET', '/rewards'),
-  redeem: (id: number) => call<{ used: boolean }>('POST', `/rewards/${id}/redeem`),
-  partners: () => call<{ items: Partner[] }>('GET', '/partners'),
+  equip: (item: string | null) => call<{ equipped: string | null }>('POST', '/character/equip', { item }),
+  chat: (sessionId: number | null, message: string) => call<{ sessionId: number | null; reply: string; state: string }>('POST', '/chat', { sessionId, message }),
+  resumeSafety: () => call<{ state: string }>('POST', '/safety/resume'),
 };
 
-/** 현재 위치. 권한 거부·실패면 null. 인증할 때만 부른다. */
+/** 현재 위치. 권한 거부·실패면 null. */
 export const getPos = () =>
   new Promise<LatLng | null>((resolve) => {
     if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
       () => resolve(null),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60_000 },
     );
   });
 
-/** 사진을 작게 줄여 dataURL로. 서버는 사진인지만 확인하고 저장하지 않는다. */
-export async function shrinkPhoto(file: File): Promise<string> {
-  const raw = () =>
-    new Promise<string>((res, rej) => {
-      const fr = new FileReader();
-      fr.onload = () => res(String(fr.result));
-      fr.onerror = rej;
-      fr.readAsDataURL(file);
-    });
-  try {
-    const bmp = await createImageBitmap(file);
-    const k = Math.min(1, 640 / Math.max(bmp.width, bmp.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(bmp.width * k);
-    c.height = Math.round(bmp.height * k);
-    c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
-    return c.toDataURL('image/jpeg', 0.6);
-  } catch {
-    return raw();
-  }
-}
+export const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
