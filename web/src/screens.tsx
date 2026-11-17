@@ -4,12 +4,14 @@ import Art from './Art';
 import Bunny from './Bunny';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
+import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
+import { COLOR_ITEMS } from './AccessoryColors';
 import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
 import { useOutfit } from './Outfit';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장 이름·위치만 실제이고, 제휴·가격·예약은 예시예요</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장·가격·결제는 가상</p>;
 
 function Logo() {
   return (
@@ -39,7 +41,7 @@ export function TopBar({ onBack }: { onBack?: () => void }) {
   );
 }
 
-function Chips<T extends string | number>({ options, value, onChange, label }: { options: [T, string][]; value: T | null; onChange: (v: T) => void; label: string }) {
+function Chips<T extends string | number>({ options, value, onChange, label }: { options: [T, ReactNode][]; value: T | null; onChange: (v: T) => void; label: string }) {
   return (
     <div className="chips" role="radiogroup" aria-label={label}>
       {options.map(([v, text]) => (
@@ -115,7 +117,7 @@ export function Home(p: {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3" /></svg>
       </label>
       <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
-      <Chips label="감정" options={EMOTIONS.map((e) => [e, e])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
+      <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
       <h2 className="label">
         지금 나의 에너지 레벨은? <span className="pill">{f.energy}%</span>
       </h2>
@@ -535,8 +537,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
       </div>
       <div className="card">
         <span className="eyebrow">아이템 색 고르기</span>
-        <AccessoryColorPicker item="ribbon" unlocked={!!c?.allItems.find((i) => i.id === 'ribbon')?.unlocked} />
-        <AccessoryColorPicker item="scarf" unlocked={!!c?.allItems.find((i) => i.id === 'scarf')?.unlocked} />
+        {COLOR_ITEMS.map(({ id }) => <AccessoryColorPicker key={id} item={id} unlocked={!!c?.allItems.find((i) => i.id === id)?.unlocked} />)}
         <p className="small mute">색상은 이 브라우저에 저장돼요.</p>
       </div>
       <h2 className="label">다녀온 체험</h2>

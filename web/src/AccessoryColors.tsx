@@ -1,8 +1,13 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-export type ColorItem = 'ribbon' | 'scarf';
+export const COLOR_ITEMS = [
+  { id: 'ribbon', name: '리본', defaultColor: '#ff8fb3' },
+  { id: 'scarf', name: '목도리', defaultColor: '#ffd45e' },
+  { id: 'beret', name: '베레모', defaultColor: '#6a4bd8' },
+] as const;
+export type ColorItem = (typeof COLOR_ITEMS)[number]['id'];
 type Colors = Record<ColorItem, string>;
-const DEFAULTS: Colors = { ribbon: '#ff8fb3', scarf: '#ffd45e' };
+const DEFAULTS = Object.fromEntries(COLOR_ITEMS.map((item) => [item.id, item.defaultColor])) as Colors;
 const valid = (value: unknown): value is string => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
 const Context = createContext({ colors: DEFAULTS, setColor: (_item: ColorItem, _color: string) => {} });
 
@@ -14,7 +19,7 @@ export function AccessoryColorsProvider({ children }: { children: ReactNode }) {
   const [colors, setColors] = useState<Colors>(() => {
     try {
       const value = JSON.parse(localStorage.getItem(storageKey) ?? 'null');
-      return { ribbon: valid(value?.ribbon) ? value.ribbon : DEFAULTS.ribbon, scarf: valid(value?.scarf) ? value.scarf : DEFAULTS.scarf };
+      return Object.fromEntries(COLOR_ITEMS.map(({ id }) => [id, valid(value?.[id]) ? value[id] : DEFAULTS[id]])) as Colors;
     } catch { return DEFAULTS; }
   });
   const setColor = (item: ColorItem, color: string) => {

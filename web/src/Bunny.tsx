@@ -23,6 +23,7 @@ function Item({ id }: { id: string | null }) {
   const { colors } = useAccessoryColors();
   const ribbon = colors.ribbon;
   const scarf = colors.scarf;
+  const beret = colors.beret;
   if (id === 'ribbon')
     return (
       <g transform="translate(146 94) rotate(18) scale(1.5)">
@@ -42,10 +43,10 @@ function Item({ id }: { id: string | null }) {
     );
   if (id === 'beret')
     return (
-      <g stroke="#4c34a8" strokeWidth="2.5" strokeLinejoin="round">
-        <ellipse cx="96" cy="74" rx="42" ry="15" fill="#6a4bd8" transform="rotate(-8 96 74)" />
+      <g stroke={tint(beret, -.28)} strokeWidth="2.5" strokeLinejoin="round">
+        <ellipse cx="96" cy="74" rx="42" ry="15" fill={beret} transform="rotate(-8 96 74)" />
         <path d="M94 59l4-9" strokeLinecap="round" />
-        <path d="M66 69q10-6 22-6" fill="none" stroke="#ad98f4" strokeWidth="3" strokeLinecap="round" />
+        <path d="M66 69q10-6 22-6" fill="none" stroke={tint(beret, .5)} strokeWidth="3" strokeLinecap="round" />
       </g>
     );
   return null;

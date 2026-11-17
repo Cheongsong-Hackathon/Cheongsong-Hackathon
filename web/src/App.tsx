@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import Launcher from './Launcher';
+import Journal from './Journal';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
@@ -26,10 +27,11 @@ import {
   type PartyResult,
 } from './screens';
 
-type Tab = 'home' | 'explore' | 'records' | 'talk';
+type Tab = 'home' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home', label: '홈', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
   { id: 'explore', label: '체험', icon: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z' },
+  { id: 'journal', label: '도감', icon: 'M4 4h7v16H4zM13 4h7v16h-7zM7 8h1M16 8h1' },
   { id: 'records', label: '기록', icon: 'M6 3h12v18l-6-4-6 4z' },
   { id: 'talk', label: '속마음', icon: 'M4 5h16v11H9l-5 4z' },
 ];
@@ -63,6 +65,9 @@ export default function App() {
     } catch { return null; }
   });
   const [tab, setTab] = useState<Tab>('home');
+  const [journalFocus, setJournalFocus] = useState(false);
+  const screenRef = useRef<HTMLElement>(null);
+  useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
   const [ch, setCh] = useState<Character | null>(null);
   const [scarfPreference, setScarfPreference] = useState<boolean | null>(() => {
     try { const saved = localStorage.getItem(scarfStorageKey()); return saved === 'true' ? true : saved === 'false' ? false : null; }
@@ -325,8 +330,8 @@ export default function App() {
             <LocationConsent onAnswer={answerConsent} location={locationPicker} />
           ) : (
             <div className="app">
-              <main className="screen">
-                {(refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '토끼와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
+              <main className="screen" ref={screenRef}>
+                {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '토끼와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
                 {(tab === 'home' || tab === 'explore') && !sheet && <div className="location-bar">{locationPicker}</div>}
                 {tab === 'home' && homeScreen}
                 {tab === 'explore' &&
@@ -356,9 +361,10 @@ export default function App() {
                     }}
                   />
                 )}
+                <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal onFocusChange={setJournalFocus} /></div>
                 {tab === 'talk' && <Chat msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
               </main>
-              <nav className="tabs" aria-label="메뉴">
+              {!(tab === 'journal' && journalFocus) && <nav className="tabs" aria-label="메뉴">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
@@ -375,8 +381,8 @@ export default function App() {
                     {t.label}
                   </button>
                 ))}
-              </nav>
-              <button className="home-bar" aria-label="휴대폰 메인 화면으로" onClick={() => setLaunched(false)} />
+              </nav>}
+              {!(tab === 'journal' && journalFocus) && <button className="home-bar" aria-label="휴대폰 메인 화면으로" onClick={() => setLaunched(false)} />}
               {sheet?.kind === 'conditions' && checkin && (
                 <ConditionSheet
                   location={locationPicker}

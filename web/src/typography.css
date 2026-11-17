@@ -1,0 +1,7 @@
+@font-face { font-family: 'NanumSquareRound'; src: url('./assets/fonts/NanumSquareRoundR.woff2') format('woff2'); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: 'NanumSquareRound'; src: url('./assets/fonts/NanumSquareRoundB.woff2') format('woff2'); font-style: normal; font-weight: 600 700; font-display: swap; }
+@font-face { font-family: 'NanumSquareRound'; src: url('./assets/fonts/NanumSquareRoundEB.woff2') format('woff2'); font-style: normal; font-weight: 800 900; font-display: swap; }
+:root { --font-ui: 'NanumSquareRound', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; font-family: var(--font-ui); }
+body, button, input, textarea, select { font-family: var(--font-ui); }
+.mood-option-label { display: inline-flex; align-items: center; justify-content: center; gap: 5px; vertical-align: middle; }
+.ui-emoji { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; font-size: 1.1em; font-weight: 400; line-height: 1.2; }

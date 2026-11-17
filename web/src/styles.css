@@ -10,7 +10,7 @@
   --line: #e7e1f6;
   --pink: #ffb8cc;
   --hl: #ffe680;
-  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  font-family: var(--font-ui, 'NanumSquareRound'), 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--ink);
