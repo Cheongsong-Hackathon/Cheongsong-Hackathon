@@ -116,10 +116,11 @@ export function finalizePicks(cands: Candidate[], picks: { id: string; reason: s
   return [...chosen.values()];
 }
 
-const PickOut = z.object({ picks: z.array(z.object({ id: z.string(), reason: z.string().catch('') })) });
-const PICK_FORMAT = `
+export const PickOut = z.object({ picks: z.array(z.object({ id: z.string(), reason: z.string().catch('') })) });
+export const PICK_FORMAT = `
 지금은 친구에게 오늘 할 만한 체험을 골라 주는 차례야. 후보 목록에 있는 것 중에서만, 지금 친구에게 어울리는 것을 어울리는 순서대로 골라. 개수는 정해져 있지 않지만 많아도 5개.
 후보에 없는 id를 지어내면 안 돼. 이유는 "지금 친구 상태에 왜 맞는지"를 토끼 말투로 한 줄. 가격과 시간 숫자는 쓰지 마.
+이유에는 친구가 한 말에 나온 사정(멀리 가기 싫음, 발표 걱정, 방에만 있었음 등)과 에너지를 반영해. 이유마다 표현을 다르게 써.
 아래 JSON 하나만 출력해. 다른 글은 쓰지 마.
 {"picks":[{"id":"후보의 id","reason":"한 줄 이유"}]}`;
 
