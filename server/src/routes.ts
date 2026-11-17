@@ -8,7 +8,7 @@ import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBoo
 import { handleChat } from './services/chat.js';
 import { handleCheckin } from './services/checkin.js';
 import { ITEMS, stageOf } from './services/growth.js';
-import { llmCallCount } from './services/llm.js';
+import { defaultClient, llmCallCount } from './services/llm.js';
 import { nearbyCandidates, recommend } from './services/recommend.js';
 import { setSafeMode } from './services/safety.js';
 import { seed } from './setup.js';
@@ -18,7 +18,18 @@ const send = (res: Response, r: { status: number; body: unknown }) => res.status
 export const api = Router();
 
 // ---- 사용자 없이 쓰는 것 ----
-api.get('/health', (_req, res) => res.json({ ok: true, demoMode: config.demoMode, llm: llmCallCount() }));
+// 서버 상태: 지금 쓰는 LLM 모델(키는 보이지 않음)과 오늘 호출 수
+api.get('/health', (_req, res) =>
+  res.json({
+    ok: true,
+    demoMode: config.demoMode,
+    llm: {
+      model: defaultClient ? config.llm.model : null, // null이면 키가 없어 기본 답장만
+      fallbackModel: config.llmFallback.apiKey ? config.llmFallback.model : null,
+      ...llmCallCount(),
+    },
+  }),
+);
 // 시연 리허설용 초기화. DEMO_MODE에서만 열린다. 모든 사용자의 데이터가 지워진다.
 api.post('/demo/reset', async (_req, res) => {
   if (!config.demoMode) return res.status(404).end();

@@ -58,10 +58,12 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 
 | 공급자 | `LLM_BASE_URL` | `LLM_MODEL` 예 |
 | --- | --- | --- |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-flash-lite` (2026-11 기준) |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
 
-모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요.
+모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요. 모델이 종료되면 404 "no longer available"이 나고 모든 답이 기본 답장으로 바뀝니다. 지금 쓸 수 있는 이름은 `GET {LLM_BASE_URL}/models`(키 필요)로 볼 수 있습니다.
+
+서버를 켜면 AI를 한 번 미리 불러 둡니다(첫 호출이 8초를 넘기곤 해서). 로그에 `[llm] 준비 완료`가 나오면 정상, `준비 호출 실패`가 나오면 모델 이름과 키를 확인하세요.
 
 동작 순서: 주 공급자 → (429·타임아웃·오류) 예비 공급자 → 기본 답장. 전체 8초를 넘기면 기본 답장으로 넘어갑니다. LLM은 세 곳에만 씁니다: 마음 확인의 공감 한마디, 추천 순서와 이유, 속마음 대화. 가격·시간·장소는 AI가 만들지 않고 체험 DB 값만 보여 줍니다.
 
@@ -75,7 +77,7 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 [llm] 2026-11-20 #14 fallback ok 610ms
 ```
 
-`GET /api/health`에서도 오늘 집계를 볼 수 있습니다. 서버를 다시 시작하면 0부터 셉니다.
+`GET /api/health`에서도 지금 쓰는 모델(`llm.model`, 키가 없으면 `null`)과 오늘 집계를 볼 수 있습니다. 배포 서버는 `https://blackapple.store/api/health`. 서버를 다시 시작하면 0부터 셉니다.
 
 ## 시연 전 확인
 
