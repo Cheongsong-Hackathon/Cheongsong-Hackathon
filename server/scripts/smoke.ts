@@ -67,7 +67,7 @@ const exps = await api('GET', '/experiences');
 check('체험 탭: 12개', exps.json.items?.length === 12);
 
 console.log('\n[2] 위기 표현 → 안전 모드');
-const crisis = await api('POST', '/checkin', { text: '그냥 다 사라지고 싶어', emotion: '우울해', energy: 10, mood: 1 });
+const crisis = await api('POST', '/checkin', { text: '그냥 다 사라지고 싶어', emotion: '지쳤어', energy: 10, mood: 1 });
 check('마음 확인에서 감지 → SAFETY', crisis.json.state === 'SAFETY' && crisis.json.risk === 'CRISIS', crisis.json);
 const blockedRec = await api('POST', '/recommend', { checkinId: ck.json.checkinId });
 check('안전 모드에서는 추천이 막힌다 (403)', blockedRec.status === 403 && !blockedRec.json.items, blockedRec.json);

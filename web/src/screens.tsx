@@ -3,7 +3,7 @@ import { won, type Booking, type Character, type Growth, type Item, type Records
 import Art from './Art';
 import Bunny from './Bunny';
 
-export const EMOTIONS = ['지쳤어', '답답해', '우울해', '불안해', '심심해', '평온해'];
+export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
 export const DemoNote = () => <p className="notice">체험 모드: 매장·가격·예약은 가상입니다</p>;
 
@@ -536,7 +536,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">“우울해서 빵 사는 대신, 기분에 딱 맞는 30분을 처방해 줄게”</p>
+        <p className="promise">“지쳐서 빵 사는 대신, 기분에 딱 맞는 30분을 처방해 줄게”</p>
       </div>
       <ul className="points">
         <li>

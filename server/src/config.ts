@@ -35,4 +35,4 @@ export const config = {
   USER_ID: 1, // 테스트 사용자 고정 (로그인 없음)
 };
 
-export const EMOTIONS = ['지쳤어', '답답해', '우울해', '불안해', '심심해', '평온해'] as const;
+export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'] as const;
