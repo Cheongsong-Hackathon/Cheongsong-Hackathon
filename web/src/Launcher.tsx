@@ -1,33 +1,173 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Snail from './Snail';
 
-// 꾸밈용 가짜 앱 (눌러도 아무 일 없음). 느리는 이 뒤, 셋째 줄 셋째 칸에 놓인다.
-const DUMMY: [string, string, string][] = [
-  ['달력', '#4a6fa5', 'M5 6h14v13H5zM5 10h14M9 4v4M15 4v4'],
-  ['사진', '#b5654d', 'M5 6h14v12H5zM8 15l3-3 2 2 2-3 3 4'],
-  ['메모', '#c9952f', 'M7 4h10v16H7zM9.5 9h5M9.5 12h5M9.5 15h3'],
-  ['날씨', '#5d94b8', 'M7 17a4 4 0 1 1 1-7.9A5 5 0 0 1 18 11a3 3 0 0 1 0 6z'],
-  ['지도', '#6b4f9a', 'M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11zM12 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4z'],
-  ['음악', '#9c3f5d', 'M10 17V6l8-2v11M10 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM18 15a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'],
-  ['계산기', '#3d3a36', 'M7 4h10v16H7zM9.5 8h5M9.5 12h1M13.5 12h1M9.5 16h1M13.5 16h1'],
-  ['시계', '#40798c', 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM12 8v4l3 2'],
-  ['설정', '#77756e', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2'],
-  ['파일', '#3f7a58', 'M4 7h6l2 2h8v10H4z'],
-];
-const DOCK: [string, string, string][] = [
-  ['전화', '#3f8f4f', 'M7 4l3 1 1 4-2 1a10 10 0 0 0 5 5l1-2 4 1 1 3c-1 2-3 3-5 3A14 14 0 0 1 4 9c0-2 1-4 3-5z'],
-  ['메시지', '#3f86b8', 'M4 6h16v10H10l-5 4v-4H4z'],
-  ['카메라', '#55524d', 'M4 8h4l2-2h4l2 2h4v10H4zM12 10a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
-  ['인터넷', '#3f5fa8', 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16'],
+// 꾸밈용 가짜 앱 (눌러도 아무 일 없음). iOS 기본 앱 느낌으로 직접 그린 아이콘이다.
+// 느리는 이 뒤, 셋째 줄 셋째 칸에 놓인다.
+type App = { label: string; bg: string; art: ReactNode };
+const PETALS = ['#fbb03b', '#f7e03c', '#a8d046', '#4fc28f', '#52b6e8', '#6a7fdb', '#b267c9', '#f0605d'];
+const HANDSET = 'M7 4l3 1 1 4-2 1a10 10 0 0 0 5 5l1-2 4 1 1 3c-1 2-3 3-5 3A14 14 0 0 1 4 9c0-2 1-4 3-5z';
+
+const apps = (now: Date): App[] => [
+  {
+    label: '캘린더',
+    bg: '#fff',
+    art: (
+      <>
+        <text x="30" y="17" textAnchor="middle" fontSize="10" fontWeight="600" fill="#ff3b30">
+          {now.toLocaleDateString('ko-KR', { weekday: 'long' })}
+        </text>
+        <text x="30" y="48" textAnchor="middle" fontSize="33" fontWeight="300" fill="#111">
+          {now.getDate()}
+        </text>
+      </>
+    ),
+  },
+  {
+    label: '사진',
+    bg: '#fff',
+    art: PETALS.map((c, i) => (
+      <ellipse key={c} cx="30" cy="17.5" rx="6.6" ry="10.5" fill={c} opacity=".82" transform={`rotate(${i * 45} 30 30)`} />
+    )),
+  },
+  {
+    label: '메모',
+    bg: '#fff',
+    art: (
+      <>
+        <rect width="60" height="17" fill="#fcc419" />
+        <path d="M0 19.5h60" stroke="#c9c9c9" strokeWidth="1" strokeDasharray="1.5 2.5" />
+        <path d="M0 31h60M0 42h60M0 53h60" stroke="#d7d7d7" strokeWidth="1.2" />
+      </>
+    ),
+  },
+  {
+    label: '날씨',
+    bg: 'linear-gradient(#2f7fe0, #7cc6f7)',
+    art: (
+      <>
+        <circle cx="22" cy="23" r="9.5" fill="#ffd43b" />
+        <path d="M20 44a7.5 7.5 0 0 1 1.5-14.8A10 10 0 0 1 41 31.5a6.3 6.3 0 0 1 1 12.5z" fill="#fff" />
+      </>
+    ),
+  },
+  {
+    label: '지도',
+    bg: '#e8efe1',
+    art: (
+      <>
+        <path d="M0 0h22L8 60H0z" fill="#b9e3a5" />
+        <path d="M38 0h22v26z" fill="#8cc8f5" />
+        <path d="M-4 44L64 14" stroke="#fff" strokeWidth="9" />
+        <path d="M28 -4L40 64" stroke="#ffd95a" strokeWidth="7" />
+        <circle cx="33" cy="31" r="9" fill="#fff" />
+        <path d="M33 25l5 11-5-2.6-5 2.6z" fill="#2f7ff0" />
+      </>
+    ),
+  },
+  {
+    label: '음악',
+    bg: 'linear-gradient(#fb5c74, #fa233b)',
+    art: (
+      <path
+        d="M25 41V19l18-4v22M25 41a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0zM43 37a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0z"
+        fill="#fff"
+        stroke="#fff"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+    ),
+  },
+  {
+    label: '계산기',
+    bg: '#1c1c1e',
+    art: [12, 24, 36, 48].flatMap((x, col) =>
+      [13, 25, 37, 49].map((y, row) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="4.7" fill={col === 3 ? '#ff9f0a' : row === 0 ? '#a5a5a5' : '#505052'} />
+      )),
+    ),
+  },
+  {
+    label: '시계',
+    bg: '#111',
+    art: (
+      <>
+        <circle cx="30" cy="30" r="25" fill="#fff" />
+        {Array.from({ length: 12 }, (_, i) => (
+          <path key={i} d="M30 8v3.5" stroke="#111" strokeWidth="1.6" transform={`rotate(${i * 30} 30 30)`} />
+        ))}
+        <path d="M30 30V15M30 30l10 6" stroke="#111" strokeWidth="2.6" strokeLinecap="round" />
+        <path d="M30 33L22 12" stroke="#ff9500" strokeWidth="1.2" strokeLinecap="round" />
+        <circle cx="30" cy="30" r="2" fill="#ff9500" />
+      </>
+    ),
+  },
+  {
+    label: '설정',
+    bg: 'linear-gradient(#c7c7cc, #8e8e93)',
+    art: (
+      <g fill="none" stroke="#3a3a3c">
+        <circle cx="30" cy="30" r="20" strokeWidth="5" strokeDasharray="4.2 3.65" />
+        <circle cx="30" cy="30" r="16" strokeWidth="3" />
+        <path d="M30 30V15.5M30 30l12.5 7.2M30 30l-12.5 7.2" strokeWidth="2.6" />
+        <circle cx="30" cy="30" r="4.5" fill="#3a3a3c" stroke="none" />
+      </g>
+    ),
+  },
+  {
+    label: '파일',
+    bg: '#fff',
+    art: (
+      <>
+        <path d="M10 18a3 3 0 0 1 3-3h11l4 5h19a3 3 0 0 1 3 3v3H10z" fill="#1a7cf0" />
+        <rect x="10" y="23" width="40" height="23" rx="3.5" fill="#4aa8fb" />
+      </>
+    ),
+  },
 ];
 
-function Icon({ label, color, d }: { label: string; color: string; d: string }) {
+const DOCK: App[] = [
+  {
+    label: '전화',
+    bg: 'linear-gradient(#63ef6f, #0cbb2b)',
+    art: <path d={HANDSET} fill="#fff" transform="translate(9.6 9.6) scale(1.7)" />,
+  },
+  {
+    label: '메시지',
+    bg: 'linear-gradient(#63ef6f, #0cbb2b)',
+    art: <path d="M30 13c-11 0-19 6.8-19 15.5 0 5 2.8 9.4 7.2 12.2-.4 2.6-1.6 4.8-3.6 6.6 4 0 7.2-1.300 9.600-3.500 1.800.4 3.800.7 5.800.7 11 0 19-6.800 19-15.500S41 13 30 13z" fill="#fff" />,
+  },
+  {
+    label: '카메라',
+    bg: 'linear-gradient(#dedee2, #9a9aa0)',
+    art: (
+      <>
+        <path d="M11 22a4 4 0 0 1 4-4h5l3-4h14l3 4h5a4 4 0 0 1 4 4v19a4 4 0 0 1-4 4H15a4 4 0 0 1-4-4z" fill="#2c2c2e" />
+        <circle cx="30" cy="31" r="9" fill="#55555a" />
+        <circle cx="30" cy="31" r="5.5" fill="#1c1c1e" />
+      </>
+    ),
+  },
+  {
+    label: 'Safari',
+    bg: '#fff',
+    art: (
+      <>
+        <circle cx="30" cy="30" r="25" fill="#1e8cf3" />
+        {Array.from({ length: 24 }, (_, i) => (
+          <path key={i} d="M30 7.5v3" stroke="#fff" strokeWidth="1" transform={`rotate(${i * 15} 30 30)`} />
+        ))}
+        <path d="M44 16L26.500 26.500 33.500 33.500z" fill="#ff3b30" />
+        <path d="M16 44L26.500 26.500 33.500 33.500z" fill="#fff" />
+      </>
+    ),
+  },
+];
+
+function Icon({ label, bg, art }: App) {
   return (
     <div className="app-icon dim" aria-hidden="true">
-      <span className="tile" style={{ background: color }}>
-        <svg viewBox="0 0 24 24">
-          <path d={d} />
-        </svg>
+      <span className="tile" style={{ background: bg }}>
+        <svg viewBox="0 0 60 60">{art}</svg>
       </span>
       <span className="name">{label}</span>
     </div>
@@ -66,8 +206,8 @@ export default function Launcher({ onOpen }: { onOpen: () => void }) {
       </div>
 
       <div className="grid">
-        {DUMMY.map(([label, color, d]) => (
-          <Icon key={label} label={label} color={color} d={d} />
+        {apps(now).map((a) => (
+          <Icon key={a.label} {...a} />
         ))}
         <button className="app-icon neuri" onClick={onOpen} aria-label="느리 앱 열기">
           <span className="glow" />
@@ -92,8 +232,8 @@ export default function Launcher({ onOpen }: { onOpen: () => void }) {
         <i />
       </div>
       <div className="dock">
-        {DOCK.map(([label, color, d]) => (
-          <Icon key={label} label={label} color={color} d={d} />
+        {DOCK.map((a) => (
+          <Icon key={a.label} {...a} />
         ))}
       </div>
       <span className="home-line" aria-hidden="true" />
