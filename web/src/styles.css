@@ -79,21 +79,10 @@ h1, h2, h3, p { margin: 0; }
 .rest { margin-top: 4px; }
 
 /* 달팽이 */
-.snail .body { fill: #f3d9a4; stroke: #c9a55f; stroke-width: 3; stroke-linejoin: round; }
-.snail .shell { fill: #a9b97a; stroke: var(--olive); stroke-width: 3; }
-.snail .spiral { fill: none; stroke: var(--olive-dark); stroke-width: 3.5; stroke-linecap: round; opacity: .55; }
-.snail .mark { fill: #fffdf7; stroke: var(--olive-dark); stroke-width: 1; animation: pop .5s backwards; }
-.snail .stalk { fill: none; stroke: #c9a55f; stroke-width: 5; stroke-linecap: round; }
-.snail .eye { fill: #fff; stroke: #c9a55f; stroke-width: 2.5; }
-.snail .pupil { fill: var(--ink); }
-.snail .mouth { fill: none; stroke: #8a6a2f; stroke-width: 3; stroke-linecap: round; }
-.snail .blush { fill: #f0a58a; opacity: .6; }
-.snail .leaf { fill: #8fa651; stroke: var(--olive-dark); stroke-width: 2; stroke-linejoin: round; }
-.snail .flower circle { fill: #fffdf7; stroke: var(--olive); stroke-width: 1.5; }
-.snail .flower .flower-mid { fill: #e9c46a; }
+.snail .mark { fill: #fffdf7; stroke: #7d9148; stroke-width: 1.2; animation: pop .5s backwards; }
 .snail .shadow { fill: #0000000f; }
-.snail .breathe { transform-origin: 110px 150px; animation: breathe 3.6s ease-in-out infinite; }
-.snail .eyes { animation: blink 5s infinite; transform-origin: 63px 46px; }
+.snail .breathe { transform-origin: 110px 152px; animation: breathe 3.6s ease-in-out infinite; }
+.snail .eyes { animation: blink 4.5s infinite; transform-origin: 67px 108px; }
 .snail.happy .breathe { animation: hop .7s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: scale(1.035, .97); } }
 @keyframes hop { 50% { transform: translateY(-10px) scale(.98, 1.03); } }
