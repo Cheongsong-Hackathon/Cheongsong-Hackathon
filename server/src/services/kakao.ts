@@ -1,8 +1,7 @@
 // 카카오 로컬 API: 무료 장소(카페·도서관·공원) 검색, 주소·장소 이름 → 좌표.
 // 키(KAKAO_REST_API_KEY)가 없거나 실패하면 null을 돌려주고, 화면은 지금처럼 동작한다.
 import { config } from '../config.js';
-import type { LatLng } from '../geo.js';
-import { walkMinutes } from './recommend.js';
+import { walkMinutes, type LatLng } from '../geo.js';
 
 const BASE = 'https://dapi.kakao.com/v2/local/search';
 const TIMEOUT_MS = 3000;
@@ -76,6 +75,25 @@ export async function freePlaces(pos: LatLng, perKind = 5): Promise<FreePlace[] 
   );
   if (results.every((r) => r === null)) return null;
   return results.flatMap((r) => r ?? []).sort((a, b) => a.distanceM - b.distanceM);
+}
+
+const FREE_REASON: Record<string, string> = {
+  카페: '잠깐 앉아서 따뜻한 거 한 잔 하고 가자. 돈도 거의 안 들어.',
+  도서관: '조용한 데서 아무것도 안 하고 있어도 괜찮아.',
+  공원: '바람 쐬면서 조금 걷기만 해도 기분이 달라져.',
+};
+
+/** 추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가장 가까운 곳 하나씩 (가까운 순).
+ *  조건 안에 없으면 도보 +10분까지 넓혀 본다. */
+export function pickFree(all: FreePlace[], walk: number): (FreePlace & { reason: string })[] {
+  for (const limit of [walk, walk + 10]) {
+    const seen = new Set<string>();
+    const picked = [...all]
+      .sort((a, b) => a.distanceM - b.distanceM)
+      .filter((p) => p.walkMinutes <= limit && !seen.has(p.kind) && seen.add(p.kind));
+    if (picked.length) return picked.map((p) => ({ ...p, reason: FREE_REASON[p.kind] ?? '가까워서 바로 다녀올 수 있어.' }));
+  }
+  return [];
 }
 
 /** 주소("경산시 대학로 280")나 장소 이름("영남대학교") → 좌표. 주소로 먼저 찾고, 없으면 장소 이름으로. */

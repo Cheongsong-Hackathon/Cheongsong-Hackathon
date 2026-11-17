@@ -256,3 +256,6 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 
 .card.row { flex-direction: row; align-items: center; }
 
+
+/* 무료 장소 카드는 카카오맵 링크(a)라서 기본 링크 색·밑줄을 지운다 */
+a.card { color: inherit; text-decoration: none; }

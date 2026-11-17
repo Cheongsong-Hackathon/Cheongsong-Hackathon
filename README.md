@@ -46,8 +46,8 @@ cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
 | --- | --- |
 | `PORT` | 서버 포트 (기본 3000) |
 | `DATABASE_URL` | PostgreSQL 주소. 클라우드 DB는 보통 끝에 `?sslmode=require` |
-| `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, 내 위치 주변에 매장이 없으면 `DEMO_CENTER` 기준으로 추천. `/api/demo/reset` 열림 |
-| `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 바꾸면 `npm run seed`를 다시 |
+| `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, "도착했어"의 거리를 따지지 않음. `/api/demo/reset` 열림 |
+| `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 위치가 있으면 추천은 항상 그 위치 기준(주변에 제휴 매장이 없으면 무료 장소만). 바꾸면 `npm run seed`를 다시 |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | 주 LLM (OpenAI 호환 API) |
 | `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM. 비우면 사용 안 함 |
 | `KAKAO_REST_API_KEY` | 카카오 로컬 REST API 키. 무료 장소 검색과 주소 → 좌표. 비우면 두 기능만 꺼짐 |
@@ -141,7 +141,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | | |
 | --- | --- |
 | `POST /api/checkin` | `{text, emotion, energy, mood}` → `{checkinId, reply, suggestPostpone}` |
-| `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items(2~5개), widened}` |
+| `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items, free, widened}`. `items`: 위치 주변 제휴 매장 체험(많아도 5개, 없으면 빈 배열), `free`: 같은 위치의 무료 장소(도보 조건 안, 종류별 가장 가까운 곳) |
 | `GET /api/experiences` | 전체 체험 (도보 분 포함) |
 | `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 예약 요청 (가격은 DB 값) |
 | `GET /api/bookings/active` | 진행 중인 예약 요청 (`arrivedAt`: 도착 확인 시각) |

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { won, type Booking, type Character, type Growth, type Item, type Records as RecordsData } from './api';
+import { won, type Booking, type Character, type FreeRec, type Growth, type Item, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
 
@@ -190,7 +190,10 @@ function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; c
   );
 }
 
-export function Recs(p: { items: Item[]; widened: boolean; busy: boolean; onPick: (i: Item) => void; onMore: () => void; onBack: () => void }) {
+// 무료 장소 카드 그림: 체험 그림 중 비슷한 것을 빌려 쓴다
+const FREE_ART: Record<string, string> = { 카페: 'tea', 도서관: 'book', 공원: 'meditation' };
+
+export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy: boolean; onPick: (i: Item) => void; onMore: () => void; onBack: () => void }) {
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
@@ -198,6 +201,7 @@ export function Recs(p: { items: Item[]; widened: boolean; busy: boolean; onPick
         지금 너에게 어울리는 경험<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       {p.widened && <p className="notice">딱 맞는 게 부족해서 조건을 조금 넓혔어.</p>}
+      {!p.items.length && <p className="notice">근처에 아직 제휴 매장이 없어서, 지금 바로 갈 수 있는 곳을 골라 봤어.</p>}
       <div className="list">
         {p.items.map((i) => (
           <ExpCard key={i.id} item={i} onPick={() => p.onPick(i)}>
@@ -205,10 +209,35 @@ export function Recs(p: { items: Item[]; widened: boolean; busy: boolean; onPick
           </ExpCard>
         ))}
       </div>
-      <button className="btn ghost" disabled={p.busy} onClick={p.onMore}>
-        {p.busy ? '찾는 중…' : '다른 경험 보기'}
-      </button>
-      <p className="small center mute">가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요.</p>
+      {p.items.length > 0 && (
+        <button className="btn ghost" disabled={p.busy} onClick={p.onMore}>
+          {p.busy ? '찾는 중…' : '다른 경험 보기'}
+        </button>
+      )}
+      {p.free.length > 0 && (
+        <>
+          <h2 className="label">돈 안 드는 곳</h2>
+          <div className="list">
+            {p.free.map((f) => (
+              <a key={f.id} className="card exp" href={f.url} target="_blank" rel="noreferrer">
+                <Art category={FREE_ART[f.kind] ?? 'book'} className="thumb" />
+                <span className="exp-body">
+                  <strong>{f.name}</strong>
+                  <span className="meta">
+                    {f.kind} · 도보 {f.walkMinutes}분
+                  </span>
+                  <span className="price">무료 · 길 안내 ›</span>
+                  <span className="reason">“{f.reason}”</span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+      <p className="small center mute">
+        {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
+        {p.free.length > 0 && '돈 안 드는 곳은 카카오맵 장소 정보예요.'}
+      </p>
     </div>
   );
 }

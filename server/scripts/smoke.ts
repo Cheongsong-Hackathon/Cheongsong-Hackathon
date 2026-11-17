@@ -40,6 +40,10 @@ for (const i of items) console.log(`    · ${i.title} — ${i.minutes}분 · 도
 const more = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, exclude: items.map((i) => i.id) });
 check('"다른 경험 보기"는 안 본 것을 먼저', more.json.items?.[0] && !items.some((i) => i.id === more.json.items[0].id), more.json);
 
+const far = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, lat: 37.5665, lng: 126.978 }); // 서울시청
+check('내 위치 기준: 주변에 제휴 매장이 없으면 다른 동네 매장을 끌어오지 않음', far.status === 200 && far.json.items?.length === 0 && Array.isArray(far.json.free), far.json);
+console.log(`    서울시청 주변 무료 장소: ${far.json.free?.map((p: any) => `${p.kind} ${p.name} 도보 ${p.walkMinutes}분`).join(', ') || '없음 (카카오 키 없음)'}`);
+
 const noCheckin = await api('POST', '/recommend', { checkinId: 999999 });
 check('마음 확인 없이 추천은 안내(409)', noCheckin.status === 409);
 
