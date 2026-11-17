@@ -95,10 +95,10 @@ export default function App() {
     refresh();
   }, [refresh]);
 
-  // 휴대폰 테두리를 항상 보여 주고, 화면이 작으면 통째로 줄여서 맞춘다
+  // 데스크톱에서는 휴대폰 모형을 맞추고, 모바일에서는 실제 화면 크기를 쓴다.
   const [fit, setFit] = useState(1);
   useEffect(() => {
-    const onResize = () => setFit(Math.min(1, (window.innerWidth - 12) / 416, (window.innerHeight - 12) / 870));
+    const onResize = () => setFit(window.innerWidth <= 600 ? 1 : Math.min(1, (window.innerWidth - 12) / 416, (window.innerHeight - 12) / 870));
     onResize();
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);

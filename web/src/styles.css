@@ -22,7 +22,7 @@ button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 h1, h2, h3, p { margin: 0; }
 
-/* 항상 휴대폰 모양 테두리 안에 보여 준다. 화면이 작으면 App에서 통째로 축소한다. */
+/* 데스크톱 시연용 휴대폰 모형. 모바일에서는 아래 미디어 쿼리로 화면을 채운다. */
 .stage { position: relative; height: 100dvh; overflow: hidden; }
 .phone { position: absolute; left: 50%; top: 50%; margin: -435px 0 0 -208px; width: 416px; height: 870px; padding: 13px; border-radius: 66px; background: #1b1a20; box-shadow: inset 0 0 0 2px #4a4756, 0 30px 60px #2a1f5533; }
 .phone::before, .phone::after { content: ''; position: absolute; width: 4px; border-radius: 2px; background: #2b2a33; }
@@ -255,4 +255,40 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 }
 
 .card.row { flex-direction: row; align-items: center; }
+
+/* 실제 휴대폰에서는 글자와 터치 영역이 축소되지 않도록 한다. */
+@media (max-width: 600px) {
+  .stage { height: 100vh; height: 100dvh; }
+  .phone {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border-radius: 0;
+    background: var(--bg);
+    box-shadow: none;
+  }
+  .phone::before, .phone::after { display: none; }
+  .frame {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  .sheet { padding-bottom: max(22px, env(safe-area-inset-bottom, 0px)); }
+  .chip, .item { min-height: 44px; }
+  .home-bar { height: 44px; flex-shrink: 0; }
+  .tabs { flex-shrink: 0; }
+  .row.two > * { min-width: 0; }
+}
+
+@media (max-width: 360px) {
+  .page, .sheet { padding-left: 16px; padding-right: 16px; }
+  .card.exp { gap: 8px; }
+  .thumb { width: 80px; height: 80px; }
+  .thumb.sm { width: 56px; height: 52px; }
+}
 
