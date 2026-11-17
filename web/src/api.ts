@@ -50,12 +50,26 @@ export type Records = {
 
 type Res<T> = T & { error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
 
+// 로그인 없이 브라우저마다 따로 쓰도록, 처음 열 때 만든 무작위 키를 모든 요청에 실어 보낸다.
+// 저장이 막힌 환경(시크릿 일부 등)에서는 이번 방문 동안만 쓰는 키가 된다.
+const USER_KEY = (() => {
+  // randomUUID는 HTTPS·localhost에서만 있어서 http://IP로 열 때를 위한 대체 키
+  const make = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  try {
+    let k = localStorage.getItem('moodpass-user');
+    if (!k) localStorage.setItem('moodpass-user', (k = make()));
+    return k;
+  } catch {
+    return make();
+  }
+})();
+
 // 네트워크·서버 오류가 나도 던지지 않는다. 화면은 { error }를 보고 부드럽게 안내한다.
 async function call<T>(method: string, path: string, body?: unknown): Promise<Res<T>> {
   try {
     const res = await fetch(`/api${path}`, {
       method,
-      headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+      headers: { 'x-user-key': USER_KEY, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return { ...(await res.json().catch(() => ({}))), code: res.status };

@@ -145,11 +145,11 @@ export async function nearbyCandidates(pos: LatLng | null) {
   return { cands: toCandidates(await loadExperiences(), places, now), source };
 }
 
-export async function recommend(body: any, client = defaultClient) {
-  if (await isSafeMode()) return SAFETY_BLOCK;
+export async function recommend(userId: number, body: any, client = defaultClient) {
+  if (await isSafeMode(userId)) return SAFETY_BLOCK;
   const [ck] = await query(
     `SELECT id, text, emotion, energy, mood_score AS mood FROM checkins WHERE id = $1 AND user_id = $2`,
-    [toId(body?.checkinId), config.USER_ID],
+    [toId(body?.checkinId), userId],
   );
   if (!ck) return { status: 409, body: { needCheckin: true, error: '먼저 오늘 마음을 알려 줘.' } };
 
@@ -174,7 +174,7 @@ export async function recommend(body: any, client = defaultClient) {
   const out = list.length ? await callJson(client, BUNNY_PROMPT + PICK_FORMAT, `친구 상태: ${JSON.stringify(state)}\n후보: ${JSON.stringify(list)}`, PickOut) : null;
 
   // 기다리는 사이 안전 모드가 됐으면 추천을 내보내지 않는다
-  if (await isSafeMode()) return SAFETY_BLOCK;
+  if (await isSafeMode(userId)) return SAFETY_BLOCK;
   return {
     status: 200,
     body: { items: finalizePicks(items, out?.picks ?? null, exclude), widened, locationSource: source, ...(out ? {} : { fallback: true }) },

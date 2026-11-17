@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 -- 위기 표현이 감지되면 true: 추천·예약을 멈추고 상담 안내만 보여 준다
 ALTER TABLE users ADD COLUMN IF NOT EXISTS safe_mode boolean NOT NULL DEFAULT false;
+-- 로그인 없이 브라우저마다 따로: 화면이 만든 무작위 키 (X-User-Key 헤더)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS client_key text UNIQUE;
 
 CREATE TABLE IF NOT EXISTS characters (
   user_id int PRIMARY KEY REFERENCES users(id),

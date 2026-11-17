@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { config } from '../config.js';
 import { query } from '../db.js';
 
 // 1차 위기 감지: LLM을 부르기 전에 키워드로 먼저 걸러낸다. (2차는 LLM 출력의 risk)
@@ -22,7 +21,7 @@ export const Risk = z
   .catch('NONE');
 
 // 안전 모드: 켜지면 추천·예약·완료가 막히고, "대화로 돌아갈래"로만 풀린다.
-export const setSafeMode = (on: boolean) => query(`UPDATE users SET safe_mode = $2 WHERE id = $1`, [config.USER_ID, on]);
-export const isSafeMode = async () =>
-  (await query<{ safe_mode: boolean }>(`SELECT safe_mode FROM users WHERE id = $1`, [config.USER_ID]))[0]?.safe_mode ?? false;
+export const setSafeMode = (userId: number, on: boolean) => query(`UPDATE users SET safe_mode = $2 WHERE id = $1`, [userId, on]);
+export const isSafeMode = async (userId: number) =>
+  (await query<{ safe_mode: boolean }>(`SELECT safe_mode FROM users WHERE id = $1`, [userId]))[0]?.safe_mode ?? false;
 export const SAFETY_BLOCK = { status: 403, body: { blocked: true, state: 'SAFETY' } } as const;

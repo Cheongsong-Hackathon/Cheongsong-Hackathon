@@ -33,10 +33,10 @@ export function parseCheckin(body: any) {
   };
 }
 
-export async function handleCheckin(body: unknown, client = defaultClient) {
+export async function handleCheckin(userId: number, body: unknown, client = defaultClient) {
   const c = parseCheckin(body);
   const safety = async () => {
-    await setSafeMode(true);
+    await setSafeMode(userId, true);
     // 위기 표현이 담긴 글은 저장하지 않는다
     return { reply: SAFETY_REPLY, state: 'SAFETY', risk: 'CRISIS' as const };
   };
@@ -56,7 +56,7 @@ export async function handleCheckin(body: unknown, client = defaultClient) {
   const reply = out?.reply || (c.emotion && REPLY_BY_EMOTION[c.emotion]) || DEFAULT_CHECKIN_REPLY;
   const [row] = await query<{ id: number }>(
     `INSERT INTO checkins(user_id, text, emotion, energy, mood_score, risk) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-    [config.USER_ID, c.text || null, c.emotion, c.energy, c.mood, out?.risk ?? 'NONE'],
+    [userId, c.text || null, c.emotion, c.energy, c.mood, out?.risk ?? 'NONE'],
   );
   return {
     checkinId: row.id,

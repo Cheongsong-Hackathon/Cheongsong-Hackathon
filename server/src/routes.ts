@@ -16,10 +16,37 @@ const send = (res: Response, r: { status: number; body: unknown }) => res.status
 
 export const api = Router();
 
+// ---- 사용자 없이 쓰는 것 ----
+api.get('/health', (_req, res) => res.json({ ok: true, demoMode: config.demoMode, llm: llmCallCount() }));
+// 시연 리허설용 초기화. DEMO_MODE에서만 열린다. 모든 사용자의 데이터가 지워진다.
+api.post('/demo/reset', async (_req, res) => {
+  if (!config.demoMode) return res.status(404).end();
+  await seed();
+  res.json({ ok: true });
+});
+
+/** 로그인 없이 브라우저마다 따로: X-User-Key로 사용자를 찾고, 처음 보는 키면 사용자와 캐릭터를 만든다.
+ *  키가 없거나 형식이 이상하면 기본 사용자(curl 등). */
+export async function userIdFor(key: unknown): Promise<number> {
+  if (typeof key !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(key)) return config.USER_ID;
+  const [u] = await query<{ id: number }>(
+    `INSERT INTO users(nickname, client_key) VALUES ('손님', $1)
+     ON CONFLICT (client_key) DO UPDATE SET client_key = EXCLUDED.client_key RETURNING id`,
+    [key],
+  );
+  await query(`INSERT INTO characters(user_id) VALUES ($1) ON CONFLICT DO NOTHING`, [u.id]);
+  return u.id;
+}
+api.use(async (req, res, next) => {
+  res.locals.userId = await userIdFor(req.get('x-user-key'));
+  next();
+});
+const uid = (res: Response) => res.locals.userId as number;
+
 // 01 마음 확인
-api.post('/checkin', async (req, res) => res.json(await handleCheckin(req.body)));
+api.post('/checkin', async (req, res) => res.json(await handleCheckin(uid(res), req.body)));
 // 02 조건 확인 + 03 경험 추천
-api.post('/recommend', async (req, res) => send(res, await recommend(req.body)));
+api.post('/recommend', async (req, res) => send(res, await recommend(uid(res), req.body)));
 
 // 체험 탭: 제휴 매장의 전체 체험
 api.get('/experiences', async (req, res) => {
@@ -29,24 +56,24 @@ api.get('/experiences', async (req, res) => {
 });
 
 // 04 예약 요청
-api.post('/bookings', async (req, res) => send(res, await createBooking(req.body)));
-api.get('/bookings/active', async (_req, res) => res.json({ booking: await activeBooking() }));
-api.post('/bookings/:id/complete', async (req, res) => send(res, await completeBooking(toId(req.params.id), req.body)));
-api.post('/bookings/:id/cancel', async (req, res) => send(res, await cancelBooking(toId(req.params.id))));
+api.post('/bookings', async (req, res) => send(res, await createBooking(uid(res), req.body)));
+api.get('/bookings/active', async (_req, res) => res.json({ booking: await activeBooking(uid(res)) }));
+api.post('/bookings/:id/complete', async (req, res) => send(res, await completeBooking(uid(res), toId(req.params.id), req.body)));
+api.post('/bookings/:id/cancel', async (req, res) => send(res, await cancelBooking(uid(res), toId(req.params.id))));
 
 // 오늘 할 일 하나 미루기
-api.post('/postpone', async (req, res) => send(res, await postpone(req.body)));
+api.post('/postpone', async (req, res) => send(res, await postpone(uid(res), req.body)));
 
 // 05 나의 기록
-api.get('/records', async (_req, res) => res.json(await records()));
-api.delete('/records', async (_req, res) => res.json(await deleteRecords()));
+api.get('/records', async (_req, res) => res.json(await records(uid(res))));
+api.delete('/records', async (_req, res) => res.json(await deleteRecords(uid(res))));
 
 // 캐릭터
 api.get('/character', async (_req, res) => {
   const [c] = await query(
     `SELECT c.level, c.exp, c.stage, c.items, c.equipped, u.safe_mode AS "safeMode"
      FROM characters c JOIN users u ON u.id = c.user_id WHERE c.user_id = $1`,
-    [config.USER_ID],
+    [uid(res)],
   );
   const s = stageOf(c.exp);
   res.json({
@@ -61,7 +88,7 @@ api.post('/character/equip', async (req, res) => {
   const item = req.body?.item ?? null;
   const [c] = await query(
     `UPDATE characters SET equipped = $2 WHERE user_id = $1 AND ($2::text IS NULL OR items ? $2::text) RETURNING equipped`,
-    [config.USER_ID, typeof item === 'string' ? item : null],
+    [uid(res), typeof item === 'string' ? item : null],
   );
   c ? res.json(c) : res.status(400).json({ error: '아직 열리지 않은 아이템이야.' });
 });
@@ -70,19 +97,11 @@ api.post('/character/equip', async (req, res) => {
 api.post('/chat', async (req, res) => {
   const message = typeof req.body?.message === 'string' ? req.body.message.trim().slice(0, 500) : '';
   if (!message) return res.status(400).json({ error: '메시지를 적어 줘.' });
-  res.json(await handleChat(req.body.sessionId, message));
+  res.json(await handleChat(uid(res), req.body.sessionId, message));
 });
 
 // 안전 모드에서 "대화로 돌아갈래"
 api.post('/safety/resume', async (_req, res) => {
-  await setSafeMode(false);
+  await setSafeMode(uid(res), false);
   res.json({ state: 'OK' });
-});
-
-api.get('/health', (_req, res) => res.json({ ok: true, demoMode: config.demoMode, llm: llmCallCount() }));
-// 시연 리허설용 초기화. DEMO_MODE에서만 열린다.
-api.post('/demo/reset', async (_req, res) => {
-  if (!config.demoMode) return res.status(404).end();
-  await seed();
-  res.json({ ok: true });
 });

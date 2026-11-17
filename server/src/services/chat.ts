@@ -1,6 +1,5 @@
 // 선택형 속마음 대화: 토끼의 공감·위로. 추천이나 예약을 권하지 않는다.
 import { z } from 'zod';
-import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
@@ -16,25 +15,25 @@ const TALK_FORMAT = `
 {"reply": "토끼의 답장", "risk": "NONE|WATCH|CRISIS"}
 - risk: 자해·자살 생각이 보이면 CRISIS, 많이 지쳐 보이면 WATCH, 아니면 NONE`;
 
-async function getOrCreateSession(sessionId: unknown) {
+async function getOrCreateSession(userId: number, sessionId: unknown) {
   const id = toId(sessionId);
   if (id > 0) {
-    const [s] = await query<{ id: number }>(`SELECT id FROM chat_sessions WHERE id = $1 AND user_id = $2`, [id, config.USER_ID]);
+    const [s] = await query<{ id: number }>(`SELECT id FROM chat_sessions WHERE id = $1 AND user_id = $2`, [id, userId]);
     if (s) return s.id;
   }
-  const [s] = await query<{ id: number }>(`INSERT INTO chat_sessions(user_id) VALUES ($1) RETURNING id`, [config.USER_ID]);
+  const [s] = await query<{ id: number }>(`INSERT INTO chat_sessions(user_id) VALUES ($1) RETURNING id`, [userId]);
   return s.id;
 }
 
 const say = (sessionId: number, role: string, text: string) =>
   query(`INSERT INTO messages(session_id, role, text) VALUES ($1,$2,$3)`, [sessionId, role, text]);
 
-export async function handleChat(sessionIdIn: unknown, message: string, client = defaultClient) {
-  const sessionId = await getOrCreateSession(sessionIdIn);
+export async function handleChat(userId: number, sessionIdIn: unknown, message: string, client = defaultClient) {
+  const sessionId = await getOrCreateSession(userId, sessionIdIn);
   await say(sessionId, 'user', message);
 
   const safety = async () => {
-    await setSafeMode(true);
+    await setSafeMode(userId, true);
     await say(sessionId, 'assistant', SAFETY_REPLY);
     return { sessionId, reply: SAFETY_REPLY, state: 'SAFETY', risk: 'CRISIS' as const };
   };

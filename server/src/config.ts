@@ -33,7 +33,7 @@ export const config = {
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
   STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
   LOW_ENERGY: 20, // 이 이하면 추천보다 "할 일 하나 미루기"를 먼저 권한다
-  USER_ID: 1, // 테스트 사용자 고정 (로그인 없음)
+  USER_ID: 1, // X-User-Key 없이 부를 때(curl 등) 쓰는 기본 사용자
 };
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'] as const;

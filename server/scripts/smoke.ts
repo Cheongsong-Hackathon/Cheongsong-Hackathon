@@ -1,12 +1,16 @@
 // 시연 전 확인 스크립트:  npm run smoke   (다른 서버는 BASE_URL=https://... npm run smoke)
 // 주의: 데이터를 초기화한다 (DEMO_MODE=true 서버에서만 동작).
+try {
+  process.loadEnvFile(new URL('../../.env', import.meta.url)); // 서버와 같은 PORT를 쓰도록
+} catch {}
 const BASE = (process.env.BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`).replace(/\/$/, '');
 let failed = 0;
 
-async function api(method: string, path: string, body?: unknown) {
+// 브라우저 하나 = 키 하나. 기본은 A, 사용자 분리 확인 때만 B
+async function api(method: string, path: string, body?: unknown, user = 'smoke-user-a') {
   const res = await fetch(`${BASE}/api${path}`, {
     method,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-user-key': user },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: res.status, json: (await res.json().catch(() => ({}))) as any };
@@ -75,6 +79,20 @@ const blockedBk = await api('POST', '/bookings', { experienceId: pickd.id, slotT
 check('안전 모드에서는 예약도 막힌다', blockedBk.status === 403);
 const chSafe = await api('GET', '/character');
 check('새로고침해도 안전 모드 유지 (서버에 저장)', chSafe.json.safeMode === true);
+
+// 다른 브라우저(B)는 A의 기록·성장·안전 모드를 보지 않는다
+const chB = await api('GET', '/character', undefined, 'smoke-user-b');
+const recB = await api('GET', '/records', undefined, 'smoke-user-b');
+const ckB = await api('POST', '/checkin', { emotion: '심심해', energy: 60, mood: 6 }, 'smoke-user-b');
+const recsB = await api('POST', '/recommend', { checkinId: ckB.json.checkinId }, 'smoke-user-b');
+const stealB = await api('POST', '/recommend', { checkinId: ck.json.checkinId }, 'smoke-user-b');
+check(
+  '사용자 분리: 다른 브라우저는 새 토끼, 빈 기록, 안전 모드 아님',
+  chB.json.exp === 0 && chB.json.safeMode === false && recB.json.done?.length === 0 && recB.json.postpones?.length === 0,
+  { chB: chB.json, recB: recB.json },
+);
+check('사용자 분리: A가 안전 모드여도 B는 추천을 받는다', recsB.status === 200 && recsB.json.items?.length >= 1, recsB.json);
+check("사용자 분리: 남의 마음 확인으로는 추천 불가(409)", stealB.status === 409, stealB.json);
 await api('POST', '/safety/resume');
 const talk = await api('POST', '/chat', { message: '자해 생각이 나' });
 check('속마음 대화에서도 감지', talk.json.state === 'SAFETY');
