@@ -24,6 +24,9 @@ test('SafetyGuard: 위기 키워드는 잡고 관용구는 통과', () => {
   assert.equal(SafetyGuard.check('그냥 죽고 싶어'), true);
   assert.equal(SafetyGuard.check('죽고싶다'), true);
   assert.equal(SafetyGuard.check('다 사라지고 싶 어'), true);
+  assert.equal(SafetyGuard.check('사는 게 의미가 없는 것 같아'), true);
+  assert.equal(SafetyGuard.check('살 이유가 없어'), true);
+  assert.equal(SafetyGuard.check('이 과제는 의미가 없는 것 같아'), false);
   assert.equal(SafetyGuard.check('배고파 죽겠네'), false);
   assert.equal(SafetyGuard.check('오늘 좀 심심해'), false);
 });
