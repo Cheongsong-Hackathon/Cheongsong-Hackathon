@@ -2,6 +2,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
+import Arrival from './Arrival';
+import AccessoryColorPicker from './AccessoryColorPicker';
+import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
+import { useOutfit } from './Outfit';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
@@ -68,8 +72,10 @@ export function Home(p: {
   onComplete: (b: Booking) => void;
   onCancel: (b: Booking) => void;
   onPostpone: () => void;
+  onArrivalConfirmed: () => void;
 }) {
   const [f, setF] = useState<CheckinForm>({ text: '', emotion: null, energy: 40, mood: 5 });
+  const { setExpression } = useCharacterExpression();
   const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
   return (
     <div className="page">
@@ -95,20 +101,21 @@ export function Home(p: {
               다녀왔어
             </button>
           </div>
+          <Arrival key={p.active.id} booking={p.active} onConfirmed={p.onArrivalConfirmed} />
         </div>
       )}
       <h1 className="title center">
         오늘 기분은 어때?<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="hero">
-        <Bunny size={150} item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+        <Bunny size={150} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </div>
       <label className="field">
         <input value={f.text} onChange={(e) => set({ text: e.target.value })} placeholder="오늘 지쳤어, 조용히 쉬고 싶어" maxLength={300} aria-label="오늘 마음 한 줄" />
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3" /></svg>
       </label>
       <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
-      <Chips label="감정" options={EMOTIONS.map((e) => [e, e])} value={f.emotion} onChange={(emotion) => set({ emotion })} />
+      <Chips label="감정" options={EMOTIONS.map((e) => [e, e])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
       <h2 className="label">
         지금 나의 에너지 레벨은? <span className="pill">{f.energy}%</span>
       </h2>
@@ -120,6 +127,7 @@ export function Home(p: {
       <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => p.onSubmit(f)}>
         {p.busy ? '마음을 읽는 중…' : '나에게 맞는 경험 찾기 ›'}
       </button>
+      {p.busy && <LoadState loading message="마음을 읽고 있어. 답장이 조금 늦어도 잠깐만 기다려 줘…" />}
       <button className="card postpone" onClick={p.onPostpone}>
         <span className="eyebrow">무드패스의 오늘 회복 제안</span>
         <strong>오늘 할 일 하나 미루기</strong>
@@ -133,7 +141,7 @@ export function Home(p: {
 // ---------- 02 조건 확인 ----------
 export type Conditions = { minutes: number; walk: number; budget: number };
 
-export function ConditionSheet(p: { reply: string; suggestPostpone: boolean; busy: boolean; onSubmit: (c: Conditions) => void; onPostpone: () => void; onClose: () => void }) {
+export function ConditionSheet(p: { location?: ReactNode; reply: string; suggestPostpone: boolean; busy: boolean; onSubmit: (c: Conditions) => void; onPostpone: () => void; onClose: () => void }) {
   const [c, setC] = useState<Conditions>({ minutes: 60, walk: 20, budget: 20000 });
   const [skipPostpone, setSkip] = useState(!p.suggestPostpone);
   return (
@@ -157,6 +165,7 @@ export function ConditionSheet(p: { reply: string; suggestPostpone: boolean; bus
         </>
       ) : (
         <>
+          {p.location}
           <h2 className="label">쓸 수 있는 시간</h2>
           <Chips label="시간" options={[[30, '30분'], [60, '1시간'], [90, '1시간 30분']]} value={c.minutes} onChange={(minutes) => setC({ ...c, minutes })} />
           <h2 className="label">거리</h2>
@@ -201,7 +210,14 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
         지금 너에게 어울리는 경험<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       {p.widened && <p className="notice">딱 맞는 게 부족해서 조건을 조금 넓혔어.</p>}
-      {!p.items.length && <p className="notice">근처에 아직 제휴 매장이 없어서, 지금 바로 갈 수 있는 곳을 골라 봤어.</p>}
+      {!p.items.length && !p.free.length && <div className="card soft">
+        <Bunny size={90} peek />
+        <strong>지금 조건에 맞는 체험이 없어.</strong>
+        <p className="small mute">조건이나 기준 주소를 바꿔서 다시 찾아보자.</p>
+        <button className="btn ghost" onClick={p.onBack}>홈으로 돌아가기</button>
+      </div>}
+      {p.busy && <LoadState loading message="어울리는 경험을 찾고 있어. 잠깐만 기다려 줘…" />}
+      {!p.items.length && p.free.length > 0 && <p className="notice">근처에 아직 제휴 매장이 없어서, 지금 바로 갈 수 있는 곳을 골라 봤어.</p>}
       <div className="list">
         {p.items.map((i) => (
           <ExpCard key={i.id} item={i} onPick={() => p.onPick(i)}>
@@ -287,7 +303,7 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
 export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Character | null; onHome: () => void }) {
   return (
     <div className="page center-col">
-      <Bunny size={170} happy item={ch?.equipped ?? null} stage={ch?.stage ?? 1} />
+      <Bunny size={170} happy layerScarf item={ch?.equipped ?? null} stage={ch?.stage ?? 1} />
       <h1 className="title center">예약 요청을 보냈어!</h1>
       <div className="card soft">
         <strong>{booking.title}</strong>
@@ -339,7 +355,7 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
             <i key={i} style={{ left: `${6 + i * 6.5}%`, animationDelay: `${(i % 5) * 0.12}s` }} />
           ))}
         </div>
-        <Bunny size={150} happy item={p.ch?.equipped ?? r.newItems[0]?.id ?? null} stage={r.stage} />
+        <Bunny size={150} happy layerScarf item={p.ch?.equipped ?? r.newItems[0]?.id ?? null} stage={r.stage} />
         {r.moodAfter != null ? (
           <>
             <h2>오늘도 나를 위한 한 걸음 ♡</h2>
@@ -447,7 +463,9 @@ function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
   );
 }
 
-export function Records(p: { ch: Character | null; data: RecordsData | null; onEquip: (id: string | null) => void; onDelete: () => void }) {
+export function Records(p: { ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
+  const { scarf } = useOutfit();
+  const { expression, setExpression } = useCharacterExpression();
   const [askDelete, setAskDelete] = useState(false);
   const c = p.ch;
   const latest = p.data?.done[0];
@@ -461,13 +479,13 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; onE
           오늘도 나를 위한
           <br />한 걸음 ♡
         </h1>
-        <Bunny size={120} item={c?.equipped ?? null} stage={c?.stage ?? 1} />
+        <Bunny size={120} layerScarf item={c?.equipped ?? null} stage={c?.stage ?? 1} />
       </div>
       <div className="bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100} aria-label="다음 단계까지">
         <span style={{ width: `${pct}%` }} />
       </div>
       <p className="small mute">
-        {c?.stage ?? 1}단계 · {c?.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요
+        {c ? `${c.stage}단계 · ${c.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요` : '토끼 정보를 불러오면 성장 단계를 볼 수 있어요.'}
       </p>
       {latest && (
         <div className="card">
@@ -499,16 +517,27 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; onE
       <MemoryCard reloadKey={p.data} />
       <div className="card">
         <span className="eyebrow">토끼 꾸미기</span>
+        <h2 className="label">표정 고르기</h2>
+        <Chips label="토끼 표정" options={EXPRESSIONS.map((value) => [value, value])} value={expression} onChange={setExpression} />
+        <p className="small mute">표정은 이 브라우저에 저장돼요. 홈에서 감정을 누르면 그 감정의 표정으로 바뀌어요.</p>
+        <h2 className="label">아이템 입히기</h2>
+        <p className="small mute">목도리는 리본·베레모와 함께 입을 수 있어요. 리본과 베레모는 하나만 골라요. 다시 누르면 벗어요.</p>
         <div className="items">
-          <button className={`item${!c?.equipped ? ' on' : ''}`} onClick={() => p.onEquip(null)}>
+          <button className={`item${(!c?.equipped || c.equipped === 'scarf') && !scarf ? ' on' : ''}`} aria-pressed={(!c?.equipped || c.equipped === 'scarf') && !scarf} disabled={p.equipBusy} onClick={() => p.onEquip(null)}>
             없음
           </button>
           {c?.allItems.map((i) => (
-            <button key={i.id} className={`item${c.equipped === i.id ? ' on' : ''}`} disabled={!i.unlocked} onClick={() => p.onEquip(i.id)}>
+            <button key={i.id} className={`item${(i.id === 'scarf' ? scarf : c.equipped === i.id) ? ' on' : ''}`} aria-pressed={i.id === 'scarf' ? scarf : c.equipped === i.id} disabled={!i.unlocked || p.equipBusy} onClick={() => p.onEquip(i.id)}>
               {i.unlocked ? i.name : `🔒 ${i.stage}단계`}
             </button>
           ))}
         </div>
+      </div>
+      <div className="card">
+        <span className="eyebrow">아이템 색 고르기</span>
+        <AccessoryColorPicker item="ribbon" unlocked={!!c?.allItems.find((i) => i.id === 'ribbon')?.unlocked} />
+        <AccessoryColorPicker item="scarf" unlocked={!!c?.allItems.find((i) => i.id === 'scarf')?.unlocked} />
+        <p className="small mute">색상은 이 브라우저에 저장돼요.</p>
       </div>
       <h2 className="label">다녀온 체험</h2>
       {!p.data?.done.length && <p className="empty">아직 기록이 없어. 없어도 괜찮아.</p>}
@@ -568,13 +597,23 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; onE
 }
 
 // ---------- 체험 탭 ----------
-export function Explore({ items, onPick }: { items: Item[] | null; onPick: (i: Item) => void }) {
+export function LoadState({ loading, message, onRetry }: { loading: boolean; message: string; onRetry?: () => void }) {
+  return (
+    <div className="card load-state" role="status" aria-live="polite" aria-busy={loading}>
+      {loading && <span className="loading-spinner" aria-hidden="true" />}
+      <p>{message}</p>
+      {!loading && onRetry && <button className="btn ghost" onClick={onRetry}>다시 불러오기</button>}
+    </div>
+  );
+}
+
+export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void; freePlaces?: ReactNode }) {
   return (
     <div className="page">
       <TopBar />
       <DemoNote />
       <h1 className="title">가까운 체험</h1>
-      {!items && <p className="empty">불러오는 중이야…</p>}
+      {(error || !items) && <LoadState loading={!error} message={error || '가까운 체험을 불러오는 중이야…'} onRetry={onRetry} />}
       {items?.length === 0 && <p className="empty">근처에 체험이 없어.</p>}
       <div className="list">
         {items?.map((i) => (
@@ -583,16 +622,17 @@ export function Explore({ items, onPick }: { items: Item[] | null; onPick: (i: I
           </ExpCard>
         ))}
       </div>
+      {freePlaces}
     </div>
   );
 }
 
 // ---------- 랜딩 · 위치 동의 · 안전 모드 ----------
-export function Landing({ onStart }: { onStart: () => void }) {
+export function Landing({ onStart, stage = 1 }: { onStart: () => void; stage?: number }) {
   return (
     <div className="landing">
       <div className="landing-top">
-        <Bunny size={160} />
+        <Bunny size={160} stage={stage} />
         <h1>무드패스</h1>
         <p className="tagline">
           지친 하루를 바꾸는,
@@ -628,7 +668,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
   );
 }
 
-export function LocationConsent({ onAnswer }: { onAnswer: (yes: boolean) => void }) {
+export function LocationConsent({ onAnswer, location }: { onAnswer: (yes: boolean) => void; location?: ReactNode }) {
   return (
     <div className="landing consent">
       <div className="landing-top">
@@ -648,7 +688,7 @@ export function LocationConsent({ onAnswer }: { onAnswer: (yes: boolean) => void
         <li>
           <b>✓</b>
           <span>
-            <strong>좌표는 저장하지 않아요</strong>계산이 끝나면 버려요
+            <strong>현재 위치는 저장하지 않아요</strong>직접 선택한 주소만 이 브라우저에 저장해요
           </span>
         </li>
         <li>
@@ -658,6 +698,7 @@ export function LocationConsent({ onAnswer }: { onAnswer: (yes: boolean) => void
           </span>
         </li>
       </ul>
+      {location}
       <button className="btn big" onClick={() => onAnswer(true)}>
         동의하고 계속
       </button>

@@ -175,7 +175,7 @@ function Icon({ label, bg, art }: App) {
 }
 
 /** 휴대폰 메인 화면. 무드패스 아이콘(또는 말풍선)을 누르면 앱이 열린다. */
-export default function Launcher({ onOpen }: { onOpen: () => void }) {
+export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; stage?: number }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 10_000);
@@ -212,7 +212,7 @@ export default function Launcher({ onOpen }: { onOpen: () => void }) {
         <button className="app-icon neuri" onClick={onOpen} aria-label="무드패스 앱 열기">
           <span className="glow" />
           <span className="tile">
-            <Bunny size={60} />
+            <Bunny size={60} stage={stage} />
           </span>
           <svg viewBox="0 0 24 24" className="hand" aria-hidden="true">
             <path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V10l5.2 1.1c1 .2 1.8 1.1 1.8 2.2l-.8 5.5A2.5 2.5 0 0 1 15.7 21H11a3 3 0 0 1-2.3-1.1l-3.9-4.7.9-.9c.5-.5 1.2-.6 1.8-.3L9 15z" />
