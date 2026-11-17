@@ -16,6 +16,7 @@ const llm = (p: string) => ({
 export const config = {
   port: num(env.PORT, 3000),
   databaseUrl: env.DATABASE_URL ?? 'postgres://neuri:neuri@localhost:5433/neuri',
+  // 실내 시연용: 위치가 없거나 주변에 매장이 없으면 DEMO_CENTER 기준으로, 영업시간·지난 시간대는 따지지 않는다
   demoMode: env.DEMO_MODE === 'true',
   demoCenter: { lat: num(env.DEMO_CENTER_LAT, 36.4359), lng: num(env.DEMO_CENTER_LNG, 129.0571) },
   llm: llm('LLM'),
@@ -24,15 +25,14 @@ export const config = {
   // ---- 숫자 설정값은 전부 여기 ----
   LLM_TIMEOUT_MS: 8000, // 이 시간을 넘기면 기본 답장
   LLM_PRIMARY_TIMEOUT_MS: 5000, // 예비 공급자가 있을 때 주 공급자에 주는 시간
-  SEARCH_RADIUS_M: 1500, // TOWN 후보 검색 반경
-  NEAR_MOVE_M: 100, // NEAR 인증: 시작 위치에서 이동해야 하는 거리
-  TOWN_RADIUS_M: 100, // TOWN 인증: 장소 반경
-  DAILY_EXP_CAP: 100,
-  RUN_TTL_MIN: 60, // 활동 시작 후 만료까지
-  STAGE_MIN_EXP: [0, 30, 80, 150], // 1~4단계 시작 경험치
-  COUPON_STAGE: 3,
+  SEARCH_RADIUS_M: 2500, // 체험 매장 검색 반경 (도보 약 35분)
+  WALK_M_PER_MIN: 67, // 도보 분 = 직선거리 ÷ 67m
+  RECOMMEND_COUNT: 3,
+  EXP_DONE: 20, // 체험을 다녀와서 기분을 기록하면
+  EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
+  STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
+  LOW_ENERGY: 20, // 이 이하면 추천보다 "할 일 하나 미루기"를 먼저 권한다
   USER_ID: 1, // 테스트 사용자 고정 (로그인 없음)
 };
 
-export type Energy = 'LOW' | 'MID' | 'HIGH';
-export type Tier = 'HOME' | 'NEAR' | 'TOWN';
+export const EMOTIONS = ['지쳤어', '답답해', '우울해', '불안해', '심심해', '평온해'] as const;

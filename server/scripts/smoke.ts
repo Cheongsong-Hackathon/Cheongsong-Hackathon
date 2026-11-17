@@ -15,98 +15,83 @@ function check(name: string, ok: boolean, detail: unknown = '') {
   if (!ok) failed++;
   console.log(`${ok ? '✓' : '✗'} ${name}${ok || detail === '' ? '' : `  → ${JSON.stringify(detail)}`}`);
 }
-const PHOTO = 'data:image/png;base64,iVBORw0KGgo=';
+const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
-async function doRun(sessionId: number, templateId: string, extra: object = {}) {
-  const run = await api('POST', '/runs', { sessionId, templateId });
-  const v = await api('POST', `/runs/${run.json.runId}/verify`, extra);
-  return { runId: run.json.runId, ...v.json };
-}
-
-console.log(`대상: ${BASE}\n\n[1] 대화 → 추천 → 인증 → 성장 → 쿠폰`);
+console.log(`대상: ${BASE}\n\n[1] 마음 확인 → 조건 → 추천 3개 → 예약 요청 → 기분 기록 → 성장`);
 const reset = await api('POST', '/demo/reset');
 check('초기화 (DEMO_MODE)', reset.status === 200, reset.status === 404 ? 'DEMO_MODE=true 서버에서만 돌릴 수 있어요' : reset.json);
 if (reset.status !== 200) process.exit(1);
 
-const c1 = await api('POST', '/chat', { message: '오늘 좀 심심하고 처져' });
-const sid = c1.json.sessionId;
-check('대화: 느리가 답장한다', c1.status === 200 && !!c1.json.reply && Number.isInteger(sid), c1.json);
-console.log(`    느리: ${c1.json.reply}${c1.json.fallback ? '   (LLM 없이 기본 답장)' : ''}`);
+const ck = await api('POST', '/checkin', { text: '오늘 너무 지쳤어. 멀리 가기는 싫어', emotion: '지쳤어', energy: 40, mood: 4 });
+check('01 마음 확인: 공감 한마디와 checkinId', ck.status === 200 && Number.isInteger(ck.json.checkinId) && !!ck.json.reply, ck.json);
+console.log(`    토끼: ${ck.json.reply}${ck.json.fallback ? '   (LLM 없이 기본 답장)' : ''}`);
 
-const c2 = await api('POST', '/chat', { sessionId: sid, message: '나갈 힘 있어' });
-check('빠른 답장 → 기운 HIGH', c2.json.energy === 'HIGH', c2.json);
-
-const rec = await api('POST', '/recommend', { sessionId: sid });
+const rec = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000 });
 const items: any[] = rec.json.items ?? [];
-check('추천 2~3개', rec.status === 200 && items.length >= 2 && items.length <= 3, rec.json);
-check('추천에 무료/비제휴 선택지 포함', items.some((i) => !i.isPartner));
-check('HIGH는 집 앞·동네 활동만', items.every((i) => i.tier === 'NEAR' || i.tier === 'TOWN'));
-check('모든 추천에 이유 한 줄', items.every((i) => i.reason));
-for (const i of items) console.log(`    · [${i.tier}] ${i.title}${i.distanceM ? ` ${i.distanceM}m` : ''} — ${i.reason}`);
+check('03 추천 3개', rec.status === 200 && items.length === 3, rec.json);
+check('조건 지킴: 60분·도보 20분·2만원 이하', rec.json.widened || items.every((i) => i.minutes <= 60 && i.walkMinutes <= 20 && i.price <= 20000), items);
+check('모든 추천에 이유 한 줄과 오늘 시간대', items.every((i) => i.reason && i.availableSlots?.length));
+for (const i of items) console.log(`    · ${i.title} — ${i.minutes}분 · 도보 ${i.walkMinutes}분 · ${won(i.price)} — ${i.reason}`);
 
-const noPhoto = await api('POST', '/runs', { sessionId: sid, templateId: 'town-park' });
-const v0 = await api('POST', `/runs/${noPhoto.json.runId}/verify`, {});
-check('동네 장소는 사진 없이 인증되지 않는다', v0.json.verified === false && v0.json.expGained === 0, v0.json);
-const v1 = await api('POST', `/runs/${noPhoto.json.runId}/verify`, { photo: PHOTO });
-check('동네 장소 인증 +30', v1.json.verified && v1.json.expGained === 30, v1.json);
-const v1b = await api('POST', `/runs/${noPhoto.json.runId}/verify`, { photo: PHOTO });
-check('같은 활동 재인증은 경험치 0', v1b.json.verified && v1b.json.expGained === 0, v1b.json);
+const more = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minutes: 60, walk: 20, budget: 20000, exclude: items.map((i) => i.id) });
+check('"다른 경험 보기"는 안 본 것을 먼저', more.json.items?.[0] && !items.some((i) => i.id === more.json.items[0].id), more.json);
 
-const again = await doRun(sid, 'town-park', { photo: PHOTO });
-check('같은 장소는 하루 1번만 경험치', again.verified && again.expGained === 0, again);
-const lib = await doRun(sid, 'town-library', { photo: PHOTO });
-check('두 번째 장소 +30', lib.expGained === 30, lib);
-const near = await doRun(sid, 'near-walk', { lat: 0, lng: 0 });
-check('집 앞 활동 +15', near.expGained === 15, near);
-const home = await doRun(sid, 'home-water');
-check('집 안 활동 +5 → 3단계 도달, 쿠폰 지급', home.expGained === 5 && home.newRewards?.length === 4, home);
+const noCheckin = await api('POST', '/recommend', { checkinId: 999999 });
+check('마음 확인 없이 추천은 안내(409)', noCheckin.status === 409);
 
+const pickd = items[0];
+const badSlot = await api('POST', '/bookings', { checkinId: ck.json.checkinId, experienceId: pickd.id, slotTime: '03:33' });
+check('DB에 없는 시간은 예약 요청 불가', badSlot.status === 400, badSlot.json);
+const bk = await api('POST', '/bookings', { checkinId: ck.json.checkinId, experienceId: pickd.id, slotTime: pickd.availableSlots[0] });
+check('04 예약 요청: 상태 REQUESTED, 가격은 DB 값', bk.status === 200 && bk.json.status === 'REQUESTED' && bk.json.price === pickd.price, bk.json);
+const active = await api('GET', '/bookings/active');
+check('홈에 보일 진행 중 예약', active.json.booking?.id === bk.json.id);
+
+const noMood = await api('POST', `/bookings/${bk.json.id}/complete`, {});
+check('기분 점수 없이 완료 불가', noMood.status === 400);
+const done = await api('POST', `/bookings/${bk.json.id}/complete`, { moodAfter: 7 });
+check('05 기록: 체험 전 4 → 후 7, +20, 2단계·리본', done.json.moodBefore === 4 && done.json.moodAfter === 7 && done.json.expGained === 20 && done.json.newItems?.[0]?.id === 'ribbon', done.json);
+const again = await api('POST', `/bookings/${bk.json.id}/complete`, { moodAfter: 9 });
+check('두 번 눌러도 한 번만 반영', again.json.already && again.json.expGained === 0, again.json);
+
+const pp = await api('POST', '/postpone', { task: '빨래 개기' });
+check('오늘 할 일 하나 미루기 +5', pp.status === 200 && pp.json.expGained === 5 && pp.json.reply.includes('쉬어가도 괜찮아'), pp.json);
 const ch = await api('GET', '/character');
-check('캐릭터: 경험치 80, 3단계, 무늬 5개', ch.json.exp === 80 && ch.json.stage === 3 && ch.json.patterns?.length === 5, ch.json);
-const rw = await api('GET', '/rewards');
-check('보상함에 쿠폰 4장', rw.json.items?.length === 4, rw.json);
-const red = await api('POST', `/rewards/${rw.json.items?.[0]?.id}/redeem`);
-check('쿠폰 사용 처리', red.json.used === true, red.json);
+check('캐릭터: 경험치 25, 2단계, 리본 착용', ch.json.exp === 25 && ch.json.stage === 2 && ch.json.equipped === 'ribbon', ch.json);
+const eqBad = await api('POST', '/character/equip', { item: 'beret' });
+check('안 열린 아이템은 착용 불가', eqBad.status === 400);
+const recs = await api('GET', '/records');
+const today = recs.json.week?.at(-1);
+check('기록: 완료 1건, 미루기 1건, 오늘 마음 점수', recs.json.done?.length === 1 && recs.json.postpones?.length === 1 && today?.mood != null, recs.json);
+const exps = await api('GET', '/experiences');
+check('체험 탭: 12개', exps.json.items?.length === 12);
 
-const cap1 = await doRun(sid, 'town-cafe', { photo: PHOTO });
-const cap2 = await doRun(sid, 'home-song');
-check('일일 상한(100): 넘는 만큼은 0, 오류 없음', cap1.expGained === 20 && cap2.verified && cap2.expGained === 0, [cap1, cap2]);
-const ch2 = await api('GET', '/character');
-check('경험치는 줄지 않는다', ch2.json.exp === 100, ch2.json);
-const partners = await api('GET', '/partners');
-check('제휴 매장 4곳', partners.json.items?.length === 4);
+console.log('\n[2] 위기 표현 → 안전 모드');
+const crisis = await api('POST', '/checkin', { text: '그냥 다 사라지고 싶어', emotion: '우울해', energy: 10, mood: 1 });
+check('마음 확인에서 감지 → SAFETY', crisis.json.state === 'SAFETY' && crisis.json.risk === 'CRISIS', crisis.json);
+const blockedRec = await api('POST', '/recommend', { checkinId: ck.json.checkinId });
+check('안전 모드에서는 추천이 막힌다 (403)', blockedRec.status === 403 && !blockedRec.json.items, blockedRec.json);
+const blockedBk = await api('POST', '/bookings', { experienceId: pickd.id, slotTime: pickd.availableSlots[0] });
+check('안전 모드에서는 예약도 막힌다', blockedBk.status === 403);
+const chSafe = await api('GET', '/character');
+check('새로고침해도 안전 모드 유지 (서버에 저장)', chSafe.json.safeMode === true);
+await api('POST', '/safety/resume');
+const talk = await api('POST', '/chat', { message: '자해 생각이 나' });
+check('속마음 대화에서도 감지', talk.json.state === 'SAFETY');
+await api('POST', '/safety/resume');
+check('"대화로 돌아갈래" → 해제', (await api('GET', '/character')).json.safeMode === false);
 
-console.log('\n[2] 위기 키워드 → 안전 모드');
-const s1 = await api('POST', '/chat', { message: '그냥 다 죽고 싶어' });
-check('키워드 감지 → SAFETY', s1.json.state === 'SAFETY' && s1.json.risk === 'CRISIS', s1.json);
-const sRec = await api('POST', '/recommend', { sessionId: s1.json.sessionId });
-check('안전 모드에서는 추천이 막힌다 (403)', sRec.status === 403 && !sRec.json.items, sRec.json);
-const sRun = await api('POST', '/runs', { sessionId: s1.json.sessionId, templateId: 'home-water' });
-check('안전 모드에서는 활동 시작도 막힌다', sRun.status === 403, sRun.json);
-// 활동을 하던 중에 위기 신호가 나온 경우: 인증·경험치도 멈춘다
-const mid = await api('POST', '/chat', { message: '나갈 힘 있어' });
-const midRun = await api('POST', '/runs', { sessionId: mid.json.sessionId, templateId: 'home-window' });
-await api('POST', '/chat', { sessionId: mid.json.sessionId, message: '사실 자해 생각이 나' });
-const before = (await api('GET', '/character')).json.exp;
-const midV = await api('POST', `/runs/${midRun.json.runId}/verify`, {});
-const midState = await api('GET', `/sessions/${mid.json.sessionId}`);
-check(
-  '진행 중이던 활동도 안전 모드에서는 인증되지 않는다',
-  midV.status === 403 && (await api('GET', '/character')).json.exp === before && midState.json.state === 'SAFETY',
-  [midV.json, midState.json],
-);
+console.log('\n[3] 기타');
 const bad = await Promise.all([
-  api('POST', '/runs/abc/verify', {}),
-  api('POST', '/runs/99999999999/verify', {}),
-  api('POST', '/recommend', { sessionId: 1e12 }),
-  api('POST', '/sessions/1.5/resume'),
-  api('POST', '/rewards/x/redeem'),
+  api('POST', '/bookings/abc/complete', { moodAfter: 5 }),
+  api('POST', '/bookings/99999999999/cancel'),
+  api('POST', '/recommend', { checkinId: 'x' }),
+  api('POST', '/bookings', { experienceId: 123 }),
 ]);
-check('이상한 id는 5xx 없이 처리', bad.every((b) => b.status < 500), bad.map((b) => b.status));
-const s2 = await api('POST', '/chat', { sessionId: s1.json.sessionId, message: '음' });
-check('안전 모드는 유지된다', s2.json.state === 'SAFETY', s2.json);
-const resume = await api('POST', `/sessions/${s1.json.sessionId}/resume`);
-check('"대화로 돌아갈래" → CHATTING', resume.json.state === 'CHATTING', resume.json);
+check('이상한 입력은 5xx 없이 처리', bad.every((b) => b.status < 500), bad.map((b) => b.status));
+const del = await api('DELETE', '/records');
+const after = await api('GET', '/records');
+check('내 기록 모두 지우기 (성장은 유지)', del.json.deleted && after.json.done.length === 0 && (await api('GET', '/character')).json.exp === 25);
 
 const health = await api('GET', '/health');
 console.log(`\nLLM 호출 (오늘): ${JSON.stringify(health.json.llm)}`);

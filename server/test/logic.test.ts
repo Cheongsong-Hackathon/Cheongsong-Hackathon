@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { z } from 'zod';
-import { grantable, stageOf } from '../src/services/growth.js';
+import { itemsUnlockedBetween, stageOf } from '../src/services/growth.js';
 import { callJson, extractJson, FallbackClient, type LLMClient } from '../src/services/llm.js';
 import type { Place } from '../src/services/places.js';
-import { buildCandidates, finalizePicks, type Template } from '../src/services/recommend.js';
-import { checkVerification } from '../src/services/runs.js';
+import { parseCheckin } from '../src/services/checkin.js';
+import { addMinutes, availableSlots, filterExperiences, finalizePicks, toCandidates, walkMinutes, type Candidate, type Experience } from '../src/services/recommend.js';
 import { SafetyGuard } from '../src/services/safety.js';
 
 const fake = (name: string, ...outs: (string | Error)[]): LLMClient & { calls: number } => ({
@@ -30,8 +30,8 @@ test('SafetyGuard: 위기 키워드는 잡고 관용구는 통과', () => {
 test('LLM의 CRISIS 판단은 다른 필드가 어긋나도 잃지 않는다', async () => {
   const { ChatOut } = await import('../src/services/chat.js');
   assert.equal(ChatOut.parse({ reply: '', risk: 'crisis', mood: 3 }).risk, 'CRISIS');
-  assert.equal(ChatOut.parse({ risk: ' CRISIS ', budget: '많이' }).risk, 'CRISIS');
-  assert.equal(ChatOut.parse({ reply: '응', risk: 'NONE' }).energy, 'UNKNOWN');
+  assert.equal(ChatOut.parse({ risk: ' CRISIS ' }).risk, 'CRISIS');
+  assert.equal(ChatOut.parse({ reply: 1, risk: '몰라' }).risk, 'NONE');
   const { toId } = await import('../src/db.js');
   assert.deepEqual([5, '7', 'abc', 1.5, 1e12, -1, null].map(toId), [5, 7, -1, -1, -1, -1, -1]);
 });
@@ -96,60 +96,77 @@ test('OpenAICompatClient: 실제 HTTP로 응답을 읽고, 느리면 타임아�
   }
 });
 
-const T = (id: string, tier: Template['tier'], placeId: string | null = null): Template => ({
-  id, title: id, tier, minutes: 5, exp: 5, placeId,
-});
-const P = (id: string, isPartner: boolean): Place => ({
-  id, name: id, category: 'c', lat: 0, lng: 0, isPartner, openHours: null, note: isPartner ? '혜택' : null, distanceM: 100,
-});
-const templates = [T('h1', 'HOME'), T('h2', 'HOME'), T('n1', 'NEAR'), T('t-cafe', 'TOWN', 'cafe'), T('t-shop', 'TOWN', 'shop'), T('t-park', 'TOWN', 'park')];
-const places = [P('cafe', true), P('shop', true), P('park', false)];
 
-test('후보: LOW는 HOME만, 위치를 모르면 TOWN 없음', () => {
-  assert.deepEqual(buildCandidates('LOW', templates, places).map((c) => c.templateId), ['h1', 'h2']);
-  assert.deepEqual(buildCandidates('HIGH', templates, []).map((c) => c.tier), ['NEAR']);
-  assert.equal(buildCandidates('HIGH', templates, places).length, 4);
+// ---- 무드패스: 체험 추천 규칙 ----
+const E = (id: string, o: Partial<Experience> = {}): Experience => ({
+  id, title: id, category: 'book', minutes: 30, price: 10000, moods: [], energyNeed: 0, description: '', placeId: 'p1', slots: ['11:00', '15:00', '19:00'], ...o,
 });
+const C = (e: Experience, walk: number, slots = e.slots): Candidate => ({
+  ...e, placeName: 'p', lat: 0, lng: 0, distanceM: walk * 67, walkMinutes: walk, availableSlots: slots,
+});
+const cond = { minutes: 30, walk: 10, budget: 10000, energy: 30, emotion: '지쳤어' };
 
-test('선택 보정: 없는 id는 버리고 서버가 채운다', () => {
-  const c = buildCandidates('LOW', templates, places);
-  assert.deepEqual(finalizePicks(c, [{ id: 'nope', reason: 'x' }]).map((i) => i.templateId), ['h1', 'h2']);
-  assert.equal(finalizePicks(c, null).length, 2);
-  assert.equal(finalizePicks(c, [{ id: 'h2', reason: '이유' }])[0].reason, '이유');
+test('도보 분과 시간 계산', () => {
+  assert.equal(walkMinutes(300), 5);
+  assert.equal(walkMinutes(10), 1);
+  assert.equal(addMinutes('18:50', 15), '19:05');
+  assert.deepEqual(availableSlots(['11:00', '15:00', '19:00'], '14:50', 15), ['19:00']);
+  assert.deepEqual(availableSlots(['11:00'], null, 15), ['11:00']); // 체험 모드는 시간대를 따지지 않는다
 });
 
-test('선택 보정: 전부 제휴 매장이면 하나를 무료/비제휴로 바꾼다', () => {
-  const c = buildCandidates('HIGH', templates, places);
-  const items = finalizePicks(c, [{ id: 't-cafe', reason: 'a' }, { id: 't-shop', reason: 'b' }]);
-  assert.ok(items.some((i) => !i.isPartner));
-  assert.ok(items.length >= 2);
+test('후보: 장소가 반경 밖이면 빠지고, 도보 분이 붙는다', () => {
+  const places = [{ id: 'p1', name: '책숲', category: 'c', lat: 1, lng: 2, isPartner: true, openHours: null, note: null, distanceM: 670 }];
+  const cs = toCandidates([E('a'), E('b', { placeId: 'far' })], places, null);
+  assert.deepEqual(cs.map((c) => [c.id, c.walkMinutes, c.placeName]), [['a', 10, '책숲']]);
 });
 
-test('선택 보정: "다른 거 추천해줘"는 이미 본 것을 뺀다', () => {
-  const c = buildCandidates('MID', templates, places); // h1 h2 n1
-  assert.deepEqual(finalizePicks(c, null, ['h1']).map((i) => i.templateId), ['h2', 'n1']);
+test('필터: 시간·거리·예산·에너지를 모두 지키고, 고른 감정에 맞는 것이 먼저', () => {
+  const cs = [
+    C(E('fit-far', { moods: [] }), 9),
+    C(E('fit-mood', { moods: ['지쳤어'] }), 9),
+    C(E('fit-near'), 2),
+    C(E('too-long', { minutes: 60 }), 1),
+    C(E('too-far'), 15),
+    C(E('too-pricey', { price: 20000 }), 1),
+    C(E('too-hard', { energyNeed: 70 }), 1),
+  ];
+  const r = filterExperiences(cs, cond);
+  assert.equal(r.widened, false);
+  assert.deepEqual(r.items.map((c) => c.id), ['fit-mood', 'fit-near', 'fit-far']);
 });
 
-test('성장: 단계 경계와 일일 상한', () => {
-  assert.deepEqual([0, 29, 30, 79, 80, 149, 150].map(stageOf), [1, 1, 2, 2, 3, 3, 4]);
-  assert.equal(grantable(30, 90, false, 100), 10);
-  assert.equal(grantable(30, 120, false, 100), 0); // 음수가 되지 않는다
-  assert.equal(grantable(30, 0, true, 100), 0); // 같은 장소 하루 1번
+test('필터: 3개가 안 되면 조건을 넓히고 widened로 알린다', () => {
+  const cs = [C(E('a'), 2), C(E('b', { minutes: 60 }), 2), C(E('c', { price: 18000 }), 2), C(E('d', { minutes: 90 }), 40)];
+  const r1 = filterExperiences(cs, cond);
+  assert.equal(r1.widened, true);
+  assert.deepEqual(r1.items.map((c) => c.id).sort(), ['a', 'b', 'c']);
+  const r2 = filterExperiences([C(E('only'), 50)], cond); // 그래도 모자라면 가까운 순 전부
+  assert.deepEqual(r2.items.map((c) => c.id), ['only']);
 });
 
-test('인증 규칙', () => {
-  const here = { lat: 36.4359, lng: 129.0571 };
-  const far = { lat: 36.4379, lng: 129.0571 }; // 약 220m
-  const photo = 'data:image/jpeg;base64,AAAA';
-  const real = { start: here, place: far, demo: false };
-  assert.equal(checkVerification('HOME', { here: null, photo: null }, real), null);
-  assert.ok(checkVerification('NEAR', { here, photo: null }, real)); // 안 움직임
-  assert.equal(checkVerification('NEAR', { here: far, photo: null }, real), null);
-  assert.ok(checkVerification('NEAR', { here: null, photo: null }, real)); // 위치 없음
-  assert.ok(checkVerification('TOWN', { here: far, photo: null }, real)); // 사진 없음
-  assert.ok(checkVerification('TOWN', { here, photo }, real)); // 너무 멂
-  assert.equal(checkVerification('TOWN', { here: far, photo }, real), null);
-  // DEMO_MODE: 위치는 통과시키지만 사진은 여전히 필요
-  assert.equal(checkVerification('NEAR', { here: null, photo: null }, { ...real, demo: true }), null);
-  assert.ok(checkVerification('TOWN', { here: null, photo: 'x' }, { ...real, demo: true }));
+test('필터: 오늘 남은 시간대가 없는 체험은 뺀다', () => {
+  const cs = [C(E('a'), 2, []), C(E('b'), 2), C(E('c'), 2), C(E('d'), 2)];
+  assert.deepEqual(filterExperiences(cs, cond).items.map((c) => c.id), ['b', 'c', 'd']);
+});
+
+test('선택 보정: 후보에 없는 id는 버리고 3개를 채운다, 가격·시간은 DB 값 그대로', () => {
+  const cs = ['a', 'b', 'c', 'd'].map((id, i) => C(E(id, { price: 1000 * (i + 1) }), 2));
+  const items = finalizePicks(cs, [{ id: 'nope', reason: 'x' }, { id: 'c', reason: '이유', price: 0 } as any]);
+  assert.deepEqual(items.map((i) => i.id), ['c', 'a', 'b']);
+  assert.equal(items[0].reason, '이유');
+  assert.equal(items[0].price, 3000);
+  assert.equal(finalizePicks(cs, null).length, 3);
+  assert.deepEqual(finalizePicks(cs, null, ['a', 'b']).map((i) => i.id), ['c', 'd', 'a']);
+});
+
+test('마음 확인 입력 정리', () => {
+  assert.deepEqual(parseCheckin({ text: '  지쳐  ', emotion: '지쳤어', energy: 140, mood: 0 }), { text: '지쳐', emotion: '지쳤어', energy: 100, mood: 1 });
+  assert.deepEqual(parseCheckin({ emotion: '화나', energy: '많이' }), { text: '', emotion: null, energy: 50, mood: 5 });
+});
+
+test('성장: 단계 경계와 아이템 해금', () => {
+  assert.deepEqual([0, 19, 20, 59, 60, 119, 120].map(stageOf), [1, 1, 2, 2, 3, 3, 4]);
+  assert.deepEqual(itemsUnlockedBetween(1, 2).map((i) => i.id), ['ribbon']);
+  assert.deepEqual(itemsUnlockedBetween(1, 4).map((i) => i.id), ['ribbon', 'scarf', 'beret']);
+  assert.deepEqual(itemsUnlockedBetween(2, 2), []);
 });
