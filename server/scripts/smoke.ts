@@ -77,7 +77,7 @@ const recs = await api('GET', '/records');
 const today = recs.json.week?.at(-1);
 check('기록: 완료 1건, 미루기 1건, 오늘 마음 점수', recs.json.done?.length === 1 && recs.json.postpones?.length === 1 && today?.mood != null, recs.json);
 const exps = await api('GET', '/experiences');
-check('체험 탭: 12개', exps.json.items?.length === 12);
+check('체험 탭: 10개', exps.json.items?.length === 10);
 const free = await api('GET', '/places/free');
 check('무료 장소: 카카오 키가 없으면 꺼짐, 있으면 목록', free.status === 200 && (free.json.disabled === true || Array.isArray(free.json.items)), free.json);
 console.log(`    무료 장소: ${free.json.disabled ? '꺼짐 (KAKAO_REST_API_KEY 없음)' : `${free.json.items.length}곳 — ${free.json.items.slice(0, 3).map((p: any) => `${p.kind} ${p.name} 도보 ${p.walkMinutes}분`).join(', ')}`}`);

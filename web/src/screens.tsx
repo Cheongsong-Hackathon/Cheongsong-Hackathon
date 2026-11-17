@@ -5,7 +5,7 @@ import Bunny from './Bunny';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장·가격·예약은 가상입니다</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장 이름·위치만 실제이고, 제휴·가격·예약은 예시예요</p>;
 
 function Logo() {
   return (

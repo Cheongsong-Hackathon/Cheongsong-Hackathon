@@ -4,7 +4,7 @@
 
 - `server/` — Express + TypeScript + PostgreSQL. API와 `web/` 빌드 결과를 함께 서빙
 - `web/` — React + Vite 모바일 웹 (항상 휴대폰 테두리 안에 표시)
-- 체험 모드: 매장·가격·예약은 가상이고, 실결제는 없습니다
+- 체험 모드: 제휴 매장은 영남대 주변 실제 매장의 이름·위치를 빌려 왔고, 제휴 여부·가격·시간·예약은 예시입니다. 실결제는 없습니다
 
 ## 화면 흐름
 
@@ -30,7 +30,7 @@ docker compose up -d db              # PostgreSQL (localhost:5433)
 
 cd server && npm install
 npm run migrate                      # 테이블 생성 (server/schema.sql)
-npm run seed                         # 모든 데이터를 지우고 seed(가상 매장 8곳, 체험 12개)를 다시 넣음
+npm run seed                         # 모든 데이터를 지우고 seed(영남대 주변 매장 10곳, 체험 10개)를 다시 넣음
 
 cd ../web && npm install && npm run build
 cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
@@ -119,7 +119,7 @@ docker run -p 3000:3000 --env-file .env -e DATABASE_URL=postgres://... moodpass
 server/schema.sql            테이블: users, characters, places, partners, experiences, experience_slots,
                              checkins, bookings, postpones, chat_sessions, messages
 server/src/config.ts         환경 변수 + 숫자 설정값 (반경, 도보 속도, 경험치, 단계 기준 등)
-server/src/setup.ts          migrate, seed (가상 제휴 매장·체험·시간대)
+server/src/setup.ts          migrate, seed (제휴 매장·체험·시간대, 체험 모드)
 server/src/routes.ts         API
 server/src/services/
   checkin.ts                 01 마음 확인 (위기 감지 → 공감 한마디)
