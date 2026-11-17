@@ -10,7 +10,8 @@ let failed = 0;
 async function api(method: string, path: string, body?: unknown, user = 'smoke-user-a') {
   const res = await fetch(`${BASE}/api${path}`, {
     method,
-    headers: { 'content-type': 'application/json', 'x-user-key': user },
+    // 초기화 권한: .env(또는 환경 변수)의 RESET_TOKEN. 배포 서버에 돌릴 때는 서버와 같은 값이 필요하다
+    headers: { 'content-type': 'application/json', 'x-user-key': user, 'x-reset-token': process.env.RESET_TOKEN ?? '' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { status: res.status, json: (await res.json().catch(() => ({}))) as any };
@@ -23,8 +24,16 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
 console.log(`대상: ${BASE}\n\n[1] 마음 확인 → 조건 → 추천 → 예약 요청 → 기분 기록 → 성장`);
 const reset = await api('POST', '/demo/reset');
-check('초기화 (DEMO_MODE)', reset.status === 200, reset.status === 404 ? 'DEMO_MODE=true 서버에서만 돌릴 수 있어요' : reset.json);
+check(
+  '초기화 (DEMO_MODE)',
+  reset.status === 200,
+  reset.status === 404 ? 'DEMO_MODE=true 서버에서만 돌릴 수 있어요' : reset.status === 403 ? '서버와 같은 RESET_TOKEN이 필요해요' : reset.json,
+);
 if (reset.status !== 200) process.exit(1);
+if (process.env.RESET_TOKEN) {
+  const noToken = await fetch(`${BASE}/api/demo/reset`, { method: 'POST' });
+  check('토큰 없이는 초기화 불가(403)', noToken.status === 403);
+}
 
 const ck = await api('POST', '/checkin', { text: '오늘 너무 지쳤어. 멀리 가기는 싫어', emotion: '지쳤어', energy: 40, mood: 4 });
 check('01 마음 확인: 공감 한마디와 checkinId', ck.status === 200 && Number.isInteger(ck.json.checkinId) && !!ck.json.reply, ck.json);
