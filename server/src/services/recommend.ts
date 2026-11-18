@@ -53,7 +53,7 @@ export function toCandidates(exps: Experience[], places: Place[], now: string | 
     const p = byId.get(e.placeId);
     if (!p || p.distanceM == null) return [];
     const walk = walkMinutes(p.distanceM);
-    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk), mapUrl: naverMapUrl(p.name, p.address ?? '') }];
+    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk), mapUrl: naverMapUrl(p.name) }];
   });
 }
 

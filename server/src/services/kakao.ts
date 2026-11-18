@@ -26,9 +26,9 @@ async function search(path: string, params: Record<string, string | number>): Pr
   }
 }
 
-/** 네이버 지도 검색 링크. 같은 이름 가게가 여럿이라 주소의 시·도와 시·군·구를 붙인다 */
-export const naverMapUrl = (name: string, address: string) =>
-  `https://map.naver.com/p/search/${encodeURIComponent([name, ...address.split(' ').filter(Boolean).slice(0, 2)].join(' '))}`;
+/** 네이버 지도 검색 링크. 이름만 넣는다: 같은 이름이 여럿이면 네이버가 보는 사람의 현재 위치에서 가까운 곳을 먼저 보여 준다
+ *  (2026-11-18 확인: "현재 위치에서 6.9km"인 경산 매장이 1위. 링크에 좌표(c=)를 넣어도 네이버가 무시함) */
+export const naverMapUrl = (name: string) => `https://map.naver.com/p/search/${encodeURIComponent(name)}`;
 
 export type FreePlace = {
   id: string;
@@ -65,7 +65,7 @@ export function toFreePlace(kind: string, d: any): FreePlace | null {
     lat,
     lng,
     address: d.road_address_name || d.address_name || '',
-    url: naverMapUrl(d.place_name, d.road_address_name || d.address_name || ''),
+    url: naverMapUrl(d.place_name),
   };
 }
 

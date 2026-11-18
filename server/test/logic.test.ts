@@ -124,12 +124,10 @@ test('후보: 장소가 반경 밖이면 빠지고, 도보 분이 붙는다', ()
   assert.deepEqual(cs.map((c) => [c.id, c.walkMinutes, c.placeName]), [['a', 10, '책숲']]);
 });
 
-test('후보의 예약하기 링크: 매장 이름과 주소로 네이버 지도 검색 (예약은 네이버에서)', () => {
-  const places = [{ id: 'p1', name: '카페솜', category: 'c', lat: 1, lng: 2, isPartner: true, openHours: null, note: null, address: '경북 경산시 대학로59길 2', distanceM: 670 }];
+test('후보의 예약하기 링크: 매장 이름으로 네이버 지도 검색 (예약은 네이버에서)', () => {
+  const places = [{ id: 'p1', name: '카페솜', category: 'c', lat: 1, lng: 2, isPartner: true, openHours: null, note: null, distanceM: 670 }];
   const [c] = toCandidates([E('a')], places, null);
-  assert.equal(c.mapUrl, naverMapUrl('카페솜', '경북 경산시 대학로59길 2'));
-  const [noAddr] = toCandidates([E('a')], [{ ...places[0], address: null }], null);
-  assert.equal(noAddr.mapUrl, naverMapUrl('카페솜', '')); // 주소가 없으면 이름만으로
+  assert.equal(c.mapUrl, 'https://map.naver.com/p/search/' + encodeURIComponent('카페솜'));
 });
 
 test('필터: 시간·거리·예산·에너지를 모두 지키고, 고른 감정에 맞는 것이 먼저', () => {
@@ -191,15 +189,15 @@ test('카카오 결과 → 무료 장소: 키워드 검색에 섞인 주차장�
   const lot = { ...park, id: '2', place_name: '남매지공원 공영주차장', category_name: '교통,수송 > 주차장' };
   const cafe = { ...park, id: '3', place_name: '아무 카페', category_name: '음식점 > 카페' };
   assert.deepEqual(toFreePlace('공원', park), {
-    id: 'kakao:1', name: '남매지공원', kind: '공원', distanceM: 536, walkMinutes: 8, lat: 35.83, lng: 128.75, address: '경북 경산시 계양동', url: naverMapUrl('남매지공원', '경북 경산시 계양동'),
+    id: 'kakao:1', name: '남매지공원', kind: '공원', distanceM: 536, walkMinutes: 8, lat: 35.83, lng: 128.75, address: '경북 경산시 계양동', url: naverMapUrl('남매지공원'),
   });
   assert.equal(toFreePlace('공원', lot), null);
   assert.equal(toFreePlace('카페', cafe)?.kind, '카페');
   assert.equal(toFreePlace('공원', { ...park, distance: '' }), null);
   assert.equal(toFreePlace('공원', { ...park, y: 'x' }), null);
 });
-test('네이버 지도 링크: 같은 이름 가게가 여럿이라 시·도와 시·군·구를 붙여 검색', () => {
-  assert.equal(naverMapUrl('남매지공원', '경북 경산시 계양동'), 'https://map.naver.com/p/search/' + encodeURIComponent('남매지공원 경북 경산시'));
+test('네이버 지도 링크: 이름만으로 검색 (같은 이름이 여럿이면 네이버가 보는 사람 위치에서 가까운 곳을 먼저 보여 줌)', () => {
+  assert.equal(naverMapUrl('남매지공원'), 'https://map.naver.com/p/search/' + encodeURIComponent('남매지공원'));
 });
 test('추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가장 가까운 곳 하나, 없으면 +10분까지', () => {
   const fp = (kind: string, name: string, walkMinutes: number): FreePlace => ({ id: name, name, kind, distanceM: walkMinutes * 67, walkMinutes, lat: 0, lng: 0, address: '', url: '' });

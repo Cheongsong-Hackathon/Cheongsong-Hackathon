@@ -12,10 +12,9 @@ const mood = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v 
 
 const BOOKING_COLS = `b.id, b.status, b.slot_time AS "slotTime", b.price, b.mood_before AS "moodBefore", b.mood_after AS "moodAfter",
   b.created_at AS "createdAt", b.completed_at AS "completedAt", b.arrived_at AS "arrivedAt", e.id AS "experienceId", e.title, e.category, e.minutes,
-  p.name AS "placeName", p.address`;
+  p.name AS "placeName"`;
 /** 다시 예약하러 갈 수 있게 네이버 지도 링크를 붙인다 */
-const withMap = <T extends { placeName: string; address: string | null }>(b: T | undefined) =>
-  b ? { ...b, mapUrl: naverMapUrl(b.placeName, b.address ?? '') } : null;
+const withMap = <T extends { placeName: string }>(b: T | undefined) => (b ? { ...b, mapUrl: naverMapUrl(b.placeName) } : null);
 const BOOKING_FROM = `FROM bookings b JOIN experiences e ON e.id = b.experience_id JOIN places p ON p.id = e.place_id`;
 
 export async function createBooking(userId: number, body: any) {
