@@ -98,11 +98,13 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 
 | 단계 | 누가 | 내용 |
 | --- | --- | --- |
-| 1. 말에서 읽기 | AI | 필요(비우기·풀기·채우기·쉬기·몰입), 기운, 원함·피함(고정 태그), 반응(멀어·비싸·힘들어) |
+| 1. 말에서 읽기 | AI | 필요 6가지(비우기·쉬기·풀기·몰입·즐기기·연결, 근거: docs/필요분류_근거.md), 기운, 원함·피함(고정 태그), 반응(멀어·비싸·힘들어) |
 | 2. 묻기 / 추천 결정 | 코드 | 필요를 모를 때만, 많아도 2번 묻고 고르기 버튼을 줌 |
 | 3. 빈 조건 채우기 | 코드 | 말한 것 > 지난 기록(예: 지난번 가격대) > 지금 상황(시간대) > 기본값. 가정을 `assumptions`로 밝힘 |
 | 4. 거르기·점수 | 코드 (`services/match.ts`) | 시간·도보·예산·오늘 시간대·피할 것 + 필요·원함과 맞는 특징, 기운, 지난 기분 변화(같은 체험 최대 +3, 비슷한 특징 최대 +2), 필요와 반대되는 특징 감점. **맞는 것만, 많아도 3개 (채워 넣지 않음)** |
 | 5. 이유 쓰기 | AI | 순서는 바꾸지 않고, 사용자 말·기억 하나와 사실 하나를 넣은 이유만 |
+
+**안전망:** 위기(CRISIS)면 추천을 멈추고 안전 화면으로 갑니다. AI가 돌려 말한 위기를 못 잡을 수 있어서, 위험도가 WATCH로 한 번이라도 나오면 그 대화의 응답마다 `support`(상담 번호 109·1577-0199)를 함께 보냅니다. 추천은 막지 않습니다 (근거·평가: docs/설계근거_점검.md).
 
 AI가 놓치거나 지어내기 쉬운 부분은 코드가 막습니다: "멀다·비싸다·힘들다"는 키워드로도 잡고, 사용자가 말하지 않은 숫자 조건(예산 등)은 받지 않으며, 사용자가 직접 좁힌 조건은 "맞는 게 없을 때 넓히기"에서도 넓히지 않습니다. 모두 시나리오 검사에서 실제로 나온 실패를 막은 것입니다.
 
@@ -190,7 +192,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | `POST /api/bookings/:id/complete` | `{moodAfter}` → 체험 전/후, 경험치, 새 아이템 |
 | `POST /api/bookings/:id/cancel` | 예약 요청 취소 |
 | `POST /api/postpone` | `{task}` → 오늘 할 일 하나 미루기 |
-| `POST /api/talk` | **대화로 추천받기 (핵심 흐름).** `{sessionId?, message, lat?, lng?}` → `{action: ask \| recommend \| none \| safety, reply, quickReplies, items(많아도 3개), assumptions}`. 아래 "대화 추천" 참고 |
+| `POST /api/talk` | **대화로 추천받기 (핵심 흐름).** `{sessionId?, message, lat?, lng?}` → `{action: ask \| recommend \| none \| safety, reply, quickReplies, items(많아도 3개), assumptions, support?}`. 아래 "대화 추천" 참고 |
 | `GET /api/memories`, `DELETE /api/memories/:id` | 토끼가 기억하는 것 보기, 하나씩 지우기 |
 | `GET/DELETE /api/records` | 기록 조회 / 모두 지우기 (성장은 유지) |
 | `GET /api/character`, `POST /api/character/equip` | 캐릭터, 꾸미기 |

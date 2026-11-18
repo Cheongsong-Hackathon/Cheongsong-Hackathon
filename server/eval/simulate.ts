@@ -2,6 +2,7 @@
 // 골든마다 새 사용자(기억·기록 없음)로 실제 /api/talk와 대화하고, 대화 기록 전체를 runs/<시각>.json에 남긴다.
 // 가상 사용자는 서비스와 다른 모델(예비 AI 설정, 보통 CLOVA)로 돌린다: 같은 모델끼리 묻고 답하면 점수가 후해진다.
 // 가상 사용자는 정답 라벨을 알지만 정답 단어를 말하지 않는다 (정답을 흘리면 점수가 부풀려짐, arXiv 2403.16416).
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { config } from '../src/config.js';
@@ -25,7 +26,8 @@ const YU = { lat: 35.8318, lng: 128.7585 }; // 영남대
 const FEEL: Record<string, string> = {
   비우기: '생각이 너무 많고 머리가 꽉 참',
   풀기: '답답하거나 화가 나서 털어내고 싶음',
-  채우기: '심심하고 지루해서 재미가 필요함',
+  즐기기: '심심하고 지루해서 재미가 필요함',
+  연결: '외로워서 누군가와 함께하고 싶음',
   쉬기: '지쳐서 기운이 없고 쉬고 싶음',
   몰입: '딴생각을 끊고 한 가지에 빠지고 싶음',
 };
@@ -40,7 +42,7 @@ const SimOut = z.object({ message: z.string() });
 const SIM_PROMPT = `너는 마음 챙김 앱의 토끼 캐릭터와 대화하는 테스트 사용자야. 아래 사람이 되어 다음 한마디만 해.
 규칙:
 - 실제 사람처럼 짧은 반말. 토끼가 물어본 것에만 답해
-- 다음 단어는 쓰지 마: 비우기, 풀기, 채우기, 몰입, 가만히 쉬기, 손으로 만들기, 소리 내기, 몸 쓰기, 같이 하기
+- 다음 단어는 쓰지 마: 비우기, 쉬기, 풀기, 몰입, 즐기기, 연결, 가만히 쉬기, 손으로 만들기, 소리 내기, 몸 쓰기, 같이 하기
 - 고르기 버튼이 있으면, 이 사람에게 맞는 버튼 문구를 그대로 골라도 돼
 아래 JSON 하나만 출력해. {"message":"..."}`;
 
@@ -61,7 +63,8 @@ async function talk(userKey: string, body: object) {
 }
 
 async function converse(sim: LLMClient, g: Golden, repeat: number, runId: string): Promise<Conversation> {
-  const userKey = `eval-${runId}-${g.id}-${repeat}`.replace(/[^A-Za-z0-9-]/g, '').slice(0, 64) || `eval-${Date.now()}`;
+  // 골든·반복마다 새 사용자. id가 한글이라 그대로 넣으면 지워져 모든 골든이 한 사용자를 같이 썼음 (위기 안전 모드·기억이 다음 골든으로 번짐)
+  const userKey = `eval-${runId.replace(/[^A-Za-z0-9-]/g, '')}-${createHash('sha1').update(g.id).digest('hex').slice(0, 12)}-${repeat}`;
   const conv: Conversation = { goldenId: g.id, repeat, userKey, turns: [] };
   const history: string[] = [];
   let message = g.opener;

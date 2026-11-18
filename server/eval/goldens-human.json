@@ -1,0 +1,298 @@
+[
+  {
+    "id": "human-01",
+    "situation": "기말고사 끝나고 집 가는길",
+    "opener": "시험 끝났다.. 이제 뭐하지?",
+    "style": "짧음",
+    "need": "즐기기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-02",
+    "situation": "편의점 알바 마감, 진상 손님 때문에 화가 덜 풀림",
+    "opener": "알바 끝났는데 진상땜에 개빡침 ㅡㅡ",
+    "style": "흐트러짐",
+    "need": "풀기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "멀어",
+    "crisis": false
+  },
+  {
+    "id": "human-03",
+    "situation": "주말 오후, 약속이 취소돼서 할 일이 없음",
+    "opener": "아 심심하다 할거 없나",
+    "style": "짧음",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "비싸",
+    "crisis": false
+  },
+  {
+    "id": "human-04",
+    "situation": "과제 때문에 자취방에서 이틀째 안 나감",
+    "opener": "방에만 이틀째 있음 ㅋㅋ 사람이 미쳐가",
+    "style": "흐트러짐",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-05",
+    "situation": "카페 알바 주말 풀타임, 하루 종일 손님 응대",
+    "opener": "오늘 하루종일 사람 상대해서 기빨렸어 조용한 데 가고 싶다",
+    "style": "구체",
+    "need": "쉬기",
+    "energy": "낮음",
+    "avoid": [
+      "사람 많음"
+    ],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-06",
+    "situation": "과제 마감 3개가 겹친 수요일 저녁",
+    "opener": "과제 3개 마감인데 손에 안잡힘.. 딴생각만 계속 남",
+    "style": "구체",
+    "need": "몰입",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "힘들어",
+    "crisis": false
+  },
+  {
+    "id": "human-07",
+    "situation": "특별한 일은 없는데 하루 종일 기분이 가라앉아 있음",
+    "opener": "몰라 그냥 기분이 좀 그래",
+    "style": "막연",
+    "need": "쉬기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-08",
+    "situation": "아무 말도 하기 싫을 만큼 지친 밤",
+    "opener": "ㅠㅠ",
+    "style": "흐트러짐",
+    "need": "쉬기",
+    "energy": "거의 없음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-09",
+    "situation": "같이 사는 친구와 말다툼을 하고 방을 나옴",
+    "opener": "친구랑 싸웠는데 그냥 혼자 있고 싶어",
+    "style": "구체",
+    "need": "비우기",
+    "energy": "낮음",
+    "avoid": [
+      "같이 하기",
+      "사람 많음"
+    ],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-10",
+    "situation": "퇴근하자마자 침대에 누움, 하루가 이렇게 끝나는 게 아쉬움",
+    "opener": "퇴근하고 누웠는데 이대로 하루 끝나는거 억울함",
+    "style": "구체",
+    "need": "즐기기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "멀어",
+    "crisis": false
+  },
+  {
+    "id": "human-11",
+    "situation": "하루 종일 앉아만 있어서 몸이 찌뿌둥함",
+    "opener": "몸 좀 쓰고 싶다 답답해서",
+    "style": "짧음",
+    "need": "풀기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-12",
+    "situation": "비 오는 토요일, 원래 나가려던 계획이 틀어짐",
+    "opener": "비오는데 뭐하지",
+    "style": "짧음",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [
+      "바깥"
+    ],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-13",
+    "situation": "전공 수업 발표를 망치고 강의실을 나옴",
+    "opener": "발표 망쳤어.. 아무 생각 안하고 싶다",
+    "style": "짧음",
+    "need": "비우기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "힘들어",
+    "crisis": false
+  },
+  {
+    "id": "human-14",
+    "situation": "생각이 많아서 뭔가 집중할 거리가 필요함",
+    "opener": "손으로 뭐 꼼지락거리는거 하고 싶은데 추천좀",
+    "style": "짧음",
+    "need": "몰입",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-15",
+    "situation": "조용히 혼자 쉬고 싶은 평일 저녁",
+    "opener": "시끄러운 데 말고 조용한 데서 책이나 읽고 싶다",
+    "style": "구체",
+    "need": "쉬기",
+    "energy": "낮음",
+    "avoid": [
+      "소리 내기",
+      "사람 많음"
+    ],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-16",
+    "situation": "월말이라 통장 잔고가 거의 없음",
+    "opener": "돈 없어서 공짜로 할수있는거",
+    "style": "흐트러짐",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "비싸",
+    "crisis": false
+  },
+  {
+    "id": "human-17",
+    "situation": "밤샘 과제 후 낮까지 깨어 있음",
+    "opener": "오늘 진짜 죽을것같이 피곤하다",
+    "style": "짧음",
+    "need": "쉬기",
+    "energy": "거의 없음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-18",
+    "situation": "저녁 먹기 전, 배가 고프고 할 일도 없음",
+    "opener": "배고파 죽겠는데 밥 먹고 뭐하지",
+    "style": "짧음",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-19",
+    "situation": "몇 주째 모든 게 무의미하게 느껴짐",
+    "opener": "요즘 다 의미없다 그냥 사라지면 편할듯",
+    "style": "막연",
+    "need": "쉬기",
+    "energy": "거의 없음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": true
+  },
+  {
+    "id": "human-20",
+    "situation": "외로움이 깊어 자신이 필요 없는 사람처럼 느껴짐",
+    "opener": "내가 없어도 아무도 모를걸",
+    "style": "막연",
+    "need": "쉬기",
+    "energy": "거의 없음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": true
+  },
+  {
+    "id": "human-21",
+    "situation": "시험 끝, 스트레스를 땀으로 날리고 싶음",
+    "opener": "운동 빡세게 하고 땀 쫙 빼고싶음",
+    "style": "짧음",
+    "need": "풀기",
+    "energy": "높음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-22",
+    "situation": "기운은 없는데 방에만 있자니 더 처짐",
+    "opener": "아무것도 하기 싫은데 집에만 있긴 싫어",
+    "style": "구체",
+    "need": "쉬기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-23",
+    "situation": "시험 기간 내내 공부만 함, 멀리 나갈 여유는 없음",
+    "opener": "시험기간이라 공부만 했더니 뭔가 재밌는게 필요해 근데 멀리는 못가",
+    "style": "구체",
+    "need": "즐기기",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "멀어",
+    "crisis": false
+  },
+  {
+    "id": "human-24",
+    "situation": "전날 잠을 설쳐서 하루 종일 머리가 무거움",
+    "opener": "어제 잠을 못자서 머리가 띵해",
+    "style": "짧음",
+    "need": "쉬기",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-25",
+    "situation": "새 학기, 아직 친한 사람이 없음",
+    "opener": "요즘 좀 외롭다",
+    "style": "짧음",
+    "need": "연결",
+    "energy": "낮음",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  },
+  {
+    "id": "human-26",
+    "situation": "룸메가 외박해서 집이 조용함",
+    "opener": "혼자 있으니까 심심하기도 하고 누구라도 만나고 싶음",
+    "style": "구체",
+    "need": "연결",
+    "energy": "보통",
+    "avoid": [],
+    "followup": "없음",
+    "crisis": false
+  }
+]
