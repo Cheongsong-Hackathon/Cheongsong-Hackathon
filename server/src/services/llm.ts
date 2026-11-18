@@ -1,31 +1,56 @@
-import type { ZodType } from 'zod';
+import { z, type ZodType } from 'zod';
 import { config } from '../config.js';
 
-/** 공급자를 바꾸려면 이 인터페이스의 구현체만 추가하면 된다. */
+/** 공급자를 바꾸려면 이 인터페이스의 구현체만 추가하면 된다.
+ *  jsonSchema: 기대하는 응답 모양. 형식 강제를 켠 공급자만 쓰고, 나머지는 무시한다. */
 export interface LLMClient {
   name: string;
-  complete(system: string, user: string, timeoutMs: number): Promise<string>;
+  complete(system: string, user: string, timeoutMs: number, jsonSchema?: object): Promise<string>;
 }
 
-/** OpenAI 호환 /chat/completions (Gemini, Groq, OpenAI, OpenRouter 등) */
+/** zod 스키마 → 공급자에 보낼 엄격한 JSON 스키마 ($schema·default 제거, 정의하지 않은 필드 금지) */
+export function strictJsonSchema(schema: ZodType): object {
+  const clean = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(clean);
+    if (!v || typeof v !== 'object') return v;
+    const o: Record<string, unknown> = {};
+    for (const [k, x] of Object.entries(v)) if (k !== '$schema' && k !== 'default') o[k] = clean(x);
+    if (o.type === 'object') o.additionalProperties = false;
+    return o;
+  };
+  return clean(z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' })) as object;
+}
+
+type ClientOptions = { baseUrl: string; model: string; apiKey: string; structured?: boolean; extra?: Record<string, unknown> };
+
+/** OpenAI 호환 /chat/completions (Gemini, Groq, OpenAI, OpenRouter, CLOVA Studio 등) */
 export class OpenAICompatClient implements LLMClient {
   constructor(
     public name: string,
-    private o: { baseUrl: string; model: string; apiKey: string },
+    private o: ClientOptions,
   ) {}
 
-  async complete(system: string, user: string, timeoutMs: number): Promise<string> {
+  /** 보낼 요청 본문 (테스트에서 확인할 수 있게 따로 뺐다) */
+  body(system: string, user: string, jsonSchema?: object) {
+    return {
+      model: this.o.model,
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      ...(this.o.structured && jsonSchema
+        ? { response_format: { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: jsonSchema } } }
+        : {}),
+      ...this.o.extra,
+    };
+  }
+
+  async complete(system: string, user: string, timeoutMs: number, jsonSchema?: object): Promise<string> {
     const res = await fetch(`${this.o.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${this.o.apiKey}` },
-      body: JSON.stringify({
-        model: this.o.model,
-        temperature: 0.7,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-      }),
+      body: JSON.stringify(this.body(system, user, jsonSchema)),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -61,7 +86,7 @@ export class FallbackClient implements LLMClient {
     private primaryTimeoutMs = config.LLM_PRIMARY_TIMEOUT_MS,
   ) {}
 
-  async complete(system: string, user: string, timeoutMs: number): Promise<string> {
+  async complete(system: string, user: string, timeoutMs: number, jsonSchema?: object): Promise<string> {
     const deadline = Date.now() + timeoutMs;
     for (const [i, c] of this.clients.entries()) {
       const left = deadline - Date.now();
@@ -69,7 +94,7 @@ export class FallbackClient implements LLMClient {
       const isLast = i === this.clients.length - 1;
       const t0 = Date.now();
       try {
-        const text = await c.complete(system, user, isLast ? left : Math.min(left, this.primaryTimeoutMs));
+        const text = await c.complete(system, user, isLast ? left : Math.min(left, this.primaryTimeoutMs), jsonSchema);
         record(c.name, true, Date.now() - t0);
         return text;
       } catch (e) {
@@ -98,6 +123,8 @@ export function extractJson(text: string): unknown {
   throw new Error('JSON이 닫히지 않음');
 }
 
+const schemaCache = new WeakMap<ZodType, object>();
+
 /**
  * LLM 호출 → JSON 추출 → zod 검증. 검증에 실패하면 1번 재시도.
  * 전체가 timeoutMs 안에 끝나지 않거나 끝내 실패하면 null (호출한 쪽이 기본 답장으로 대체).
@@ -111,12 +138,13 @@ export async function callJson<T>(
 ): Promise<T | null> {
   if (!client) return null;
   const deadline = Date.now() + timeoutMs;
+  const jsonSchema = schemaCache.get(schema) ?? schemaCache.set(schema, strictJsonSchema(schema)).get(schema);
   for (let attempt = 0; attempt < 2; attempt++) {
     const left = deadline - Date.now();
     if (left < 300) break;
     let text: string;
     try {
-      text = await client.complete(system, user, left);
+      text = await client.complete(system, user, left, jsonSchema);
     } catch {
       return null; // 공급자 자체가 실패 — 재시도해도 같으므로 바로 기본 답장
     }
