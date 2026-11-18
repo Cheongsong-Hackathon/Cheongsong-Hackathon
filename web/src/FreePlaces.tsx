@@ -5,7 +5,7 @@ import { LoadState } from './screens';
 function mapUrl(value: string): string | null {
   try {
     const url = new URL(value);
-    return ['http:', 'https:'].includes(url.protocol) && url.hostname === 'place.map.kakao.com' ? url.href : null;
+    return ['http:', 'https:'].includes(url.protocol) && url.hostname === 'map.naver.com' ? url.href : null;
   } catch { return null; }
 }
 
@@ -54,7 +54,7 @@ export default function FreePlaces({ position, locationKey }: {
             <span className="eyebrow">{place.kind} · 도보 약 {place.walkMinutes}분</span>
             <strong>{place.name}</strong>
             <p className="small mute">{place.address}</p>
-            {url && <a className="btn ghost" href={url} target="_blank" rel="noopener noreferrer" aria-label={`${place.name} 길 안내, 카카오맵 새 창`}>길 안내 ↗</a>}
+            {url && <a className="btn ghost" href={url} target="_blank" rel="noopener noreferrer" aria-label={`${place.name} 길 안내, 네이버 지도 새 창`}>길 안내 ↗</a>}
           </article>
         );
       })}

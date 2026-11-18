@@ -187,7 +187,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 예약 요청 (가격은 DB 값) |
 | `GET /api/bookings/active` | 진행 중인 예약 요청 (`arrivedAt`: 도착 확인 시각) |
 | `POST /api/bookings/:id/arrive` | `{lat, lng}` → 매장 150m 안이면 `{arrived: true}`. 좌표는 저장하지 않음. 확인이 안 돼도 완료·기록은 가능. `DEMO_MODE`는 거리 무시 |
-| `GET /api/places/free?lat&lng` | 주변 무료 장소(카페·도서관·공원, 카카오 로컬) `{items}`. 카카오 키가 없으면 `{items: [], disabled: true}` |
+| `GET /api/places/free?lat&lng` | 주변 무료 장소(카페·도서관·공원, 카카오 로컬로 찾고 `url`은 네이버 지도 검색 링크) `{items}`. 카카오 키가 없으면 `{items: [], disabled: true}` |
 | `GET /api/geocode?query=` | 주소·장소 이름 → `{lat, lng, label}`. 화면은 이 좌표를 브라우저에만 저장하고 추천·체험·무료 장소에 `lat/lng`로 넘김. 키가 없으면 503 |
 | `POST /api/bookings/:id/complete` | `{moodAfter}` → 체험 전/후, 경험치, 새 아이템 |
 | `POST /api/bookings/:id/cancel` | 예약 요청 취소 |

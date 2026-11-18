@@ -6,7 +6,7 @@ import { callJson, extractJson, FallbackClient, type LLMClient } from '../src/se
 import type { Place } from '../src/services/places.js';
 import { parseCheckin } from '../src/services/checkin.js';
 import { addMinutes, availableSlots, filterExperiences, finalizePicks, toCandidates, walkMinutes, type Candidate, type Experience } from '../src/services/recommend.js';
-import { pickFree, toFreePlace, type FreePlace } from '../src/services/kakao.js';
+import { naverMapUrl, pickFree, toFreePlace, type FreePlace } from '../src/services/kakao.js';
 import { SafetyGuard } from '../src/services/safety.js';
 
 const fake = (name: string, ...outs: (string | Error)[]): LLMClient & { calls: number } => ({
@@ -178,17 +178,20 @@ test('성장: 단계 경계와 아이템 해금', () => {
   assert.deepEqual(itemsUnlockedBetween(2, 2), []);
 });
 
-test('카카오 결과 → 무료 장소: 키워드 검색에 섞인 주차장은 거르고, 도보 분을 붙인다', () => {
-  const park = { id: '1', place_name: '남매지공원', category_name: '여행 > 공원', x: '128.75', y: '35.83', distance: '536', road_address_name: '경산시 계양동', place_url: 'http://place.map.kakao.com/1' };
+test('카카오 결과 → 무료 장소: 키워드 검색에 섞인 주차장은 거르고, 도보 분과 네이버 지도 링크를 붙인다', () => {
+  const park = { id: '1', place_name: '남매지공원', category_name: '여행 > 공원', x: '128.75', y: '35.83', distance: '536', road_address_name: '경북 경산시 계양동', place_url: 'http://place.map.kakao.com/1' };
   const lot = { ...park, id: '2', place_name: '남매지공원 공영주차장', category_name: '교통,수송 > 주차장' };
   const cafe = { ...park, id: '3', place_name: '아무 카페', category_name: '음식점 > 카페' };
   assert.deepEqual(toFreePlace('공원', park), {
-    id: 'kakao:1', name: '남매지공원', kind: '공원', distanceM: 536, walkMinutes: 8, lat: 35.83, lng: 128.75, address: '경산시 계양동', url: 'http://place.map.kakao.com/1',
+    id: 'kakao:1', name: '남매지공원', kind: '공원', distanceM: 536, walkMinutes: 8, lat: 35.83, lng: 128.75, address: '경북 경산시 계양동', url: naverMapUrl('남매지공원', '경북 경산시 계양동'),
   });
   assert.equal(toFreePlace('공원', lot), null);
   assert.equal(toFreePlace('카페', cafe)?.kind, '카페');
   assert.equal(toFreePlace('공원', { ...park, distance: '' }), null);
   assert.equal(toFreePlace('공원', { ...park, y: 'x' }), null);
+});
+test('네이버 지도 링크: 같은 이름 가게가 여럿이라 시·도와 시·군·구를 붙여 검색', () => {
+  assert.equal(naverMapUrl('남매지공원', '경북 경산시 계양동'), 'https://map.naver.com/p/search/' + encodeURIComponent('남매지공원 경북 경산시'));
 });
 test('추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가장 가까운 곳 하나, 없으면 +10분까지', () => {
   const fp = (kind: string, name: string, walkMinutes: number): FreePlace => ({ id: name, name, kind, distanceM: walkMinutes * 67, walkMinutes, lat: 0, lng: 0, address: '', url: '' });

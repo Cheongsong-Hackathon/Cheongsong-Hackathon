@@ -1,4 +1,5 @@
 // 카카오 로컬 API: 무료 장소(카페·도서관·공원) 검색, 주소·장소 이름 → 좌표.
+// 찾기는 카카오(반경·거리순 검색이 됨), 사용자가 누르는 링크는 네이버 지도(사진·가격·예약 정보가 많고 더 많이 씀).
 // 키(KAKAO_REST_API_KEY)가 없거나 실패하면 null을 돌려주고, 화면은 지금처럼 동작한다.
 import { config } from '../config.js';
 import { walkMinutes, type LatLng } from '../geo.js';
@@ -24,6 +25,10 @@ async function search(path: string, params: Record<string, string | number>): Pr
     return null;
   }
 }
+
+/** 네이버 지도 검색 링크. 같은 이름 가게가 여럿이라 주소의 시·도와 시·군·구를 붙인다 */
+export const naverMapUrl = (name: string, address: string) =>
+  `https://map.naver.com/p/search/${encodeURIComponent([name, ...address.split(' ').filter(Boolean).slice(0, 2)].join(' '))}`;
 
 export type FreePlace = {
   id: string;
@@ -60,7 +65,7 @@ export function toFreePlace(kind: string, d: any): FreePlace | null {
     lat,
     lng,
     address: d.road_address_name || d.address_name || '',
-    url: d.place_url ?? '',
+    url: naverMapUrl(d.place_name, d.road_address_name || d.address_name || ''),
   };
 }
 

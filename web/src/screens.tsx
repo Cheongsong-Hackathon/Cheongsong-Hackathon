@@ -255,7 +255,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
       )}
       <p className="small center mute">
         {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
-        {p.free.length > 0 && '돈 안 드는 곳은 카카오맵 장소 정보예요.'}
+        {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
   );
