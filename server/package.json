@@ -10,7 +10,8 @@
     "seed": "tsx src/cli.ts seed",
     "test": "tsx --test test/*.test.ts",
     "smoke": "tsx scripts/smoke.ts",
-    "prompt-eval": "tsx scripts/prompt-eval.ts"
+    "prompt-eval": "tsx scripts/prompt-eval.ts",
+    "scenario": "tsx scripts/scenario.ts"
   },
   "dependencies": {
     "express": "^5.1.0",
