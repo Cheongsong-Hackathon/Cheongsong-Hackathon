@@ -39,7 +39,7 @@ test('조건은 반드시 지킴: 예산·도보·시간·피할 것·이미 본
   const r = rankForPrefs(CANDS, p({ need: '비우기', budget: 15000, walk: 25 }), undefined, ['meditation']);
   assert.deepEqual(ids(r), ['calligraphy']); // 도자기는 1만8천원이라 예산 초과, 명상은 이미 봄
   assert.deepEqual(r.relaxed, []);
-  const noCrowd = rankForPrefs(CANDS, p({ need: '채우기', avoid: ['사람 많음'] }));
+  const noCrowd = rankForPrefs(CANDS, p({ need: '즐기기', avoid: ['사람 많음'] }));
   assert.ok(!ids(noCrowd).some((id) => ['boardgame', 'climbing'].includes(id)));
 });
 
@@ -66,6 +66,17 @@ test('실내·혼자 가능 같은 일반 태그만 맞는 건 "맞는 추천"�
   assert.ok(onlyIndoor.items.length > 0); // 활동 특징을 모르면 일반 태그로 거르지 않음
   const rest = rankForPrefs(CANDS, p({ need: '쉬기', energy: '높음' }));
   assert.ok(!ids(rest).some((id) => ['karaoke', 'climbing', 'boardgame'].includes(id)), ids(rest).join());
+});
+
+test('필요 6분류의 경계: 몰입은 해내는 것(조용히 있기만 하는 건 아님), 연결은 함께하는 것, 즐기기는 노래방도 됨', () => {
+  // 비우기와 몰입이 평가에서 헷갈렸던 경계: 몰입(숙달)은 손으로·몸으로 해내는 것, 조용함은 비우기 쪽
+  const focus = ids(rankForPrefs(CANDS, p({ need: '몰입' })));
+  assert.ok(focus.includes('pottery') && focus.includes('calligraphy'), focus.join());
+  assert.ok(!focus.includes('meditation'), focus.join());
+  const connect = ids(rankForPrefs(CANDS, p({ need: '연결' })));
+  assert.deepEqual(connect, ['boardgame']);
+  const fun = ids(rankForPrefs(CANDS, p({ need: '즐기기' })));
+  assert.ok(fun.includes('karaoke'), fun.join());
 });
 
 test('기운이 없으면 힘든 체험은 점수가 깎여 빠짐', () => {
