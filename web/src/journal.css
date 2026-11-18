@@ -182,3 +182,113 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 @media (max-width: 360px) { .journal-record-fields .chips { flex-wrap: nowrap; }.journal-record-fields .chip { font-size: 11px; padding: 5px 3px; gap: 2px; }.journal-mood-emoji { font-size: 13px; } }
 .accessory-color-options { margin: 0; padding: 0; border: 0; min-width: 0; }
 .accessory-colors > .btn:disabled { cursor: not-allowed; opacity: .6; box-shadow: none; }
+/* 무무: three primary destinations. */
+.tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tabs button { min-height: 64px; font-size: 13px; font-weight: 700; }
+.tabs button:nth-child(2) svg { width: 27px; height: 27px; }
+.mumu-home-links { display: flex; gap: 6px; padding: 12px 18px 6px; }
+.mumu-home-links button { flex: 1; min-height: 44px; padding: 7px; font: inherit; font-size: 12px; font-weight: 700; color: #8a789c; border: 1px solid #e5dcef; border-radius: 99px; background: #fffdfb; }
+.mumu-home-links button[aria-pressed='true'] { background: #e9dff8; color: #68528f; border-color: #b8a1d6; }
+.mumu-profile { padding-top: 24px; gap: 18px; }
+.mumu-profile-hero { flex-direction: row; align-items: center; background: linear-gradient(120deg, #eee5fa, #fff3f7); }
+.mumu-profile-hero h2 { font-size: 17px; margin-bottom: 8px; }
+.mumu-profile-hero p { font-size: 12px; color: var(--mute); }
+.mumu-profile-link { cursor: pointer; padding: 20px; gap: 8px; }
+.mumu-profile .row.two > .btn { min-width: 0; padding: 10px; font-size: 13px; }
+.mumu-shop > .page { padding-top: 24px; }
+.mumu-shop .mumu-home-links { padding: 0; }
+.mumu-shop-preview { align-items: center; background: radial-gradient(ellipse at center, #eee3fa, #fffafc); }
+.mumu-shop-preview > span { font-size: 12px; color: var(--mute); }
+.mumu-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mumu-products article { padding: 12px; gap: 10px; }
+.mumu-products h2 { font-size: 14px; }
+.mumu-product-icon { display: grid; place-items: center; height: 80px; border-radius: 14px; background: #eee4f9; font-size: 42px; color: #9f85c6; }
+.mumu-product-icon.cape { color: #77a994; background: #e4f0e8; }
+.mumu-product-icon.glasses { color: #8e7b9f; background: #f1eaf7; }
+.mumu-home { padding-top: 12px; gap: 14px; }
+.mumu-home-character { display: grid; place-items: center; width: 100%; min-height: 250px; padding: 0; border: 0; border-radius: 32px; background: radial-gradient(ellipse at center, #e8dcf866, transparent 70%); cursor: pointer; }
+.mumu-home-character:active { transform: scale(.98); }
+.mumu-home-exp { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 8px; }
+.mumu-home-exp .row { justify-content: space-between; font-size: 13px; color: var(--purple-d); }
+.mumu-home-exp .row > span { font-size: 12px; font-weight: 700; }
+.mumu-home-exp .bar { height: 10px; }
+.mumu-home-exp p { text-align: center; font-size: 11px; }
+@media (max-height: 740px) { .mumu-home-character { min-height: 200px; }.mumu-home-character > svg { width: 200px; height: 200px; } }
+.mumu-chat-turn { display: flex; flex-direction: column; gap: 12px; }
+.mumu-talk-offer { margin-left: 46px; width: auto; background: #f1e9fb; border-color: #d8c6ef; }
+.mumu-talk-offer strong { font-size: 15px; line-height: 1.6; }
+.mumu-quick-replies { padding-left: 46px; gap: 6px; }
+.mumu-quick-replies .chip { text-align: left; font-size: 12px; }
+.mumu-support { margin-left: 46px; width: auto; background: #faf8fd; }
+.mumu-support a { color: var(--purple-d); font-size: 13px; min-height: 36px; display: flex; align-items: center; }
+.mumu-skin-locked { background: linear-gradient(120deg, #f1eaf9, #fff6fa); }
+.mumu-premium-icon { font-size: 28px; }
+.mumu-skin-samples { display: flex; gap: 8px; padding: 8px 0; opacity: .7; }
+.mumu-skin-samples > span { width: 32px; height: 32px; border-radius: 50%; border: 3px solid #fff; }
+.mumu-global-brand { display: flex; align-items: center; gap: 8px; min-height: 58px; flex-shrink: 0; padding: 9px 20px; background: #fdfaff; border-bottom: 1px solid #ece4f4; z-index: 8; }
+.mumu-global-brand > span { font-size: 21px; font-weight: 800; color: #75618f; letter-spacing: -.8px; }
+.mumu-global-brand > small { font-size: 10px; color: #aa9bbb; margin-left: auto; }
+.topbar { min-height: 36px; padding: 0; border: 0; }
+.topbar > .icon-btn { height: 36px; }
+.mumu-breathe { transform-origin: 100px 225px; animation: mumu-soft-breathe 4s ease-in-out infinite; }
+.mumu-character.happy .mumu-breathe { animation: mumu-bounce 1.3s ease-in-out infinite; }
+.mumu-eyes { transform-origin: 100px 128px; animation: blink 5s infinite; }
+.mumu-character.is-quiet * { animation: none !important; }
+@keyframes mumu-soft-breathe { 50% { transform: translateY(-3px) scale(1.012, .99); } }
+@keyframes mumu-bounce { 50% { transform: translateY(-5px) rotate(-1deg); } }
+@media (prefers-reduced-motion: reduce) { .mumu-breathe, .mumu-eyes { animation: none; } }
+@media (max-width: 340px) { .mumu-global-brand > small { display: none; } }
+.mumu-shop-compact .mumu-shop-preview { padding: 12px; gap: 2px; }
+.mumu-shop-compact .mumu-shop-preview p { font-size: 11px; color: var(--mute); text-align: center; }
+.mumu-shop-compact .mumu-shop-preview .btn.text { min-height: 36px; font-size: 11px; padding: 4px; }
+.mumu-skin-simple { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px; padding: 15px; font-size: 14px; }
+.mumu-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.mumu-setting-card, .mumu-settings-grid > .accessory-colors { padding: 12px; margin: 0; border: 1px solid var(--line); border-radius: 15px; background: #fffdfc; display: block; min-width: 0; }
+.mumu-setting-card summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; list-style: none; gap: 4px; }
+.mumu-setting-card summary::-webkit-details-marker { display: none; }
+.mumu-setting-card[open] summary { margin-bottom: 10px; }
+.mumu-setting-card .chips { gap: 5px; }
+.mumu-setting-card .chip { font-size: 11px; min-height: 36px; padding: 5px 8px; }
+.mumu-setting-card .custom-color { flex-direction: column; align-items: flex-start; font-size: 11px; }
+.accessory-color-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 44px; border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; font-weight: 700; text-align: left; gap: 4px; }
+.accessory-color-toggle:disabled { color: #a59aaf; cursor: not-allowed; }
+.mumu-settings-grid .color-options { margin-top: 10px; }
+.mumu-settings-grid .color-swatches { gap: 5px; }
+.mumu-settings-grid .color-swatch { width: 36px; height: 36px; }
+.mumu-settings-grid .custom-color { flex-direction: column; align-items: flex-start; gap: 6px; font-size: 11px; margin-top: 10px; }
+.mumu-settings-grid .small { font-size: 10px; margin-top: 6px; }
+.mumu-clothing-icon { display: block; width: 78px; height: 68px; margin: 0 auto; }
+.mumu-try-card, .mumu-try-product { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; text-align: center; }
+.mumu-try-card { min-height: 150px; padding: 12px; }
+.mumu-try-card strong, .mumu-try-product strong { font-size: 13px; }
+.mumu-try-card small, .mumu-try-product small { font-size: 10px; color: var(--mute); }
+.mumu-try-card.selected, .mumu-try-product.selected { border-color: #b299d4; background: #f0e8fb; }
+.mumu-try-card:disabled { opacity: .5; cursor: not-allowed; }
+.mumu-product-card { padding: 8px !important; }
+.mumu-try-product { width: 100%; border: 1px solid transparent; border-radius: 12px; background: #f8f4fc; padding: 12px 5px; }
+.mumu-product-card .btn { font-size: 11px; padding: 8px; min-height: 40px; }
+.mumu-settings-grid .accessory-colors > .small { display: none; }
+
+/* Explicit motions stay local to the character being played. */
+.mumu-motion-controls { display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin:12px 0 20px; }
+.mumu-motion-controls .chip { min-height:40px; min-width:76px; cursor:pointer; }
+.mumu-motion-controls .chip:focus-visible { outline:3px solid #a58bd8; outline-offset:3px; }
+/* Body, paw and hearts are posed by requestAnimationFrame on SVG attributes. */
+.mumu-action-wave .mumu-breathe, .mumu-action-heart .mumu-breathe, .mumu-action-bounce .mumu-breathe { animation:none; }
+
+/* App introduction: a friendly greeting above the four steps. */
+.mumu-welcome { padding-top:24px; gap:18px; }
+.mumu-welcome .landing-top { margin-top:0; }
+.mumu-welcome-greeting { display:flex; flex-direction:column; align-items:center; width:100%; }
+.mumu-welcome-bubble { position:relative; margin:0 0 2px; padding:12px 22px; border:1px solid #dfd1ef; border-radius:22px; background:#fffdfc; color:#75618f; font-size:15px; font-weight:800; line-height:1.6; box-shadow:0 5px 18px #8b6bb513; }
+.mumu-welcome-bubble::after { content:''; position:absolute; bottom:-7px; left:calc(50% - 6px); width:12px; height:12px; background:#fffdfc; border-right:1px solid #dfd1ef; border-bottom:1px solid #dfd1ef; transform:rotate(45deg); }
+.mumu-welcome-greeting > .bunny { flex-shrink:0; }
+.mumu-welcome .promise { line-height:1.7; }
+.mumu-welcome .points { gap:13px; }
+.mumu-welcome .points li { align-items:center; }
+.mumu-welcome > .btn { flex-shrink:0; }
+@media (max-width:360px), (max-height:740px) {
+ .mumu-welcome { padding:18px 20px 22px; gap:14px; }
+ .mumu-welcome-greeting > .bunny { width:132px; height:132px; }
+ .mumu-welcome-bubble { font-size:14px; padding:10px 18px; }
+}

@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
+import { sendTalk } from './talkClient';
 import Launcher from './Launcher';
 import Journal from './Journal';
+import MumuShop from './MumuShop';
+import Bunny from './Bunny';
+import { MumuGrowthContext } from './MumuGrowth';
+import MumuBrand from './MumuBrand';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
 import { OutfitContext, nextOutfit, scarfStorageKey } from './Outfit';
 import {
+  ActiveExperience,
   CompleteSheet,
   ConditionSheet,
   Confirm,
@@ -27,13 +33,11 @@ import {
   type PartyResult,
 } from './screens';
 
-type Tab = 'home' | 'explore' | 'journal' | 'records' | 'talk';
+type Tab = 'shop' | 'profile' | 'home' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
+  { id: 'shop', label: '무무샵', icon: 'M3 9l2-5h14l2 5M4 10v10h16V10M8 20v-7h8v7' },
   { id: 'home', label: '홈', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
-  { id: 'explore', label: '체험', icon: 'M12 3l2.6 5.6L20 9.3l-4 4 1 5.7-5-2.8-5 2.8 1-5.7-4-4 5.4-.7z' },
-  { id: 'journal', label: '도감', icon: 'M4 4h7v16H4zM13 4h7v16h-7zM7 8h1M16 8h1' },
-  { id: 'records', label: '기록', icon: 'M6 3h12v18l-6-4-6 4z' },
-  { id: 'talk', label: '속마음', icon: 'M4 5h16v11H9l-5 4z' },
+  { id: 'profile', label: '마이페이지', icon: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-2a8 8 0 0 1 16 0v2' },
 ];
 const CRISIS = /죽고싶|죽을래|사라지고싶|없어지고싶|자해|자살|살기싫/;
 const store = {
@@ -55,6 +59,7 @@ const GREETING: Msg = { who: 'bunny', text: '여기선 아무 얘기나 해도 �
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 
 export default function App() {
+  useEffect(() => { document.title = '무무'; }, []);
   const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
   const [landed, setLanded] = useState(false); // 앱을 열면 랜딩을 한 번 보여 준다
   const [consent, setConsent] = useState<string | null>(() => store.get('location')); // 'yes' | 'no' | null
@@ -65,6 +70,10 @@ export default function App() {
     } catch { return null; }
   });
   const [tab, setTab] = useState<Tab>('home');
+  const [profileLocation, setProfileLocation] = useState(false);
+  const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
+  const [journalKey, setJournalKey] = useState(0);
+  const primaryTab = tab === 'shop' ? 'shop' : ['profile', 'records', 'journal'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
@@ -148,7 +157,7 @@ export default function App() {
       if (c.safeMode) enterSafety(); // 새로고침해도 안전 모드 유지 (서버에 저장)
     }
     if (a.code === 200) setActive(a.booking);
-    if (c.code !== 200 || a.code !== 200) setRefreshError('토끼와 예약 정보를 불러오지 못했어. 연결을 확인하고 다시 해 줘.');
+    if (c.code !== 200 || a.code !== 200) setRefreshError('무무와 예약 정보를 불러오지 못했어. 연결을 확인하고 다시 해 줘.');
     setRefreshLoading(false);
   }, []);
   useEffect(() => {
@@ -185,19 +194,9 @@ export default function App() {
     setRecordsLoading(false);
   }
 
-  async function loadExplore() {
-    const request = ++exploreRequest.current;
-    setExplore(null);
-    setExploreError('');
-    const r = await api.experiences(await position());
-    if (request !== exploreRequest.current) return;
-    if (r.code === 200 && r.items) setExplore(r.items);
-    else setExploreError(r.error ?? '체험을 불러오지 못했어. 다시 해 줄래?');
-  }
-
   useEffect(() => {
-    if (tab === 'records') loadRecords();
-    if (tab === 'explore' && !explore) loadExplore();
+    if (tab === 'records' || tab === 'profile') loadRecords();
+
   }, [tab, savedLocation]);
 
   async function submitCheckin(f: CheckinForm) {
@@ -209,7 +208,8 @@ export default function App() {
     if (!r.reply) return notify(r.error ?? '잠깐 문제가 생겼어. 다시 해 줄래?');
     if (!r.checkinId) return notify('마음을 저장하지 못했어. 연결을 확인하고 다시 눌러 줘.');
     setCheckin({ id: r.checkinId, reply: r.reply, suggestPostpone: !!r.suggestPostpone });
-    setSheet({ kind: 'conditions' });
+    setMsgs(m => [...m, { who: 'bunny', text: r.reply }]);
+    setTab('talk');
   }
 
   async function recommend(c: Conditions, seen: string[]) {
@@ -264,15 +264,15 @@ export default function App() {
     setBusy(true);
     setChatRetry(null);
     if (!retry) setMsgs((m) => [...m, { who: 'me', text }]);
-    const r = await api.chat(sessionId, text);
+    const r = await sendTalk(sessionId, text, await position());
     setBusy(false);
-    if (r.state === 'SAFETY' || (!r.reply && CRISIS.test(text.replace(/\s+/g, '')))) return enterSafety();
+    if (r.action === 'safety' || r.state === 'SAFETY' || (!r.reply && CRISIS.test(text.replace(/\s+/g, '')))) return enterSafety();
     if (r.code !== 200 || !r.reply) {
       setChatRetry(text);
       return;
     }
     if (r.sessionId) setSessionId(r.sessionId);
-    setMsgs((m) => [...m, { who: 'bunny', text: r.reply || r.error || '잠깐 생각이 느려졌어. 다시 말해 줄래?' }]);
+    setMsgs((m) => [...m, { who: 'bunny', text: (r.reply ?? '').replace(/무드패스|토끼/g, '무무'), offer: r.action === 'recommend' && r.items?.length ? { items: r.items, assumptions: r.assumptions } : undefined, quickReplies: r.quickReplies, support: r.support }]);
   }
 
   async function backFromSafety() {
@@ -304,6 +304,7 @@ export default function App() {
       ch={ch}
       active={active}
       busy={busy}
+      onTalk={() => setTab('talk')}
       onSubmit={submitCheckin}
       onComplete={(b) => setSheet({ kind: 'complete', booking: b })}
       onArrivalConfirmed={refresh}
@@ -317,28 +318,41 @@ export default function App() {
   );
 
   return (
-    <OutfitContext.Provider value={{ scarf }}><div className="stage">
+    <MumuGrowthContext.Provider value={ch?.exp ?? null}><OutfitContext.Provider value={{ scarf }}><div className="stage">
       <div className="phone" style={{ transform: `scale(${fit})` }}>
         <div className="frame">
+          {(launched || safety) && <MumuBrand item={safety ? null : ch?.equipped ?? null} quiet={safety} />}
           {safety ? (
             <Safety onBack={backFromSafety} />
           ) : !launched ? (
             <Launcher stage={ch?.stage ?? 1} onOpen={() => setLaunched(true)} />
           ) : !landed ? (
-            <Landing stage={ch?.stage ?? 1} onStart={() => setLanded(true)} />
+            <Landing onStart={() => setLanded(true)} />
           ) : !consent ? (
             <LocationConsent onAnswer={answerConsent} location={locationPicker} />
           ) : (
             <div className="app">
               <main className="screen" ref={screenRef}>
-                {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '토끼와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
-                {(tab === 'home' || tab === 'explore') && !sheet && <div className="location-bar">{locationPicker}</div>}
-                {tab === 'home' && homeScreen}
+                {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '무무와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
+                {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
+                {tab === 'shop' && <MumuShop ch={ch} />}
+                {tab === 'profile' && <div className="page mumu-profile"><h1 className="title">마이페이지</h1>
+                  {profileLocation ? <><button className="btn text" onClick={() => setProfileLocation(false)}>‹ 마이페이지로</button><h2 className="label">현재 내 장소</h2>{locationPicker}</> : <>
+                    <div className="card mumu-profile-hero"><Bunny size={110} stage={ch?.stage ?? 1} layerScarf item={ch?.equipped ?? null} /><div><h2>무무와 나의 하루 ♡</h2><p>작은 경험이 쌓이는 나만의 공간</p></div></div>
+                    <ActiveExperience active={active} onComplete={b => setSheet({ kind: 'complete', booking: b })} onArrivalConfirmed={refresh} onCancel={async b => { const r = await api.cancel(b.id); if (r.code !== 200) return notify(r.error ?? '취소하지 못했어.'); refresh(); }} />
+                    <section className="card"><h2 className="label">도감</h2><div className="row two"><button className="btn" onClick={() => { setJournalStart('record'); setJournalKey(k => k + 1); setTab('journal'); }}>＋ 새 도감 만들기</button><button className="btn ghost" onClick={() => { setJournalStart('library'); setJournalKey(k => k + 1); setTab('journal'); }}>▤ 도감 내역</button></div></section>
+                    <button className="btn text" onClick={() => setSheet({ kind: 'postpone' })}>오늘 할 일 하나 미루기</button>
+                    <button className="card mumu-profile-link" onClick={() => setTab('records')}><span className="eyebrow">♡ 기분 기록</span><strong>지금까지 쌓아온 나의 마음</strong><span className="meta">이번 주 기분과 다녀온 체험 보기 ›</span></button>
+                    <button className="card mumu-profile-link" onClick={() => setProfileLocation(true)}><span className="eyebrow">📍 현재 내 장소</span><strong>{savedLocation?.label ?? (consent === 'yes' ? '현재 위치 기준' : '기본 동네 기준')}</strong><span className="meta">장소 확인하고 바꾸기 ›</span></button>
+                  </>}
+                </div>}
+                {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
+                <div hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
                   (confirm ? (
                     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot).then(() => setTab('home'))} />
                   ) : (
-                    <Explore items={explore} error={exploreError} onRetry={loadExplore} onPick={setConfirm}
+                    <Explore items={explore} error={exploreError} onRetry={() => setTab('talk')} onPick={setConfirm}
                       freePlaces={<FreePlaces position={position} locationKey={JSON.stringify(savedLocation) + consent} />} />
                   ))}
                 {tab === 'records' && (
@@ -361,15 +375,15 @@ export default function App() {
                     }}
                   />
                 )}
-                <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal onFocusChange={setJournalFocus} /></div>
-                {tab === 'talk' && <Chat msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
+                <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal key={journalKey} initialStep={journalStart} onExit={() => setTab('profile')} onFocusChange={setJournalFocus} /></div>
+                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab('home')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
               </main>
               {!(tab === 'journal' && journalFocus) && <nav className="tabs" aria-label="메뉴">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
-                    className={tab === t.id ? 'on' : ''}
-                    aria-current={tab === t.id}
+                    className={primaryTab === t.id ? 'on' : ''}
+                    aria-current={primaryTab === t.id}
                     onClick={() => {
                       setConfirm(null);
                       setTab(t.id);
@@ -385,7 +399,7 @@ export default function App() {
               {!(tab === 'journal' && journalFocus) && <button className="home-bar" aria-label="휴대폰 메인 화면으로" onClick={() => setLaunched(false)} />}
               {sheet?.kind === 'conditions' && checkin && (
                 <ConditionSheet
-                  location={locationPicker}
+                  location={<p className="notice">📍 {savedLocation?.label ?? '설정된 동네'} · 장소 변경은 마이페이지에서</p>}
                   reply={checkin.reply}
                   suggestPostpone={checkin.suggestPostpone}
                   busy={busy}
@@ -406,6 +420,6 @@ export default function App() {
           )}
         </div>
       </div>
-    </div></OutfitContext.Provider>
+    </div></OutfitContext.Provider></MumuGrowthContext.Provider>
   );
 }

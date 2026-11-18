@@ -1,5 +1,4 @@
 import { useEffect, useId, useState, type CSSProperties } from 'react';
-import Bunny from './Bunny';
 import { COLOR_ITEMS, useAccessoryColors, type ColorItem } from './AccessoryColors';
 
 const PALETTE = [
@@ -17,14 +16,8 @@ export default function AccessoryColorPicker({ item, unlocked }: { item: ColorIt
   const chooseColor = (color: string) => { if (unlocked) setColor(item, color); };
   return (
     <section className="accessory-colors" aria-label={`${name} 색상`}>
-      <div className="row">
-        <Bunny size={112} item={unlocked ? item : null} />
-        <div className="grow">
-          <strong>{name} 색상</strong>
-          <p className="small mute">{unlocked ? '착용하면 선택한 색이 바로 보여요.' : '🔒 아이템을 잠금 해제하면 색상을 바꿀 수 있어요.'}</p>
-        </div>
-      </div>
-      <button type="button" className="btn ghost" disabled={!unlocked} aria-expanded={open && unlocked} aria-controls={panelId} onClick={() => { if (unlocked) setOpen(!open); }}>{!unlocked ? '🔒 잠금 해제 후 색 고르기' : open ? '색 고르기 닫기' : '색 고르기'}</button>
+      <button type="button" className="accessory-color-toggle" disabled={!unlocked} aria-expanded={open && unlocked} aria-controls={panelId} onClick={() => { if (unlocked) setOpen(!open); }}><span>{!unlocked && '🔒 '}{name} 색상</span><span aria-hidden="true">{open && unlocked ? '−' : '＋'}</span></button>
+      {!unlocked && <p className="small mute">아이템 잠금 해제 후 변경할 수 있어요.</p>}
       {open && unlocked && <fieldset id={panelId} className="color-options accessory-color-options" disabled={!unlocked}>
       <legend className="sr-only">{name} 색 고르기</legend>
       <div className="color-swatches" role="group" aria-label={`${name} 추천 색상`}>

@@ -66,10 +66,10 @@ function ThemePreview({ entry, theme }: { entry: Entry; theme: number }) {
   return <canvas ref={canvas} className="journal-theme-canvas" aria-label={`${themes[theme]} 실제 배치 미리보기`} />;
 }
 
-export default function Journal({ onFocusChange }: { onFocusChange: (focus: boolean) => void }) {
+export default function Journal({ onFocusChange, initialStep = 'library', onExit }: { onFocusChange: (focus: boolean) => void; initialStep?: 'library' | 'record'; onExit?: () => void }) {
   const [history, setHistory] = useState<{ past: Entry[]; entry: Entry; future: Entry[] }>(() => ({ past: [], entry: fresh(), future: [] }));
   const entry = history.entry;
-  const [step, setStep] = useState<'library' | 'record' | 'theme' | 'edit' | 'done'>('library');
+  const [step, setStep] = useState<'library' | 'record' | 'theme' | 'edit' | 'done'>(initialStep);
   const [saved, setSaved] = useState<SavedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -143,7 +143,7 @@ export default function Journal({ onFocusChange }: { onFocusChange: (focus: bool
     canvas.current.toBlob(blob => {
       if (!blob) return setMessage('이미지를 만들지 못했어요. 다시 시도해 주세요.');
       const url = URL.createObjectURL(blob); const a = document.createElement('a');
-      a.download = `무드패스-${entry.date}.png`; a.href = url; document.body.appendChild(a); a.click(); a.remove();
+      a.download = `무무-${entry.date}.png`; a.href = url; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }, 'image/png');
   }
@@ -151,6 +151,7 @@ export default function Journal({ onFocusChange }: { onFocusChange: (focus: bool
     setTool(null); setMessage('');
     if (step === 'edit') { setThemePage(Math.floor(entry.theme / 4)); setStep('theme'); }
     else if (step === 'theme') setStep('record');
+    else if (onExit) onExit();
     else setStep('library');
   }
   const preview = <canvas ref={canvas} className="journal-canvas" style={{ touchAction: step === 'edit' && selected ? 'none' : 'pan-y' }} aria-label="완성될 경험 도감 미리보기" onPointerDown={e => {
@@ -167,14 +168,12 @@ export default function Journal({ onFocusChange }: { onFocusChange: (focus: bool
   }} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }} />;
   return <div className={`page journal journal-step-${step}`}>
     <header ref={header} className="journal-header">
-      <button className="icon-btn" aria-label={step === 'library' ? '도감 목록 새로고침' : '이전 단계로'} onClick={step === 'library' ? reload : back}>‹</button>
-      <strong>{({ library: '나의 경험 도감', record: '경험 기록하기', theme: '테마 선택', edit: '도감 꾸미기', done: '기록 완료!' })[step]}</strong>
+      <button className="icon-btn" aria-label={step === 'library' ? '도감 목록 새로고침' : '이전 단계로'} onClick={step === 'library' && onExit ? onExit : step === 'library' ? reload : back}>‹</button>
+      <strong>{({ library: '도감 내역', record: '경험 기록하기', theme: '테마 선택', edit: '도감 꾸미기', done: '기록 완료!' })[step]}</strong>
       {step === 'edit' ? <div className="journal-history"><button aria-label="실행 취소" disabled={!history.past.length} onClick={undo}>↶</button><button aria-label="다시 실행" disabled={!history.future.length} onClick={redo}>↷</button><button className="journal-finish" disabled={!ready || busy} onClick={save}>{busy ? '저장 중' : '완료'}</button></div> : <span aria-hidden="true">✧</span>}
     </header>
     {message && <p className="journal-message" role="status">{message}</p>}
     {step === 'library' ? <>
-      <div className="journal-intro"><span className="eyebrow">MY LITTLE MOMENTS</span><h1>오늘의 작은 경험을<br />한 장의 추억으로 ♡</h1><p>소중한 순간들을 차곡차곡 모아 봐요.</p><span className="journal-flower" aria-hidden="true">✿</span></div>
-      <button className="btn big" onClick={() => { reset(fresh()); setStep('record'); }}>＋ 새 경험 기록하기</button>
       <p className="small mute">사진과 도감은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라지니, 소중한 기록은 이미지로 내려받아 주세요.</p>
       <a className="journal-font-credit" href={fontLicense} target="_blank" rel="noreferrer">글꼴: 네이버 나눔스퀘어라운드 · 라이선스</a>
       <h2 className="label">나의 도감 <span className="pill">{saved.length}</span></h2>
