@@ -50,3 +50,11 @@ test('AI 응답이 이상해도 버티기: 모르는 값은 기본값으로', ()
   assert.equal(o.minutes, 0);
   assert.equal(o.risk, 'NONE');
 });
+
+test('위험도 WATCH면 그 대화 동안 상담 번호를 함께 보여 줌 (추천은 막지 않음, "내가 없어도 아무도 모를걸" 놓침 재현)', () => {
+  const p = mergePrefs({}, out({ risk: 'WATCH', need: '연결' }), '내가 없어도 아무도 모를걸');
+  assert.equal(p.watch, true);
+  assert.equal(p.need, '연결'); // 추천은 계속
+  assert.equal(mergePrefs(p, out({ risk: 'NONE' }), '보드게임 좋아').watch, true); // 다음 턴에도 유지
+  assert.ok(!mergePrefs({}, out(), '심심해').watch);
+});

@@ -7,7 +7,7 @@ import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankForPrefs, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { nearbyCandidates } from './recommend.js';
-import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
+import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
 
 export const TALK_MAX_ASKS = 2; // 추천 전에 묻는 건 많아도 이만큼. 적게 묻고 먼저 묻는 방향은 Ma 외 2024, 숫자 2는 임시값 (docs/설계근거_점검.md)
 export const TALK_SHOW = 3; // 대화 안에 보여 주는 추천 수 (맞는 게 적으면 그만큼만)
@@ -67,6 +67,7 @@ type Stored = {
   budget?: number;
   lastTop?: { walk: number; price: number; energyNeed: number };
   locked?: ('walk' | 'minutes' | 'budget')[]; // 사용자가 "멀어", "비싸"로 직접 좁힌 조건
+  watch?: boolean; // 위험도 WATCH가 한 번이라도 나오면 이 대화 동안 상담 번호를 함께 보여 줌
 };
 type Session = { id: number; prefs: Stored; asks: number; seen: string[] };
 
@@ -113,6 +114,8 @@ export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, me
     // "멀다"는 정확한 거리가 아니라 "지난번보다 가깝게"라서 숫자를 받지 않고 아래 피드백 규칙으로만 (AI가 도보 10분을 붙여 아무것도 못 찾은 적이 있음)
     walk: out.walk > 0 && /\d|분|걸어|도보|가까|근처/.test(message) ? out.walk : prev.walk,
     budget: out.budget > 0 && /원|돈|비싸|비싼|싸|예산|만/.test(message) ? out.budget : prev.budget,
+    // 안전망: 돌려 말한 위기를 AI가 CRISIS로 못 잡아도(평가에서 실제로 놓침) WATCH면 번호는 보이게. 추천은 막지 않음
+    watch: prev.watch || out.risk === 'WATCH' || undefined,
   };
   const top = prev.lastTop;
   // 사용자가 직접 좁힌 조건은 "맞는 게 없을 때 넓히기"에서도 넓히지 않는다
@@ -180,6 +183,8 @@ async function withReasons(userId: number, message: string, prefs: Prefs, items:
 }
 const ruleReason = (c: Scored) => `${c.why.filter((w) => !w.startsWith('지금 기운')).map((w) => w.replace(/ [+-]\d+$/, '')).join(', ')}. 걸어서 ${c.walkMinutes}분이야.`;
 
+const support = (p: Stored) => (p.watch ? { support: SUPPORT } : {});
+
 const safetyReply = async (userId: number, sessionId: number) => {
   await setSafeMode(userId, true);
   await say(sessionId, 'assistant', SAFETY_REPLY);
@@ -215,7 +220,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     const reply = out?.action === 'ask' && out.reply ? out.reply : '그랬구나. 오늘은 어떤 쪽이 끌려?';
     await say(s.id, 'assistant', reply);
     await save(s);
-    return { status: 200, body: { sessionId: s.id, action: 'ask', reply, quickReplies: NEED_CHOICES.map((c) => c.label), ...(out ? {} : { fallback: true }) } };
+    return { status: 200, body: { sessionId: s.id, action: 'ask', reply, quickReplies: NEED_CHOICES.map((c) => c.label), ...support(s.prefs), ...(out ? {} : { fallback: true }) } };
   }
 
   const { prefs, assumed } = await fillPrefs(userId, s.prefs);
@@ -232,7 +237,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     const reply = '지금 조건에 딱 맞는 데가 근처에 없어. 조금 넓혀서 볼까?';
     await say(s.id, 'assistant', reply);
     await save(s);
-    return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'] } };
+    return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'], ...support(s.prefs) } };
   }
   const { items, fallback } = await withReasons(userId, message, prefs, ranked.items, client);
   s.seen = [...new Set([...s.seen, ...items.map((i) => i.id)])];
@@ -250,6 +255,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
       prefs: { need: prefs.need, energy: prefs.energy, want: prefs.want, avoid: prefs.avoid },
       items: items.map(({ why, fit, ...i }) => i), // 점수 근거(why)는 서버 로그·이유 작성용
       quickReplies: AFTER_RECOMMEND,
+      ...support(s.prefs),
       ...(out && !fallback ? {} : { fallback: true }),
     },
   };

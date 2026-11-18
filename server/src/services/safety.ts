@@ -17,6 +17,15 @@ export const SafetyGuard = {
 export const SAFETY_REPLY =
   '그런 마음이 들 만큼 힘들었구나. 말해 줘서 고마워. 지금은 나보다 더 잘 도와줄 수 있는 사람과 이야기해 보면 좋겠어. 아래 번호로 언제든 전화할 수 있어.';
 
+/** 위험도 WATCH일 때 추천과 함께 보여 주는 안내. 막지 않고 번호만 곁에 둔다 (docs/설계근거_점검.md 3절) */
+export const SUPPORT = {
+  text: '혹시 마음이 많이 무거우면, 언제든 이야기 들어 줄 곳이 있어.',
+  lines: [
+    { name: '자살예방상담전화', tel: '109' },
+    { name: '정신건강 위기상담', tel: '1577-0199' },
+  ],
+} as const;
+
 /** LLM의 risk 판단. 다른 필드가 어긋나도 이 값은 잃지 않도록 너그럽게 읽는다. */
 export const Risk = z
   .preprocess((v) => (typeof v === 'string' ? v.trim().toUpperCase() : v), z.enum(['NONE', 'WATCH', 'CRISIS']))
