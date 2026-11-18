@@ -1,3 +1,4 @@
+import mumuIcon from './assets/mumu-icon.svg';
 import { paintSticker } from './journalStickers';
 export type JournalDecoration = { id: string; text: string; x: number; y: number; size: number; color: string; kind?: 'sticker' | 'text'; sticker?: string; font?: string; align?: CanvasTextAlign };
 export type JournalEntry = {
@@ -17,6 +18,7 @@ function surface(c: CanvasRenderingContext2D, e: JournalEntry) {
   if (e.pattern === 'dots') for (let x = 12; x < 720; x += 24) for (let y = 12; y < 900; y += 24) { c.beginPath(); c.arc(x, y, 1.5, 0, Math.PI * 2); c.fill(); }
   c.restore();
 }
+let mascotImage: HTMLImageElement | null = null;
 const photoCache = new Map<string, Promise<HTMLImageElement>>();
 function loadImage(src: string) {
   if (!photoCache.has(src)) {
@@ -80,16 +82,12 @@ function heart(c: Ctx, x: number, y: number, size: number, color: string) {
   c.save(); c.translate(x, y); c.scale(size / 40, size / 40); c.strokeStyle = color; c.lineWidth = 3;
   c.beginPath(); c.moveTo(0, 12); c.bezierCurveTo(-45, -12, -12, -38, 0, -16); c.bezierCurveTo(12, -38, 45, -12, 0, 12); c.stroke(); c.restore();
 }
-function bunny(c: Ctx, x: number, y: number, s: number, color = '#b38bc9') {
-  c.save(); c.translate(x, y); c.scale(s, s); c.strokeStyle = color; c.lineWidth = 2.5; c.fillStyle = '#fffafc';
-  c.beginPath(); c.ellipse(-13, -29, 8, 25, -.3, 0, Math.PI * 2); c.ellipse(12, -29, 8, 25, .25, 0, Math.PI * 2); c.fill(); c.stroke();
-  c.beginPath(); c.ellipse(0, 0, 35, 29, 0, 0, Math.PI * 2); c.fill(); c.stroke();
-  c.fillStyle = '#70547f'; c.beginPath(); c.arc(-11, -3, 2.5, 0, 7); c.arc(11, -3, 2.5, 0, 7); c.fill();
-  c.fillStyle = '#f4c2d8'; c.beginPath(); c.ellipse(-23, 6, 6, 4, 0, 0, 7); c.ellipse(23, 6, 6, 4, 0, 0, 7); c.fill(); text(c, 'ω', 0, 11, 14, '#70547f', sans, 28, 'center'); c.restore();
+function bunny(c: Ctx, x: number, y: number, scale: number) {
+  if (mascotImage) c.drawImage(mascotImage, x - 40 * scale, y - 40 * scale, 80 * scale, 80 * scale);
 }
 function stamp(c: Ctx, x: number, y: number, label: string, color = '#937359') {
   c.save(); c.translate(x, y); c.rotate(-.12); c.strokeStyle = color; c.lineWidth = 1.4;
-  c.beginPath(); c.arc(0, 0, 37, 0, 7); c.arc(0, 0, 31, 0, 7); c.stroke(); text(c, 'MOODPASS', 0, -10, 10, color, serif, 62, 'center'); text(c, label, 0, 8, 12, color, serif, 60, 'center'); text(c, 'EXPERIENCE', 0, 23, 8, color, serif, 58, 'center');
+  c.beginPath(); c.arc(0, 0, 37, 0, 7); c.arc(0, 0, 31, 0, 7); c.stroke(); text(c, '무무', 0, -10, 10, color, serif, 62, 'center'); text(c, label, 0, 8, 12, color, serif, 60, 'center'); text(c, 'EXPERIENCE', 0, 23, 8, color, serif, 58, 'center');
   for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(36, i * 7 - 10); c.bezierCurveTo(55, i * 7 - 20, 70, i * 7, 95, i * 7 - 10); c.stroke(); } c.restore();
 }
 function placeholder(c: Ctx, x: number, y: number, w: number, h: number, i: number, theme: number) {
@@ -122,6 +120,7 @@ function note(c: Ctx, e: JournalEntry, theme: number) {
 export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
   await Promise.all([document.fonts.load('400 22px NanumSquareRound'), document.fonts.load('700 22px NanumSquareRound')]);
   const photos = await Promise.all(e.photos.map(loadImage));
+  mascotImage = await loadImage(mumuIcon);
   const c = canvas.getContext('2d'); if (!c) throw new Error('도감 편집을 지원하지 않는 브라우저예요.');
   canvas.width = 720; canvas.height = 900;
   const t = e.theme >= 0 && e.theme < themes.length ? e.theme : 0;
@@ -130,7 +129,7 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
   if (t === 0) {
     rect(c, 24, 131, 672, 735, e.paperColor ?? '#fffcff'); surface(c, e); for (let y = 155; y < 850; y += 30) rule(c, 52, y, 615, '#decfe544');
     for (let y = 150; y < 850; y += 45) { rect(c, 22, y, 23, 15, '#d3bbdf'); rect(c, 17, y + 1, 23, 11, '#f4e9fb'); }
-    text(c, '♥  MOODPASS  ♡', 360, 30, 15, '#9166ab', sans, 600, 'center');
+    text(c, '♥  무무  ♡', 360, 30, 15, '#9166ab', sans, 600, 'center');
     torn(c, 142, 42, 438, 77, '#fffbff'); text(c, '말랑 다이어리', 360, 95, 43, '#78538e', sans, 430, 'center');
     tape(c, 72, 132, 100, '#c6a6e5bb', -.55); tape(c, 611, 132, 94, '#f0badaaa', .3);
     text(c, e.title, 69, 181, 27, '#88629b', sans, 480); text(c, `${e.date} · ${e.mood}`, 68, 212, 15, '#ac88b9'); bunny(c, 620, 82, .8);
@@ -142,21 +141,21 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
     bunny(c, 42, 805, .8); [242, 540, 705].forEach((y, i) => heart(c, 671 - i * 5, y, 24, '#ed9ec6'));
   } else if (t === 1) {
     torn(c, 13, 23, 690, 850, e.paperColor ?? '#dfc6a3', -.01); surface(c, e); torn(c, 105, 48, 506, 78, '#ead3b0', -.02);
-    text(c, '—  M O O D P A S S  —', 360, 33, 14, '#60442c', serif, 640, 'center'); text(c, '빈티지 필름북', 360, 101, 43, '#493321', serif, 480, 'center');
+    text(c, '—  무무  —', 360, 33, 14, '#60442c', serif, 640, 'center'); text(c, '빈티지 필름북', 360, 101, 43, '#493321', serif, 480, 'center');
     text(c, e.title, 55, 161, 26, '#5c4028', serif, 450); text(c, `${e.date} / ${e.mood}`, 55, 193, 16, '#795940', serif); stamp(c, 614, 143, 'FILM 400', '#83613e');
     for (let i = 0; i < count; i++) {
       let single = count === 1, x = single ? 108 : 42 + i % 2 * 330, y = single ? 240 : 236 + Math.floor(i / 2) * 252, w = single ? 504 : 301, h = single ? 450 : 232;
       if (count === 5) { y = 236 + Math.floor(i / 2) * 166; h = 154; if (i === 4) x = (720 - w) / 2; }
       c.save(); c.translate(x + w / 2, y + h / 2); c.rotate(i % 2 ? -.025 : .025); c.translate(-w / 2, -h / 2);
       rect(c, 0, 0, w, h - 34, '#3b2a20'); for (let sy = 9; sy < h - 40; sy += 22) { rect(c, 5, sy, 10, 13, '#bd9b70'); rect(c, w - 15, sy, 10, 13, '#bd9b70'); }
-      fitPhoto(c, photos[i], 22, 15, w - 44, h - 68, i, t); text(c, `MOODPASS FILM 400                     0${i + 1}`, 24, 11, 9, '#d5ae72', serif, w - 42);
+      fitPhoto(c, photos[i], 22, 15, w - 44, h - 68, i, t); text(c, `무무 FILM 400                     0${i + 1}`, 24, 11, 9, '#d5ae72', serif, w - 42);
       torn(c, 19, h - 47, w - 38, 46, '#f0ddba', -.02); text(c, caption(e, i), w / 2, h - 19, 19, '#5b3e25', serif, w - 50, 'center'); c.restore();
     }
     text(c, 'EXPERIENCE DIARY · small visits, big moods.', 360, 891, 13, '#745336', serif, 630, 'center');
   } else if (t === 2) {
     surface(c, e);
-    text(c, 'M O O D P A S S', 34, 34, 12, '#222'); text(c, 'EXPERIENCE DIARY  —  VOL. 01', 684, 34, 10, '#444', sans, 320, 'right');
-    text(c, '미니멀 매거진', 360, 102, 48, '#262421', serif, 600, 'center'); rule(c, 250, 125, 220, '#baa991'); text(c, 'M O O D P A S S   E X P E R I E N C E', 360, 151, 10, '#777', sans, 620, 'center');
+    text(c, '무무', 34, 34, 12, '#222'); text(c, 'EXPERIENCE DIARY  —  VOL. 01', 684, 34, 10, '#444', sans, 320, 'right');
+    text(c, '미니멀 매거진', 360, 102, 48, '#262421', serif, 600, 'center'); rule(c, 250, 125, 220, '#baa991'); text(c, '무무   E X P E R I E N C E', 360, 151, 10, '#777', sans, 620, 'center');
     lines(c, e.title, 34, 222, 127, 29, '#333', serif, 3); rule(c, 35, 338, 120, '#555'); text(c, '경험한 날', 35, 371, 14, '#777'); text(c, e.date, 35, 397, 15, '#333', serif); text(c, '오늘의 기분', 35, 456, 14, '#777'); text(c, e.mood, 35, 485, 19, '#333', serif);
     for (let i = 0; i < count; i++) {
       let single = count === 1, x = single ? 185 : 185 + i % 2 * 250, y = single ? 196 : 196 + Math.floor(i / 2) * 274, w = single ? 495 : 242, h = single ? 482 : 215;
@@ -169,7 +168,7 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
     for (let y = 0; y < 900; y += 90) { c.save(); c.translate(360, y); c.rotate(-.18); rect(c, -500, 0, 1000, 25, y % 180 ? '#ff9d2f' : '#f52991'); c.restore(); }
     for (let y = 24; y < 890; y += 20) for (let x = 666; x < 720; x += 20) rect(c, x, y, 20, 20, (x + y) % 40 ? '#111' : '#fff');
     torn(c, 80, 38, 552, 94, '#fffafc', -.04); text(c, '키치 콜라주', 360, 101, 53, '#16121a', sans, 550, 'center');
-    text(c, 'MOODPASS', 17, 23, 16, '#fff'); torn(c, 40, 142, 625, 76, '#fff9fc', .018); text(c, e.title, 67, 174, 28, '#1c1725', sans, 570); text(c, `${e.date}  /  ${e.mood}  ♡♡♡`, 69, 202, 16, '#bb2d7c');
+    text(c, '무무', 17, 23, 16, '#fff'); torn(c, 40, 142, 625, 76, '#fff9fc', .018); text(c, e.title, 67, 174, 28, '#1c1725', sans, 570); text(c, `${e.date}  /  ${e.mood}  ♡♡♡`, 69, 202, 16, '#bb2d7c');
     for (let i = 0; i < count; i++) {
       let single = count === 1, x = single ? 120 : 47 + i % 2 * 325, y = single ? 258 : 253 + Math.floor(i / 2) * 249, w = single ? 475 : 292, h = single ? 443 : 226;
       if (count === 5) { y = 238 + Math.floor(i / 2) * 166; h = 154; if (i === 4) x = (720 - w) / 2; }
@@ -178,7 +177,7 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
     text(c, '★', 639, 265, 76, '#ffed00'); text(c, '✦', 52, 723, 68, '#ffff33'); heart(c, 648, 77, 45, '#ff31a4'); heart(c, 628, 714, 53, '#ff278d');
   } else if (t === 4) {
     torn(c, 17, 20, 686, 865, e.paperColor ?? '#f6f0df'); surface(c, e); torn(c, 131, 41, 464, 82, '#bdc49a', -.02);
-    text(c, '☘  M O O D P A S S', 360, 31, 13, '#6b7353', serif, 600, 'center'); text(c, '자연 크래프트', 360, 100, 42, '#4c593c', serif, 480, 'center');
+    text(c, '☘  무무', 360, 31, 13, '#6b7353', serif, 600, 'center'); text(c, '자연 크래프트', 360, 100, 42, '#4c593c', serif, 480, 'center');
     text(c, e.title, 54, 163, 26, '#5f664d', serif, 530); text(c, `${e.date} · ${e.mood}`, 55, 195, 16, '#858268', serif);
     for (let i = 0; i < count; i++) {
       let single = count === 1, x = single ? 120 : 57 + i % 2 * 320, y = single ? 250 : 242 + Math.floor(i / 2) * 252, w = single ? 480 : 289, h = single ? 445 : 232;
@@ -190,7 +189,7 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
   } else {
     for (let x = -20; x < 740; x += 42) { c.save(); c.translate(x, 0); c.rotate(.6); rect(c, 0, -24, 15, 51, x % 84 ? '#be8b80' : '#869ea4'); c.restore(); c.save(); c.translate(x, 888); c.rotate(.6); rect(c, 0, -16, 15, 48, x % 84 ? '#be8b80' : '#869ea4'); c.restore(); }
     torn(c, 24, 28, 672, 840, e.paperColor ?? '#fcf2e1'); surface(c, e); stamp(c, 606, 86, 'TRAVEL');
-    text(c, '∿ M O O D P A S S', 360, 33, 14, '#81664f', serif, 600, 'center'); torn(c, 161, 49, 360, 83, '#dac29f'); text(c, '여행 엽서', 340, 105, 48, '#6f4b35', serif, 350, 'center');
+    text(c, '∿ 무무', 360, 33, 14, '#81664f', serif, 600, 'center'); torn(c, 161, 49, 360, 83, '#dac29f'); text(c, '여행 엽서', 340, 105, 48, '#6f4b35', serif, 350, 'center');
     text(c, e.title, 51, 174, 28, '#785d45', serif, 600); text(c, `${e.date}  ·  ${e.mood}  ·  우리 동네의 작은 여행`, 53, 207, 15, '#9c775e', serif, 610);
     for (let i = 0; i < count; i++) {
       let single = count === 1, x = single ? 117 : 51 + i % 2 * 327, y = single ? 253 : 249 + Math.floor(i / 2) * 249, w = single ? 486 : 291, h = single ? 443 : 226;

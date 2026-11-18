@@ -24,3 +24,9 @@ export function CharacterExpressionProvider({ children }: { children: ReactNode 
 }
 
 export const useCharacterExpression = () => useContext(Context);
+
+export function CharacterExpressionPreviewProvider({ children }: { children: ReactNode }) {
+  const current = useCharacterExpression();
+  const [expression, setExpression] = useState<Expression>(current.expression);
+  return <Context.Provider value={{ expression, setExpression }}>{children}</Context.Provider>;
+}

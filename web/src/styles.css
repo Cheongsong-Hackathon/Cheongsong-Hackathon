@@ -179,7 +179,7 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .composer { display: flex; gap: 8px; padding: 10px 0; }
 .composer input { flex: 1; min-width: 0; min-height: 48px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--card); padding: 0 14px; }
 
-/* 토끼 */
+/* 무무 */
 .bunny .breathe { transform-origin: 100px 186px; animation: breathe 3.6s ease-in-out infinite; }
 .bunny .ears { transform-origin: 100px 90px; animation: ears 5s ease-in-out infinite; }
 .bunny .eyes { animation: blink 4.5s infinite; transform-origin: 100px 124px; }
@@ -215,7 +215,7 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .safety .call { background: #4f4a6e; margin-top: 4px; box-shadow: none; }
 .safety .btn.text { margin-top: auto; }
 
-/* 휴대폰 메인 화면: 다른 앱은 어둡게, 무드패스만 밝게 */
+/* 휴대폰 메인 화면: 다른 앱은 어둡게, 무무만 밝게 */
 .launcher { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 14px 20px 10px; color: #fff; overflow: hidden; background: radial-gradient(120% 80% at 50% 0%, #8a73d6 0%, #4d3c8f 45%, #231c45 100%); }
 .status { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px 0; height: 40px; font-size: 16px; }
 .status-icons { width: 52px; height: 14px; }
@@ -331,7 +331,7 @@ a.card { color: inherit; text-decoration: none; }
 /* 추천 끝의 "평소와 다른 하나" */
 .surprise-tag { align-self: flex-start; font-size: 12px; font-weight: 600; color: var(--purple-d); background: var(--lav); border-radius: 999px; padding: 2px 8px; }
 
-/* 토끼가 기억하는 너 */
+/* 무무가 기억하는 너 */
 .mem { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .mem-kind { font-weight: 600; color: var(--purple); margin-right: 4px; }
 .mem-del { border: 0; background: none; color: var(--mute); font-size: 12px; cursor: pointer; white-space: nowrap; padding: 4px; }

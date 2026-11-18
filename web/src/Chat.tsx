@@ -1,12 +1,19 @@
-// 선택형 속마음 대화: 토끼의 공감·위로만. 추천이나 예약을 권하지 않는다.
+import { conversationExpressions } from './chatExpression';
+import { useCharacterExpression } from './CharacterExpression';
+// 선택형 속마음 대화: 무무의 공감·위로만. 추천이나 예약을 권하지 않는다.
 import { useEffect, useRef, useState } from 'react';
 import Bunny from './Bunny';
+import type { Item } from './api';
+import type { TalkOffer } from './talkClient';
 import { TopBar } from './screens';
 
-export type Msg = { who: 'bunny' | 'me'; text: string };
+export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support'] };
 
-export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
+export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
   const [text, setText] = useState('');
+  const { expression } = useCharacterExpression();
+  const expressions = conversationExpressions(p.msgs, expression);
+  const currentExpression = expressions[expressions.length - 1] ?? expression;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -14,14 +21,18 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
 
   return (
     <div className="chat">
-      <TopBar />
-      <p className="notice">속마음 대화 · 토끼는 AI 캐릭터예요. 대화는 비공개이고 전문 상담을 대신하지 않아요.</p>
+      <TopBar onBack={p.onBack} />
+      <p className="notice">무무와 대화 · 무무는 AI 캐릭터예요. 대화는 비공개이고 전문 상담을 대신하지 않아요.</p>
       <div className="log" aria-live="polite">
         {p.msgs.map((m, i) =>
           m.who === 'bunny' ? (
-            <div key={i} className="say">
-              <Bunny size={40} faceOnly />
+            <div key={i} className="mumu-chat-turn"><div className="say">
+              <Bunny size={40} faceOnly expression={expressions[i]} />
               <div className="bubble bunny">{m.text}</div>
+            </div>
+            {!!m.offer?.items.length && <section className="card mumu-talk-offer"><span className="eyebrow">대화에서 찾은 작은 경험</span><strong>지금 너에게 어울릴 만한 체험 {m.offer.items.length}개를 찾았어</strong>{m.offer.assumptions && <p className="small mute">{m.offer.assumptions}</p>}<button className="btn" disabled={p.busy} onClick={() => p.onExperiences(m.offer!.items)}>무무가 찾은 체험 보기 ›</button></section>}
+            {m.support && <aside className="card mumu-support"><p className="small">{m.support.text}</p>{m.support.lines.map(line => <a key={line.tel} href={`tel:${line.tel.replace(/[^+0-9]/g, '')}`}>{line.name} {line.tel}</a>)}</aside>}
+            {i === p.msgs.length - 1 && !!m.quickReplies?.length && <div className="chips mumu-quick-replies" aria-label="대화 이어가기">{m.quickReplies.map(reply => <button className="chip" key={reply} disabled={p.busy || p.retry} onClick={() => p.onSend(reply)}>{reply}</button>)}</div>}
             </div>
           ) : (
             <div key={i} className="bubble me">
@@ -31,8 +42,8 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
         )}
         {p.busy && (
           <div className="say">
-            <Bunny size={40} faceOnly />
-            <div className="bubble bunny typing" aria-label="토끼가 생각하는 중">
+            <Bunny size={40} faceOnly expression={currentExpression} />
+            <div className="bubble bunny typing" aria-label="무무가 생각하는 중">
               <i />
               <i />
               <i />
@@ -54,7 +65,7 @@ export default function Chat(p: { msgs: Msg[]; busy: boolean; onSend: (t: string
           setText('');
         }}
       >
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="토끼에게 속마음 말하기" maxLength={500} aria-label="메시지" />
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 속마음 말하기" maxLength={500} aria-label="메시지" />
         <button className="btn send" disabled={p.busy || !text.trim()}>
           보내기
         </button>

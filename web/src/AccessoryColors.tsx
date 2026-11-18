@@ -43,3 +43,10 @@ export function tint(color: string, amount: number) {
   });
   return `#${channels.join('')}`;
 }
+
+/** Shop-only swatches never overwrite the character shown on Home. */
+export function AccessoryColorsPreviewProvider({ children }: { children: ReactNode }) {
+  const current = useAccessoryColors();
+  const [colors, update] = useState<Colors>(() => ({ ...current.colors }));
+  return <Context.Provider value={{ colors, setColor: (item, color) => { if (valid(color)) update(previous => ({ ...previous, [item]: color })); } }}>{children}</Context.Provider>;
+}

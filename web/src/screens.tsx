@@ -1,7 +1,10 @@
+import { checkinStorageKey, readCheckin, saveCheckin } from './homeCheckin';
+import MumuMotionControls, { useMumuMotion } from './MumuMotionControls';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
+import { mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
 import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
@@ -16,16 +19,6 @@ export const DemoNote = () => <p className="notice">체험 모드: 매장 위치
 /** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
 const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
 
-function Logo() {
-  return (
-    <span className="logo">
-      <Bunny size={26} peek />
-      <b>무드패스</b>
-      <small>MoodPass</small>
-    </span>
-  );
-}
-
 export function TopBar({ onBack }: { onBack?: () => void }) {
   return (
     <header className="topbar">
@@ -36,7 +29,7 @@ export function TopBar({ onBack }: { onBack?: () => void }) {
       ) : (
         <span className="icon-btn" />
       )}
-      <Logo />
+      <span aria-hidden="true" />
       <span className="icon-btn" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4" /></svg>
       </span>
@@ -69,24 +62,8 @@ const Sheet = ({ onClose, label, children }: { onClose: () => void; label: strin
 // ---------- 01 마음 확인 ----------
 export type CheckinForm = { text: string; emotion: string | null; energy: number; mood: number };
 
-export function Home(p: {
-  ch: Character | null;
-  active: Booking | null;
-  busy: boolean;
-  onSubmit: (f: CheckinForm) => void;
-  onComplete: (b: Booking) => void;
-  onCancel: (b: Booking) => void;
-  onPostpone: () => void;
-  onArrivalConfirmed: () => void;
-}) {
-  const [f, setF] = useState<CheckinForm>({ text: '', emotion: null, energy: 40, mood: 5 });
-  const { setExpression } = useCharacterExpression();
-  const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
-  return (
-    <div className="page">
-      <TopBar />
-      <DemoNote />
-      {p.active && (
+export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Booking) => void; onCancel: (b: Booking) => void; onArrivalConfirmed: () => void }) {
+  return <>      {p.active && (
         <div className="card active">
           <span className="eyebrow">가기로 한 체험</span>
           <div className="row">
@@ -114,16 +91,38 @@ export function Home(p: {
           <Arrival key={p.active.id} booking={p.active} onConfirmed={p.onArrivalConfirmed} />
         </div>
       )}
-      <h1 className="title center">
-        오늘 기분은 어때?<span className="spark" aria-hidden="true">˚✧</span>
-      </h1>
-      <div className="hero">
-        <Bunny size={150} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
-      </div>
-      <label className="field">
-        <input value={f.text} onChange={(e) => set({ text: e.target.value })} placeholder="오늘 지쳤어, 조용히 쉬고 싶어" maxLength={300} aria-label="오늘 마음 한 줄" />
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3" /></svg>
-      </label>
+</>;
+}
+
+export function Home(p: {
+  ch: Character | null;
+  active: Booking | null;
+  busy: boolean;
+  onSubmit: (f: CheckinForm) => void;
+  onComplete: (b: Booking) => void;
+  onCancel: (b: Booking) => void;
+  onPostpone: () => void;
+  onArrivalConfirmed: () => void;
+  onTalk: () => void;
+}) {
+  const { expression, setExpression } = useCharacterExpression();
+  const [checkinKey] = useState(checkinStorageKey);
+  const [f, setF] = useState<CheckinForm>(() => ({ text: '', ...readCheckin(checkinKey, expression) }));
+  useEffect(() => { saveCheckin(checkinKey, f); }, [checkinKey, f.emotion, f.energy, f.mood]);
+  const growth = mumuProgress(p.ch?.exp ?? 0);
+  const motion = useMumuMotion();
+  const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
+  return (
+    <div className="page mumu-home">
+      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
+        <Bunny motion={motion.motion} motionKey={motion.motionKey} size={240} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+      </button>
+      <section className="mumu-home-exp" aria-label="무무 경험치">
+        {p.ch ? <><div className="row"><strong>성장 모습 {growth.level} / 5</strong><span>{p.ch.exp} EXP{growth.next !== null ? ` / ${growth.next} EXP` : ' · 마지막 성장'}</span></div>
+          <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(growth.percent)}><span style={{ width: `${growth.percent}%` }} /></div></> : <p className="small mute">무무 경험치를 불러오는 중이에요.</p>}
+        <p className="small mute">무무를 누르면 이야기를 나눌 수 있어요 ♡</p>
+      </section>
+      <MumuMotionControls motion={motion.motion} play={motion.play} />
       <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
       <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
       <h2 className="label">
@@ -135,15 +134,11 @@ export function Home(p: {
       </h2>
       <input type="range" min={1} max={10} value={f.mood} onChange={(e) => set({ mood: Number(e.target.value) })} aria-label="기분 점수" style={{ ['--v' as string]: `${((f.mood - 1) / 9) * 100}%` }} />
       <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => p.onSubmit(f)}>
-        {p.busy ? '마음을 읽는 중…' : '나에게 맞는 경험 찾기 ›'}
+        {p.busy ? '마음을 읽는 중…' : '기분 남기고 무무와 대화하기 ›'}
       </button>
       {p.busy && <LoadState loading message="마음을 읽고 있어. 답장이 조금 늦어도 잠깐만 기다려 줘…" />}
-      <button className="card postpone" onClick={p.onPostpone}>
-        <span className="eyebrow">무드패스의 오늘 회복 제안</span>
-        <strong>오늘 할 일 하나 미루기</strong>
-        <span className="meta">더 하라고 재촉하는 대신, 부담 하나를 덜어 볼까? 조금은 쉬어가도 괜찮아.</span>
-      </button>
-      <p className="small center mute">무드패스 토끼는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
+      <DemoNote />
+      <p className="small center mute">무무는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
     </div>
   );
 }
@@ -401,7 +396,7 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
           </>
         )}
         <p className="gain">+{r.expGained}</p>
-        {r.stageUp && <p className="pill solid">토끼가 한 단계 자랐어</p>}
+        {r.stageUp && <p className="pill solid">무무가 한 단계 자랐어</p>}
         {r.newItems.map((i) => (
           <p key={i.id} className="card soft">
             <strong>{i.name}을(를) 얻었어!</strong>
@@ -454,7 +449,7 @@ function Face({ mood }: { mood: number | null }) {
   );
 }
 
-/** 토끼가 기억하는 것: AI가 대화에서 뽑아 둔 사실. 몰래 기억하지 않도록 보여 주고, 하나씩 지울 수 있게 한다. */
+/** 무무가 기억하는 것: AI가 대화에서 뽑아 둔 사실. 몰래 기억하지 않도록 보여 주고, 하나씩 지울 수 있게 한다. */
 function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
   const [mems, setMems] = useState<Memory[] | null>(null);
   useEffect(() => {
@@ -462,9 +457,9 @@ function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
   }, [reloadKey]);
   return (
     <div className="card">
-      <span className="eyebrow">토끼가 기억하는 너</span>
+      <span className="eyebrow">무무가 기억하는 너</span>
       {mems === null && <span className="meta">불러오는 중…</span>}
-      {mems?.length === 0 && <span className="meta">이야기를 나누다 보면 토끼가 조금씩 기억해 둘게.</span>}
+      {mems?.length === 0 && <span className="meta">이야기를 나누다 보면 무무가 조금씩 기억해 둘게.</span>}
       {mems?.map((m) => (
         <span key={m.id} className="meta mem">
           <span>
@@ -486,7 +481,7 @@ function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
   );
 }
 
-export function Records(p: { ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
+export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
   const { scarf } = useOutfit();
   const { expression, setExpression } = useCharacterExpression();
   const [askDelete, setAskDelete] = useState(false);
@@ -508,9 +503,9 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
         <span style={{ width: `${pct}%` }} />
       </div>
       <p className="small mute">
-        {c ? `${c.stage}단계 · ${c.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요` : '토끼 정보를 불러오면 성장 단계를 볼 수 있어요.'}
+        {c ? `${c.stage}단계 · ${c.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요` : '무무 정보를 불러오면 성장 단계를 볼 수 있어요.'}
       </p>
-      {latest && (
+      {p.view !== 'shop' && <>{latest && (
         <div className="card">
           <span className="eyebrow">{latest.title}</span>
           <div className="before-after">
@@ -537,11 +532,12 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
           ))}
         </div>
       </div>
-      <MemoryCard reloadKey={p.data} />
+      <MemoryCard reloadKey={p.data} /></>}
+      {p.view === 'shop' && <>
       <div className="card">
-        <span className="eyebrow">토끼 꾸미기</span>
+        <span className="eyebrow">무무 꾸미기</span>
         <h2 className="label">표정 고르기</h2>
-        <Chips label="토끼 표정" options={EXPRESSIONS.map((value) => [value, value])} value={expression} onChange={setExpression} />
+        <Chips label="무무 표정" options={EXPRESSIONS.map((value) => [value, value])} value={expression} onChange={setExpression} />
         <p className="small mute">표정은 이 브라우저에 저장돼요. 홈에서 감정을 누르면 그 감정의 표정으로 바뀌어요.</p>
         <h2 className="label">아이템 입히기</h2>
         <p className="small mute">목도리는 리본·베레모와 함께 입을 수 있어요. 리본과 베레모는 하나만 골라요. 다시 누르면 벗어요.</p>
@@ -561,6 +557,8 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
         {COLOR_ITEMS.map(({ id }) => <AccessoryColorPicker key={id} item={id} unlocked={!!c?.allItems.find((i) => i.id === id)?.unlocked} />)}
         <p className="small mute">색상은 이 브라우저에 저장돼요.</p>
       </div>
+      </>}
+      {p.view !== 'shop' && <>
       <h2 className="label">다녀온 체험</h2>
       {!p.data?.done.length && <p className="empty">아직 기록이 없어. 없어도 괜찮아.</p>}
       {p.data?.done.map((b) => (
@@ -593,7 +591,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
       {askDelete ? (
         <div className="card soft">
           <strong>기록을 모두 지울까?</strong>
-          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화, 토끼가 기억하는 것이 지워져. 토끼 성장은 그대로야.</span>
+          <span>마음 확인, 다녀온 체험, 미룬 일, 속마음 대화, 무무가 기억하는 것이 지워져. 무무 성장은 그대로야.</span>
           <div className="row two">
             <button className="btn ghost" onClick={() => setAskDelete(false)}>
               그만두기
@@ -613,7 +611,7 @@ export function Records(p: { ch: Character | null; data: RecordsData | null; equ
         <button className="btn text" onClick={() => setAskDelete(true)}>
           내 기록 모두 지우기
         </button>
-      )}
+      )}</>}
     </div>
   );
 }
@@ -634,7 +632,7 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
     <div className="page">
       <TopBar />
       <DemoNote />
-      <h1 className="title">가까운 체험</h1>
+      <h1 className="title">무무가 찾은 체험</h1>
       {(error || !items) && <LoadState loading={!error} message={error || '가까운 체험을 불러오는 중이야…'} onRetry={onRetry} />}
       {items?.length === 0 && <p className="empty">근처에 체험이 없어.</p>}
       <div className="list">
@@ -650,42 +648,30 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
 }
 
 // ---------- 랜딩 · 위치 동의 · 안전 모드 ----------
-export function Landing({ onStart, stage = 1 }: { onStart: () => void; stage?: number }) {
+export function Landing({ onStart }: { onStart: () => void }) {
   return (
-    <div className="landing">
+    <div className="landing mumu-welcome">
       <div className="landing-top">
-        <Bunny size={160} stage={stage} />
-        <h1>무드패스</h1>
+        <div className="mumu-welcome-greeting">
+          <p className="mumu-welcome-bubble">오늘 하루도 고생했어.<br />지금부터 나랑 놀자</p>
+          {/* This introductory illustration does not change the user's growth progress. */}
+          <Bunny size={160} visualForm={2} expression="기뻐" motion="wave" loopMotion previewClothes={{ owned: [], equipped: null, colors: {} }} />
+        </div>
+        <h1>무무</h1>
         <p className="tagline">
           지친 하루를 바꾸는,
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">“오늘은 고르지 않아도 돼. 기분에 딱 맞는 30분, 내가 찾아 줄게”</p>
+        <p className="promise">우울해서 빵 사는 대신,<br />기분에 딱 맞는 활동을 찾아줄게</p>
       </div>
-      <ul className="points">
-        <li>
-          <b>1</b>
-          <span>
-            <strong>마음 읽기</strong>오늘의 기분과 에너지를 알려 줘요
-          </span>
-        </li>
-        <li>
-          <b>2</b>
-          <span>
-            <strong>경험 찾기</strong>지금 갈 수 있는 가까운 체험을 골라 줘요
-          </span>
-        </li>
-        <li>
-          <b>3</b>
-          <span>
-            <strong>실행과 기록</strong>예약하고 다녀와서 변화를 남겨요
-          </span>
-        </li>
-      </ul>
-      <button className="btn big" onClick={onStart}>
-        시작하기
-      </button>
+      <ol className="points">
+        <li><b>1</b><span><strong>마음읽기</strong>나에게 힘든일 다 털어놔</span></li>
+        <li><b>2</b><span><strong>활동 찾기</strong>너의 기분에 맞게 활동을 추천해줄게</span></li>
+        <li><b>3</b><span><strong>기록</strong>예약하고 다녀와서 감정 변화를 남겨봐</span></li>
+        <li><b>4</b><span><strong>무무 키우기</strong>나를 귀엽게 키워봐</span></li>
+      </ol>
+      <button className="btn big" onClick={onStart}>시작하기</button>
     </div>
   );
 }
