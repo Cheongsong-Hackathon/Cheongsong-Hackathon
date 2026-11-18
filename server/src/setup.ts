@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { config } from './config.js';
 import { query, tx, type Q } from './db.js';
+import type { Tag } from './services/match.js';
 import { mmdd } from './services/memory.js';
 
 export async function migrate() {
@@ -37,6 +38,20 @@ const EXPERIENCES: [string, string, string, string, number, number, string[], nu
   ['climbing', 'challenger', '볼더링 첫 체험', 'climbing', 90, 25000, ['답답해', '심심해'], 70, '장비 대여 포함. 처음이어도 쉬운 벽부터 해요.', ['15:00', '19:00']],
 ];
 
+// 체험 특징 태그 (services/match.ts의 TAGS). 실제 서비스에서는 제휴 매장이 체험을 등록할 때 직접 고른다.
+const EXP_TAGS: Record<string, Tag[]> = {
+  'quiet-cafe': ['조용함', '혼자 가능', '가만히 쉬기', '실내'],
+  'mini-pottery': ['손으로 만들기', '조용함', '혼자 가능', '실내'],
+  'my-scent': ['손으로 만들기', '조용함', '혼자 가능', '실내'],
+  'mini-bouquet': ['손으로 만들기', '혼자 가능', '실내'],
+  calligraphy: ['손으로 만들기', '조용함', '혼자 가능', '실내'],
+  candle: ['손으로 만들기', '조용함', '혼자 가능', '가만히 쉬기', '실내'],
+  meditation: ['가만히 쉬기', '조용함', '혼자 가능', '실내'],
+  boardgame: ['같이 하기', '사람 많음', '실내'],
+  karaoke: ['소리 내기', '혼자 가능', '실내'],
+  climbing: ['몸 쓰기', '사람 많음', '실내'],
+};
+
 /** 모든 데이터를 지우고 seed를 다시 넣는다. */
 export async function seed() {
   await tx(async (q) => {
@@ -58,9 +73,9 @@ export async function seed() {
     }
     for (const [id, place, title, category, minutes, price, moods, energy, desc, slots] of EXPERIENCES) {
       await q(
-        `INSERT INTO experiences(id, place_id, title, category, minutes, price, moods, energy_need, description)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [id, place, title, category, minutes, price, moods, energy, desc],
+        `INSERT INTO experiences(id, place_id, title, category, minutes, price, moods, energy_need, description, tags)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [id, place, title, category, minutes, price, moods, energy, desc, EXP_TAGS[id] ?? []],
       );
       for (const s of slots) await q(`INSERT INTO experience_slots VALUES ($1,$2)`, [id, s]);
     }

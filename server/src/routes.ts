@@ -6,6 +6,7 @@ import { validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
 import { deleteMemory, listMemories } from './services/memory.js';
+import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
 import { handleChat } from './services/chat.js';
 import { handleCheckin } from './services/checkin.js';
@@ -123,6 +124,9 @@ api.post('/character/equip', async (req, res) => {
   );
   c ? res.json(c) : res.status(400).json({ error: '아직 열리지 않은 아이템이야.' });
 });
+
+// 대화로 추천받기 (핵심 흐름): {sessionId?, message, lat?, lng?} → 묻기(ask) 또는 추천(recommend)
+api.post('/talk', ...aiLimit, async (req, res) => send(res, await handleTalk(uid(res), req.body)));
 
 // 선택형 속마음 대화
 api.post('/chat', ...aiLimit, async (req, res) => {

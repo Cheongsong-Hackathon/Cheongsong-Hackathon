@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   state text NOT NULL DEFAULT 'CHATTING',
   started_at timestamptz NOT NULL DEFAULT now()
 );
+-- 대화로 추천받기: 대화방마다 지금까지 읽어 낸 필요·조건, 질문한 횟수, 이미 보여 준 체험
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS prefs jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS asks int NOT NULL DEFAULT 0;
+ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS seen text[] NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS messages (
   id serial PRIMARY KEY,
   session_id int NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
@@ -67,6 +71,8 @@ CREATE TABLE IF NOT EXISTS experiences (
   energy_need int NOT NULL DEFAULT 0, -- 이 정도 에너지(%)는 있어야 할 만한 활동
   description text NOT NULL DEFAULT ''
 );
+-- 체험 특징 태그 (services/match.ts의 TAGS 중에서). 대화에서 읽은 필요·원함·피함과 맞춰 점수를 매긴다
+ALTER TABLE experiences ADD COLUMN IF NOT EXISTS tags text[] NOT NULL DEFAULT '{}';
 CREATE TABLE IF NOT EXISTS experience_slots (
   experience_id text NOT NULL REFERENCES experiences(id) ON DELETE CASCADE,
   start_time text NOT NULL,    -- 'HH:MM' (오늘)

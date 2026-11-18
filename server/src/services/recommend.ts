@@ -20,6 +20,7 @@ export type Experience = {
   moods: string[];
   energyNeed: number;
   description: string;
+  tags?: string[]; // 특징 태그 (match.ts의 TAGS). DB에서 읽을 때는 항상 있음
   placeId: string;
   slots: string[];
 };
@@ -154,7 +155,7 @@ const pick = <T>(v: unknown, allowed: readonly T[], d: T) => (allowed.includes(v
 
 export async function loadExperiences(): Promise<Experience[]> {
   return query<Experience>(
-    `SELECT e.id, e.title, e.category, e.minutes, e.price, e.moods, e.energy_need AS "energyNeed", e.description,
+    `SELECT e.id, e.title, e.category, e.minutes, e.price, e.moods, e.energy_need AS "energyNeed", e.description, e.tags,
             e.place_id AS "placeId",
             COALESCE(array_agg(s.start_time ORDER BY s.start_time) FILTER (WHERE s.start_time IS NOT NULL), '{}') AS slots
      FROM experiences e LEFT JOIN experience_slots s ON s.experience_id = e.id GROUP BY e.id ORDER BY e.id`,
