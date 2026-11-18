@@ -43,7 +43,7 @@ const rec = await api('POST', '/recommend', { checkinId: ck.json.checkinId, minu
 const items: any[] = rec.json.items ?? [];
 check('03 추천: 조건에 맞는 곳 2~5개', rec.status === 200 && items.length >= 2 && items.length <= 5, rec.json);
 check('조건 지킴: 60분·도보 20분·2만원 이하 (평소와 다른 하나는 도보만 +10분)', rec.json.widened || items.every((i) => i.minutes <= 60 && i.walkMinutes <= (i.surprise ? 30 : 20) && i.price <= 20000), items);
-check('평소와 다른 하나: 많아도 1개', items.filter((i) => i.surprise).length <= 1, items);
+check('평소와 다른 하나: 지금은 꺼져 있음 (config.SURPRISE_PICK)', items.every((i) => !i.surprise), items);
 check('모든 추천에 이유 한 줄과 오늘 시간대', items.every((i) => i.reason && i.availableSlots?.length));
 for (const i of items) console.log(`    · ${i.surprise ? '[평소와 다른 하나] ' : ''}${i.title} — ${i.minutes}분 · 도보 ${i.walkMinutes}분 · ${won(i.price)} — ${i.reason}`);
 

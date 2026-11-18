@@ -206,14 +206,16 @@ export async function recommend(userId: number, body: any, client = defaultClien
   const free = await freeP;
   if (await isSafeMode(userId)) return SAFETY_BLOCK;
 
-  // 맞춤 추천 끝에 "평소와 다른 하나" (자리가 없으면 마지막 것과 바꾼다)
   const picked = finalizePicks(items, out?.picks ?? null, exclude);
-  const doneCats = await query<{ category: string }>(
-    `SELECT DISTINCT e.category FROM bookings b JOIN experiences e ON e.id = b.experience_id WHERE b.user_id = $1 AND b.status = 'DONE'`,
-    [userId],
-  );
-  const surprise = picked.length ? pickSurprise(cands, picked, cond, new Set(doneCats.map((d) => d.category)), exclude) : null;
-  if (surprise) picked.splice(Math.min(picked.length, config.RECOMMEND_MAX - 1), 1, surprise);
+  // 맞춤 추천 끝에 "평소와 다른 하나" (config.SURPRISE_PICK, 지금은 꺼 둠). 자리가 없으면 마지막 것과 바꾼다
+  if (config.SURPRISE_PICK && picked.length) {
+    const doneCats = await query<{ category: string }>(
+      `SELECT DISTINCT e.category FROM bookings b JOIN experiences e ON e.id = b.experience_id WHERE b.user_id = $1 AND b.status = 'DONE'`,
+      [userId],
+    );
+    const surprise = pickSurprise(cands, picked, cond, new Set(doneCats.map((d) => d.category)), exclude);
+    if (surprise) picked.splice(Math.min(picked.length, config.RECOMMEND_MAX - 1), 1, surprise);
+  }
   return {
     status: 200,
     body: {
