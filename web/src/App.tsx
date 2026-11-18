@@ -231,7 +231,7 @@ export default function App() {
     const r = await api.book({ checkinId: checkin?.id ?? null, experienceId: item.id, slotTime: slot });
     setBusy(false);
     if (r.blocked) return enterSafety();
-    if (r.code !== 200) return notify(r.error ?? '예약 요청을 보내지 못했어.');
+    if (r.code !== 200) return notify(r.error ?? '가기로 한 체험을 기록하지 못했어.');
     setConfirm(null);
     setRecs(null);
     setRequested(r);
@@ -309,7 +309,7 @@ export default function App() {
       onArrivalConfirmed={refresh}
       onCancel={async (b) => {
         const r = await api.cancel(b.id);
-        if (r.code !== 200) return notify(r.error ?? '예약 요청을 취소하지 못했어. 다시 해 줄래?');
+        if (r.code !== 200) return notify(r.error ?? '취소하지 못했어. 다시 해 줄래?');
         refresh();
       }}
       onPostpone={() => setSheet({ kind: 'postpone' })}

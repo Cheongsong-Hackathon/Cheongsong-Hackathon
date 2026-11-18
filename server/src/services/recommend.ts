@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
-import { freePlaces, pickFree } from './kakao.js';
+import { freePlaces, naverMapUrl, pickFree } from './kakao.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
 import { memoryContext } from './memory.js';
 
@@ -31,6 +31,7 @@ export type Candidate = Experience & {
   distanceM: number;
   walkMinutes: number;
   availableSlots: string[];
+  mapUrl: string; // 예약하기: 네이버 지도에서 매장을 열어 거기서 예약 (우리 앱은 예약을 확정하지 않음)
 };
 export type Cond = { minutes: number; walk: number; budget: number; energy: number; emotion: string | null };
 export type Item = Candidate & { reason: string; surprise?: boolean };
@@ -52,7 +53,7 @@ export function toCandidates(exps: Experience[], places: Place[], now: string | 
     const p = byId.get(e.placeId);
     if (!p || p.distanceM == null) return [];
     const walk = walkMinutes(p.distanceM);
-    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk) }];
+    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk), mapUrl: naverMapUrl(p.name, p.address ?? '') }];
   });
 }
 

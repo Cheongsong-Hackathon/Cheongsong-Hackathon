@@ -1,6 +1,6 @@
 # 무드패스 (MoodPass)
 
-오늘의 감정과 에너지에 맞는 가까운 체험을 추천하고, 예약 요청부터 체험 후 기분 기록까지 연결하는 AI 기반 일상 회복 모바일 웹 (해커톤 시연용). 기준 문서: `무드패스_사업계획서 .pdf`.
+오늘의 감정과 에너지에 맞는 가까운 체험을 추천하고, 네이버 예약 연결부터 체험 후 기분 기록까지 연결하는 AI 기반 일상 회복 모바일 웹 (해커톤 시연용). 기준 문서: `무드패스_사업계획서 .pdf`.
 
 - `server/` — Express + TypeScript + PostgreSQL. API와 `web/` 빌드 결과를 함께 서빙
 - `web/` — React + Vite 모바일 웹 (항상 휴대폰 테두리 안에 표시)
@@ -15,7 +15,7 @@
 | 01 마음 확인 | 홈: 한 줄, 감정 칩, 에너지 %, 지금 기분 점수(1~10) |
 | 02 조건 확인 | 하단 시트: 시간·거리(도보)·예산. 에너지 20% 이하면 "할 일 하나 미루기"를 먼저 권함 |
 | 03 경험 추천 | 체험 DB를 규칙으로 거른 뒤 AI가 어울리는 순서를 정하고 이유 한 줄을 씀 (개수는 정하지 않고 많아도 5개) |
-| 04 예약·체험 | 오늘 가능한 시간 선택 → "예약 요청" (확정 아님, 결제 없음) |
+| 04 예약·체험 | 가려는 시간 선택 → "네이버에서 예약하기": 네이버 지도에서 매장을 열고(네이버 예약·전화), 앱에는 "가기로 한 체험"만 기록 (결제 없음) |
 | 05 기분 기록 | "다녀왔어" → 체험 후 점수 → 체험 전/후 비교, 토끼 성장, 꾸미기 |
 
 탭: 홈 · 체험(전체 체험 목록) · 기록 · 속마음(토끼와의 공감 대화)
@@ -184,7 +184,7 @@ web/src/                     App(흐름·탭), screens(화면), Chat(속마음),
 | `POST /api/checkin` | `{text, emotion, energy, mood}` → `{checkinId, reply, suggestPostpone}` |
 | `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items, free, widened}`. `items`: 위치 주변 제휴 매장 체험(많아도 5개, 없으면 빈 배열), `free`: 같은 위치의 무료 장소(도보 조건 안, 종류별 가장 가까운 곳) |
 | `GET /api/experiences` | 전체 체험 (도보 분 포함) |
-| `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 예약 요청 (가격은 DB 값) |
+| `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 가기로 한 체험 기록 (`mapUrl`: 네이버 지도 링크). 실제 예약은 네이버에서 |
 | `GET /api/bookings/active` | 진행 중인 예약 요청 (`arrivedAt`: 도착 확인 시각) |
 | `POST /api/bookings/:id/arrive` | `{lat, lng}` → 매장 150m 안이면 `{arrived: true}`. 좌표는 저장하지 않음. 확인이 안 돼도 완료·기록은 가능. `DEMO_MODE`는 거리 무시 |
 | `GET /api/places/free?lat&lng` | 주변 무료 장소(카페·도서관·공원, 카카오 로컬로 찾고 `url`은 네이버 지도 검색 링크) `{items}`. 카카오 키가 없으면 `{items: [], disabled: true}` |

@@ -11,6 +11,7 @@ export type Place = {
   isPartner: boolean;
   openHours: { open: string; close: string } | null;
   note: string | null;
+  address?: string | null; // 네이버 지도 링크(예약하기)에 씀
   distanceM?: number;
 };
 export type PartnerPlace = Place & { partnerId: number; couponPolicy: string };
@@ -22,7 +23,7 @@ export interface PlaceRepository {
   listPartners(): Promise<PartnerPlace[]>;
 }
 
-const COLS = `p.id, p.name, p.category, p.lat, p.lng, p.is_partner AS "isPartner", p.open_hours AS "openHours", p.note`;
+const COLS = `p.id, p.name, p.category, p.lat, p.lng, p.is_partner AS "isPartner", p.open_hours AS "openHours", p.note, p.address`;
 
 /** 지금 쓰는 구현체: PostgreSQL places 테이블 (seed 6곳) */
 export class PgPlaceRepository implements PlaceRepository {

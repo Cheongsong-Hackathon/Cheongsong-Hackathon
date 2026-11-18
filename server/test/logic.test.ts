@@ -124,6 +124,14 @@ test('후보: 장소가 반경 밖이면 빠지고, 도보 분이 붙는다', ()
   assert.deepEqual(cs.map((c) => [c.id, c.walkMinutes, c.placeName]), [['a', 10, '책숲']]);
 });
 
+test('후보의 예약하기 링크: 매장 이름과 주소로 네이버 지도 검색 (예약은 네이버에서)', () => {
+  const places = [{ id: 'p1', name: '카페솜', category: 'c', lat: 1, lng: 2, isPartner: true, openHours: null, note: null, address: '경북 경산시 대학로59길 2', distanceM: 670 }];
+  const [c] = toCandidates([E('a')], places, null);
+  assert.equal(c.mapUrl, naverMapUrl('카페솜', '경북 경산시 대학로59길 2'));
+  const [noAddr] = toCandidates([E('a')], [{ ...places[0], address: null }], null);
+  assert.equal(noAddr.mapUrl, naverMapUrl('카페솜', '')); // 주소가 없으면 이름만으로
+});
+
 test('필터: 시간·거리·예산·에너지를 모두 지키고, 고른 감정에 맞는 것이 먼저', () => {
   const cs = [
     C(E('fit-far', { moods: [] }), 9),

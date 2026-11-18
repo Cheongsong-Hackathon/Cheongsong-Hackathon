@@ -8,6 +8,7 @@ export type Item = {
   moods: string[];
   description: string;
   placeName: string;
+  mapUrl: string; // 예약하기 → 네이버 지도(네이버 예약)
   walkMinutes: number;
   distanceM: number;
   availableSlots: string[];
@@ -29,8 +30,9 @@ export type Booking = {
   category: string;
   minutes: number;
   placeName: string;
+  mapUrl?: string; // 네이버 지도에서 다시 열기
 };
-/** 무료 장소 (네이버 지역 검색). 예약 없음, url은 네이버 지도 검색 페이지. */
+/** 무료 장소 (카카오 로컬로 찾음). 예약 없음, url은 네이버 지도 검색 페이지. */
 export type FreePlace = {
   id: string;
   name: string;

@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS places (
   open_hours jsonb,           -- {"open":"10:00","close":"22:00"}, NULL이면 항상 열림
   note text
 );
+ALTER TABLE places ADD COLUMN IF NOT EXISTS address text; -- 도로명 주소. 예약하기 → 네이버 지도 링크에 씀
 CREATE TABLE IF NOT EXISTS partners (
   id serial PRIMARY KEY,
   place_id text NOT NULL REFERENCES places(id),

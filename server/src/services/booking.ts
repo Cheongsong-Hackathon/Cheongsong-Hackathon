@@ -1,8 +1,9 @@
-// 04 예약·체험 → 05 기분 기록. 실결제 없음: "예약 요청"까지만 만들고 확정이라고 표시하지 않는다.
+// 04 예약·체험 → 05 기분 기록. 실제 예약은 네이버 지도(네이버 예약)에서 하고, 여기서는 "가기로 한 것"만 기록한다 (기분 전후 기록·토끼 성장용).
 import { config } from '../config.js';
 import { query, toId, tx } from '../db.js';
 import { haversineM, validLatLng } from '../geo.js';
 import { GrowthService } from './growth.js';
+import { naverMapUrl } from './kakao.js';
 import { nowHHMM } from './recommend.js';
 import { isSafeMode, SAFETY_BLOCK } from './safety.js';
 
@@ -11,7 +12,10 @@ const mood = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v 
 
 const BOOKING_COLS = `b.id, b.status, b.slot_time AS "slotTime", b.price, b.mood_before AS "moodBefore", b.mood_after AS "moodAfter",
   b.created_at AS "createdAt", b.completed_at AS "completedAt", b.arrived_at AS "arrivedAt", e.id AS "experienceId", e.title, e.category, e.minutes,
-  p.name AS "placeName"`;
+  p.name AS "placeName", p.address`;
+/** 다시 예약하러 갈 수 있게 네이버 지도 링크를 붙인다 */
+const withMap = <T extends { placeName: string; address: string | null }>(b: T | undefined) =>
+  b ? { ...b, mapUrl: naverMapUrl(b.placeName, b.address ?? '') } : null;
 const BOOKING_FROM = `FROM bookings b JOIN experiences e ON e.id = b.experience_id JOIN places p ON p.id = e.place_id`;
 
 export async function createBooking(userId: number, body: any) {
@@ -41,15 +45,15 @@ export async function createBooking(userId: number, body: any) {
 }
 
 export async function getBooking(userId: number, id: number) {
-  const [b] = await query(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.id = $1 AND b.user_id = $2`, [id, userId]);
-  return b ?? null;
+  const [b] = await query<any>(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.id = $1 AND b.user_id = $2`, [id, userId]);
+  return withMap(b);
 }
 
 export async function activeBooking(userId: number) {
-  const [b] = await query(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.user_id = $1 AND b.status = 'REQUESTED' ORDER BY b.id DESC LIMIT 1`, [
+  const [b] = await query<any>(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.user_id = $1 AND b.status = 'REQUESTED' ORDER BY b.id DESC LIMIT 1`, [
     userId,
   ]);
-  return b ?? null;
+  return withMap(b);
 }
 
 /** "다녀왔어" + 체험 후 기분. 두 번 눌러도 한 번만 반영된다. */
