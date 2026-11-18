@@ -1,4 +1,5 @@
 // 카카오 로컬 API: 무료 장소(카페·도서관·공원) 검색, 주소·장소 이름 → 좌표.
+// 찾기는 카카오(반경·거리순 검색이 됨), 사용자가 누르는 링크는 네이버 지도(사진·가격·예약 정보가 많고 더 많이 씀).
 // 키(KAKAO_REST_API_KEY)가 없거나 실패하면 null을 돌려주고, 화면은 지금처럼 동작한다.
 import { config } from '../config.js';
 import { walkMinutes, type LatLng } from '../geo.js';
@@ -24,6 +25,10 @@ async function search(path: string, params: Record<string, string | number>): Pr
     return null;
   }
 }
+
+/** 네이버 지도 검색 링크. 이름만 넣는다: 같은 이름이 여럿이면 네이버가 보는 사람의 현재 위치에서 가까운 곳을 먼저 보여 준다
+ *  (2026-11-18 확인: "현재 위치에서 6.9km"인 경산 매장이 1위. 링크에 좌표(c=)를 넣어도 네이버가 무시함) */
+export const naverMapUrl = (name: string) => `https://map.naver.com/p/search/${encodeURIComponent(name)}`;
 
 export type FreePlace = {
   id: string;
@@ -60,7 +65,7 @@ export function toFreePlace(kind: string, d: any): FreePlace | null {
     lat,
     lng,
     address: d.road_address_name || d.address_name || '',
-    url: d.place_url ?? '',
+    url: naverMapUrl(d.place_name),
   };
 }
 

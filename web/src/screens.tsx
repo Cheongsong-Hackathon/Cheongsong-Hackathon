@@ -11,7 +11,10 @@ import { useOutfit } from './Outfit';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장·가격·결제는 가상</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험·가격·시간은 예시. 예약은 네이버에서</p>;
+
+/** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
+const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
 
 function Logo() {
   return (
@@ -85,7 +88,7 @@ export function Home(p: {
       <DemoNote />
       {p.active && (
         <div className="card active">
-          <span className="eyebrow">예약 요청한 체험</span>
+          <span className="eyebrow">가기로 한 체험</span>
           <div className="row">
             <Art category={p.active.category} className="thumb sm" />
             <div className="grow">
@@ -93,6 +96,11 @@ export function Home(p: {
               <span className="meta">
                 오늘 {p.active.slotTime} · {p.active.placeName}
               </span>
+              {p.active.mapUrl && (
+                <a className="small" href={p.active.mapUrl} target="_blank" rel="noopener noreferrer">
+                  네이버 지도에서 보기 ↗
+                </a>
+              )}
             </div>
           </div>
           <div className="row two">
@@ -255,7 +263,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
       )}
       <p className="small center mute">
         {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
-        {p.free.length > 0 && '돈 안 드는 곳은 카카오맵 장소 정보예요.'}
+        {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
   );
@@ -278,7 +286,7 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
           {p.item.placeName} · 도보 {p.item.walkMinutes}분
         </span>
         <p>{p.item.description}</p>
-        <h2 className="label">오늘 가능한 시간</h2>
+        <h2 className="label">가려는 시간</h2>
         <Chips label="시간" options={slots.map((s) => [s, s] as [string, string])} value={slot} onChange={setSlot} />
         <div className="facts">
           <span>
@@ -294,10 +302,18 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
       <button className="btn ghost" disabled>
         친구 초대하기 <small>준비 중</small>
       </button>
-      <button className="btn big" disabled={!slot || p.busy} onClick={() => slot && p.onBook(slot)}>
-        {p.busy ? '요청하는 중…' : '예약 요청하기 ›'}
+      <button
+        className="btn big"
+        disabled={!slot || p.busy}
+        onClick={() => {
+          if (!slot) return;
+          openNaver(p.item.mapUrl);
+          p.onBook(slot);
+        }}
+      >
+        {p.busy ? '여는 중…' : '네이버에서 예약하기 ↗'}
       </button>
-      <p className="small center mute">체험 모드: 실제 결제와 예약은 이뤄지지 않아요. 매장이 확인하기 전까지는 확정이 아니에요.</p>
+      <p className="small center mute">네이버 지도에서 매장을 열어 줄게. 네이버 예약이 있는 곳은 거기서 바로, 없는 곳은 전화로 예약해 줘. 실제 가격과 시간도 거기서 확인해 줘.</p>
     </div>
   );
 }
@@ -306,13 +322,18 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
   return (
     <div className="page center-col">
       <Bunny size={170} happy layerScarf item={ch?.equipped ?? null} stage={ch?.stage ?? 1} />
-      <h1 className="title center">예약 요청을 보냈어!</h1>
+      <h1 className="title center">네이버에서 예약을 마무리해 줘!</h1>
       <div className="card soft">
         <strong>{booking.title}</strong>
         <span>
-          오늘 {booking.slotTime} · {booking.placeName} · {won(booking.price)}
+          가려는 시간 {booking.slotTime} · {booking.placeName}
         </span>
       </div>
+      {booking.mapUrl && (
+        <a className="btn ghost" href={booking.mapUrl} target="_blank" rel="noopener noreferrer">
+          네이버 지도 다시 열기 ↗
+        </a>
+      )}
       <p className="center mute">다녀오면 홈에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
       <button className="btn big" onClick={onHome}>
         홈으로

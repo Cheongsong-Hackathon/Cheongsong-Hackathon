@@ -8,6 +8,7 @@ export type Item = {
   moods: string[];
   description: string;
   placeName: string;
+  mapUrl: string; // 예약하기 → 네이버 지도(네이버 예약)
   walkMinutes: number;
   distanceM: number;
   availableSlots: string[];
@@ -29,8 +30,9 @@ export type Booking = {
   category: string;
   minutes: number;
   placeName: string;
+  mapUrl?: string; // 네이버 지도에서 다시 열기
 };
-/** 무료 장소 (카카오 로컬). 예약 없음, url은 카카오맵 장소 페이지. */
+/** 무료 장소 (카카오 로컬로 찾음). 예약 없음, url은 네이버 지도 검색 페이지. */
 export type FreePlace = {
   id: string;
   name: string;
@@ -107,7 +109,7 @@ export const api = {
   // "도착했어": 지금 위치(getPos)를 보내면 매장 150m 안인지 확인. arrived:false여도 다녀왔어·기록은 그대로 가능
   arrive: (id: number, pos: LatLng | null) =>
     call<{ arrived: boolean; distanceM?: number | null; already?: boolean; demo?: boolean }>('POST', `/bookings/${id}/arrive`, pos ?? {}),
-  // 무료 장소. disabled면 서버에 카카오 키가 없는 것 (목록을 숨기면 됨)
+  // 무료 장소. disabled면 서버에 네이버 키가 없는 것 (목록을 숨기면 됨)
   freePlaces: (pos: LatLng | null) => call<{ items?: FreePlace[]; disabled?: boolean }>('GET', `/places/free${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
   // 주소·장소 이름 → 좌표. 받은 좌표를 브라우저에 저장해 두고 getPos 대신 recommend·experiences·freePlaces에 넘기면 됨
   geocode: (query: string) => call<LatLng & { label: string }>('GET', `/geocode?query=${encodeURIComponent(query)}`),
