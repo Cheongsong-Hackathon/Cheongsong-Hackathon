@@ -7,10 +7,23 @@ try {
 
 const env = process.env;
 const num = (v: string | undefined, d: number) => (v && !Number.isNaN(Number(v)) ? Number(v) : d);
+const json = (v: string | undefined): Record<string, unknown> => {
+  try {
+    const o = JSON.parse(v ?? '{}');
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+  } catch {
+    console.warn(`[config] JSON이 아니어서 무시: ${v}`);
+    return {};
+  }
+};
 const llm = (p: string) => ({
   baseUrl: env[`${p}_BASE_URL`] ?? '',
   model: env[`${p}_MODEL`] ?? '',
   apiKey: env[`${p}_API_KEY`] ?? '',
+  // 응답 형식(JSON 스키마)을 공급자에게 강제시킬지. 지시문만으로는 JSON을 안 지키는 모델용 (예: CLOVA HCX-007)
+  structured: env[`${p}_STRUCTURED`] === 'true',
+  // 공급자 전용 옵션을 요청에 그대로 더한다. 예: {"reasoning_effort":"none"}
+  extra: json(env[`${p}_EXTRA`]),
 });
 
 export const config = {

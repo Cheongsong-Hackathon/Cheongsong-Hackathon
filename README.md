@@ -49,7 +49,8 @@ cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
 | `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, "도착했어"의 거리를 따지지 않음. `/api/demo/reset` 열림 |
 | `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 위치가 있으면 추천은 항상 그 위치 기준(주변에 제휴 매장이 없으면 무료 장소만). 바꾸면 `npm run seed`를 다시 |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | 주 LLM (OpenAI 호환 API) |
-| `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM. 비우면 사용 안 함 |
+| `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM (CLOVA Studio HCX-007). 비우면 사용 안 함 |
+| `LLM_FALLBACK_STRUCTURED`, `LLM_FALLBACK_EXTRA` | 예비 LLM에 응답 형식(JSON 스키마)을 강제하고 공급자 전용 옵션을 보냄. CLOVA는 `true`, `{"reasoning_effort":"none"}` (주 LLM도 `LLM_STRUCTURED`, `LLM_EXTRA`로 같은 설정 가능) |
 | `RESET_TOKEN` | 시연 초기화(`/api/demo/reset`, `npm run smoke`) 비밀 값. 비우면 서버 컴퓨터 자신(localhost)에서만 초기화 가능. **배포 서버에는 꼭 넣기** |
 | `KAKAO_REST_API_KEY` | 카카오 로컬 REST API 키. 무료 장소 검색과 주소 → 좌표. 비우면 두 기능만 꺼짐 |
 
@@ -60,7 +61,18 @@ API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 �
 | 공급자 | `LLM_BASE_URL` | `LLM_MODEL` 예 |
 | --- | --- | --- |
 | Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-flash-lite` (2026-11 기준) |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| CLOVA Studio (예비) | `https://clovastudio.stream.ntruss.com/v1/openai` | `HCX-007` + 형식 강제 |
+
+**모델 선택 근거 (2026-11-18, `npm run prompt-eval` 테스트 문장 17개)**
+
+| 모델 | JSON 형식 | 속도 | 말투·개인화 | 쓰임 |
+| --- | --- | --- | --- | --- |
+| Gemini 3.1 Flash Lite | 17/17 | 1.5~5초 | 공감 후 다음 화면으로 이어 주고, 사용자 사정을 반영 | **주 LLM** |
+| CLOVA HCX-007 (형식 강제, 추론 끔) | 17/17 | 0.7~0.9초 (추천 2~3초) | 한 문장으로 짧고 일반적. 위기 판단은 정확(다소 예민) | **예비 LLM** |
+| CLOVA HCX-005, HCX-DASH-002 | 마음 확인·속마음 거의 실패 | 0.6~2초 | JSON 지시를 무시하고 문장으로 답함, 형식 강제 미지원 | 사용 안 함 |
+| NVIDIA Build 무료 모델들 | — | 13~30초 이상 | 대기열 때문에 시간 초과 | 사용 안 함 |
+
+주 LLM을 일부러 고장 낸 상태에서도 smoke 전체가 CLOVA만으로 통과합니다 (예비 호출 12/12 성공).
 
 모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요. 모델이 종료되면 404 "no longer available"이 나고 모든 답이 기본 답장으로 바뀝니다. 지금 쓸 수 있는 이름은 `GET {LLM_BASE_URL}/models`(키 필요)로 볼 수 있습니다.
 
