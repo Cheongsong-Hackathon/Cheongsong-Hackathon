@@ -11,7 +11,7 @@ import { EXPRESSIONS, useCharacterExpression, type Expression } from './Characte
 import { useOutfit } from './Outfit';
 
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험·가격·시간은 예시. 예약은 네이버에서</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험 내용은 예시예요. 가격·시간·예약은 네이버에서 확인해 줘</p>;
 
 /** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
 const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
@@ -68,7 +68,7 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
             <div className="grow">
               <strong>{p.active.title}</strong>
               <span className="meta">
-                오늘 {p.active.slotTime} · {p.active.placeName}
+                {p.active.placeName}
               </span>
               {p.active.mapUrl && (
                 <a className="small" href={p.active.mapUrl} target="_blank" rel="noopener noreferrer">
@@ -167,9 +167,8 @@ function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; c
         <strong>{item.title}</strong>
         <span className="meta">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-          {item.minutes}분 · 도보 {item.walkMinutes}분
+          도보 {item.walkMinutes}분
         </span>
-        <span className="price">{won(item.price)}</span>
         {children}
       </span>
     </button>
@@ -229,7 +228,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
         </>
       )}
       <p className="small center mute">
-        {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
+        {p.items.length > 0 && '추천 이유는 AI가 썼어요. 가격·시간은 네이버에서 확인해 줘. '}
         {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
@@ -238,8 +237,8 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 
 // ---------- 04 예약 확인 ----------
 export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string) => void }) {
-  const slots = p.item.availableSlots.length ? p.item.availableSlots : p.item.slots;
-  const [slot, setSlot] = useState<string | null>(slots[0] ?? null);
+  // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
+  const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
@@ -253,18 +252,6 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
           {p.item.placeName} · 도보 {p.item.walkMinutes}분
         </span>
         <p>{p.item.description}</p>
-        <h2 className="label">가려는 시간</h2>
-        <Chips label="시간" options={slots.map((s) => [s, s] as [string, string])} value={slot} onChange={setSlot} />
-        <div className="facts">
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-            오늘 {slot ?? '--:--'} · {p.item.minutes}분
-          </span>
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-            1인 {won(p.item.price)}
-          </span>
-        </div>
       </div>
       <button className="btn ghost" disabled>
         친구 초대하기 <small>준비 중</small>
@@ -293,7 +280,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
       <div className="card soft">
         <strong>{booking.title}</strong>
         <span>
-          가려는 시간 {booking.slotTime} · {booking.placeName}
+          {booking.placeName}
         </span>
       </div>
       {booking.mapUrl && (
@@ -301,7 +288,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
           네이버 지도 다시 열기 ↗
         </a>
       )}
-      <p className="center mute">다녀오면 홈에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
+      <p className="center mute">다녀오면 마이페이지에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
       <button className="btn big" onClick={onHome}>
         홈으로
       </button>

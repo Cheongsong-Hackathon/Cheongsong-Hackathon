@@ -82,8 +82,6 @@ export const NEED_CHOICES: { label: string; need: Need }[] = [
   { label: '누구랑 같이 있고 싶어', need: '연결' },
 ];
 const AFTER_RECOMMEND = ['좀 멀어', '너무 힘들 것 같아', '다른 거 보여 줘'];
-const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
-const kstHour = () => Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }));
 
 /** 추천에 대한 뻔한 반응은 AI가 놓쳐도 코드로 잡는다
  *  (실제로 AI가 "멀었구나"라고 답하면서 feedback은 "없음"으로 둔 적이 있음) */
@@ -141,25 +139,17 @@ export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, me
 }
 
 /** 묻지 않은 조건을 채운다: 말한 것 > 지난 기록 > 지금 상황 > 기본값. 무엇을 가정했는지 함께 돌려준다. */
-async function fillPrefs(userId: number, s: Stored): Promise<{ prefs: Prefs; assumed: string[] }> {
+// 체험의 소요 시간·가격은 제휴 전이라 확인되지 않은 예시값이다. 그래서 사용자가 시간·돈 얘기를 했을 때만 거르고,
+// 기본값(한 시간·2만원 안쪽)으로 몰래 거르지 않는다. 도보 거리는 실제 좌표로 계산하므로 기본값을 쓴다.
+async function fillPrefs(s: Stored): Promise<{ prefs: Prefs; assumed: string[] }> {
   const assumed: string[] = [];
-  let minutes = s.minutes;
-  if (!minutes) {
-    const late = kstHour() >= 21;
-    minutes = late ? 30 : 60;
-    assumed.push(late ? '늦었으니 30분 안쪽' : '한 시간 안쪽');
-  }
+  const minutes = s.minutes || Infinity;
   let walk = s.walk;
   if (!walk) {
     walk = 20;
     assumed.push('걸어서 20분 이내');
   }
-  let budget = s.budget;
-  if (!budget) {
-    const [{ max }] = await query<{ max: number | null }>(`SELECT max(price) AS max FROM bookings WHERE user_id = $1 AND status = 'DONE'`, [userId]);
-    budget = max ? Math.ceil(max / 10000) * 10000 : 20000;
-    assumed.push(max ? `지난번처럼 ${won(budget)} 안쪽` : `${won(budget)} 안쪽`);
-  }
+  const budget = s.budget || Infinity;
   return { prefs: { need: s.need ?? null, energy: s.energy ?? null, want: s.want ?? [], avoid: s.avoid ?? [], minutes, walk, budget }, assumed };
 }
 
@@ -183,7 +173,7 @@ async function withReasons(userId: number, message: string, prefs: Prefs, items:
     client,
     BUNNY_PROMPT + REASON_FORMAT,
     `${await memoryContext(userId)}친구가 방금 한 말: "${message}"\n읽어 낸 필요: ${prefs.need ?? '모름'}, 기운: ${prefs.energy ?? '모름'}\n후보: ${JSON.stringify(
-      top.map((c) => ({ id: c.id, title: c.title, 걸어서: `${c.walkMinutes}분`, 소요: `${c.minutes}분`, 근거: c.why })),
+      top.map((c) => ({ id: c.id, title: c.title, 걸어서: `${c.walkMinutes}분`, 근거: c.why })),
     )}`,
     ReasonOut,
   );
@@ -232,7 +222,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     return { status: 200, body: { sessionId: s.id, action: 'ask', reply, quickReplies: NEED_CHOICES.map((c) => c.label), ...support(s.prefs), ...(out ? {} : { fallback: true }) } };
   }
 
-  const { prefs, assumed } = await fillPrefs(userId, s.prefs);
+  const { prefs, assumed } = await fillPrefs(s.prefs);
   const { cands } = await nearbyCandidates(validLatLng(body?.lat, body?.lng));
   const done = await query<{ id: string; tags: string[]; before: number | null; after: number }>(
     `SELECT e.id, e.tags, b.mood_before AS before, b.mood_after AS after FROM bookings b JOIN experiences e ON e.id = b.experience_id
