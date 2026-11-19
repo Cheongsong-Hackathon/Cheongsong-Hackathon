@@ -106,8 +106,8 @@ function ExpBar({ exp }: { exp: number }) {
 export function Home(p: { ch: Character | null; onTalk: () => void }) {
   return (
     <div className="page mumu-home">
-      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무와 이야기하고 쉬다 올 곳 찾기">
-        <p className="mumu-home-bubble">오늘 어땠어?<br />근처에 30분 쉬다 올 데<br />같이 찾아볼까?</p>
+      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무와 이야기하고 기분 전환할 거리 찾기">
+        <p className="mumu-home-bubble">오늘 어땠어?<br />근처에서 기분 전환할 거리<br />같이 찾아볼까?</p>
         <Bunny size={230} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </button>
       <ExpBar exp={p.ch?.exp ?? 0} />

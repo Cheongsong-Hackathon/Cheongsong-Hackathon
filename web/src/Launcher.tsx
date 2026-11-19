@@ -195,12 +195,6 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
         </svg>
       </div>
 
-      <div className="widget" aria-hidden="true">
-        <span>무무 · 오늘의 작은 회복</span>
-        <strong>오늘 많이 지쳤지?</strong>
-        <span>무무한테 말해 주면, 가까운 데서 30분 쉬다 올 곳 찾아 줄게</span>
-      </div>
-
       <div className="grid">
         {apps(now).map((a) => (
           <Icon key={a.label} {...a} />
@@ -215,10 +209,10 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
           </svg>
           <span className="name">무무</span>
           <span className="tip">
-            <strong>클릭!</strong>
-            오늘 기분에 맞는 체험을
+            <strong>눌러 봐!</strong>
+            무무랑 얘기하면 근처에서
             <br />
-            가까운 곳에서 찾아 줘요
+            기분 전환할 거리를 찾아 줘요
           </span>
         </button>
       </div>
