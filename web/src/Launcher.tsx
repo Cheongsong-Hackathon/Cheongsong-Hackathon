@@ -196,13 +196,9 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
       </div>
 
       <div className="widget" aria-hidden="true">
-        <span>무무 · 오늘의 회복 제안</span>
-        <strong>
-          오늘 할 일 하나,
-          <br />
-          미뤄도 괜찮아요
-        </strong>
-        <span>대신 기분에 딱 맞는 30분을 찾아 줄게요</span>
+        <span>무무 · 오늘의 작은 회복</span>
+        <strong>오늘 많이 지쳤지?</strong>
+        <span>무무한테 말해 주면, 가까운 데서 30분 쉬다 올 곳 찾아 줄게</span>
       </div>
 
       <div className="grid">

@@ -53,7 +53,12 @@ const store = {
     } catch {}
   },
 };
-const GREETING: Msg = { who: 'bunny', text: '여기선 아무 얘기나 해도 돼. 오늘 마음에 걸리는 거 있어?' };
+// 첫마디는 눌러서 고를 수 있게 (지친 사람에게 빈 입력창부터 주지 않는다). 직접 써도 된다.
+const GREETING: Msg = {
+  who: 'bunny',
+  text: '오늘 기분이 어때? 알려 주면 근처에서 쉬다 올 데 찾아 줄게.',
+  quickReplies: ['지쳐서 조용히 쉬고 싶어', '답답해서 기분 전환하고 싶어', '심심해, 재밌는 거 없을까', '그냥 추천해 줘'],
+};
 
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 

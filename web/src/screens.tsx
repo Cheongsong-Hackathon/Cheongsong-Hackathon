@@ -101,14 +101,15 @@ function ExpBar({ exp }: { exp: number }) {
   );
 }
 
-/** 홈: 무무와 경험치. 무무를 누르면 대화 화면으로 */
+/** 홈: 무무가 먼저 묻는다 (목표는 체험, 무무는 입구). 누르면 대화 화면으로 */
 export function Home(p: { ch: Character | null; onTalk: () => void }) {
   return (
     <div className="page mumu-home">
-      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
-        <Bunny size={280} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무와 이야기하고 쉬다 올 곳 찾기">
+        <p className="mumu-home-bubble">오늘 어땠어?<br />근처에 30분 쉬다 올 데<br />같이 찾아볼까?</p>
+        <Bunny size={230} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </button>
-      {p.ch && <ExpBar exp={p.ch.exp} />}
+      <ExpBar exp={p.ch?.exp ?? 0} />
     </div>
   );
 }

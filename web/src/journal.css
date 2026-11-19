@@ -264,3 +264,8 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 .mumu-shop-strip::-webkit-scrollbar { display: none; }
 .mumu-shop-strip .mumu-shop-cell { flex: 0 0 84px; scroll-snap-align: center; }
 .mumu-shop-cell[aria-pressed='true'] { border-color: #9b7fc8; background: #e6dbf6; }
+
+/* 홈 말풍선: 무무가 먼저 묻는다 */
+.mumu-home-character { align-content: center; gap: 10px; }
+.mumu-home-bubble { position: relative; margin: 0; padding: 12px 18px; border-radius: 20px; background: #fff; box-shadow: 0 6px 18px #8063bb1f; color: var(--purple-d); font-size: 15px; font-weight: 700; line-height: 1.45; text-align: center; }
+.mumu-home-bubble::after { content: ''; position: absolute; left: 50%; bottom: -8px; width: 16px; height: 16px; background: #fff; transform: translateX(-50%) rotate(45deg); border-radius: 3px; }
