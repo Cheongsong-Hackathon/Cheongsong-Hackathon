@@ -8,7 +8,6 @@ import MumuShop from './MumuShop';
 import Bunny from './Bunny';
 import { MumuGrowthContext } from './MumuGrowth';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
-import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
 import { OutfitContext, nextOutfit, scarfStorageKey } from './Outfit';
 import {
@@ -219,12 +218,13 @@ export default function App() {
     setRecs({ items, free, widened: !!r.widened, seen: [...seen, ...items.map((i) => i.id)] });
   }
 
-  async function book(item: Item, slot: string | null) {
+  async function book(item: Item, slot: string | null, moodBefore: number | null = null) {
     setBusy(true);
     // 실시간 가게는 체험 DB에 없어서 가게 이름·좌표(공개 정보)를 같이 보낸다. 제목·종류는 서버가 정한다
     const r = await api.book({
       checkinId: checkin?.id ?? null,
       experienceId: item.id,
+      ...(moodBefore ? { moodBefore } : {}),
       ...(item.live ? { placeName: item.placeName, lat: item.lat, lng: item.lng } : { slotTime: slot ?? undefined }),
     });
     setBusy(false);
@@ -294,7 +294,7 @@ export default function App() {
   const homeScreen = requested ? (
     <Requested booking={requested} ch={ch} onHome={() => setRequested(null)} />
   ) : confirm ? (
-    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot)} />
+    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood)} />
   ) : recs ? (
     <Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
   ) : (
@@ -333,10 +333,9 @@ export default function App() {
                 <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
                   (confirm ? (
-                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot).then(() => setTab('home'))} />
+                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
                   ) : (
-                    <Explore items={explore} error={exploreError} onRetry={() => setTab('talk')} onPick={setConfirm}
-                      freePlaces={<FreePlaces position={position} locationKey={JSON.stringify(savedLocation) + consent} />} />
+                    <Explore items={explore} error={exploreError} onRetry={() => setTab('talk')} onPick={setConfirm} />
                   ))}
                 {tab === 'records' && (
                   recordsLoading || recordsError ? (

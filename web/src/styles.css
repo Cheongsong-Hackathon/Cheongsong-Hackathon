@@ -267,7 +267,6 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .custom-color { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
 .custom-color input { width: 64px; height: 44px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); cursor: pointer; }
 .arrival .btn { width: 100%; }
-.free-places { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .location-bar { padding: 12px 20px 0; }
 .location-picker { border-radius: 26px; padding: 14px 18px; font-family: inherit; }
 .location-picker.is-open { border-color: #cfc2f5; box-shadow: 0 6px 20px #5b3fc20d; }
@@ -345,3 +344,6 @@ a.card { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .place-photo { animation: none; } .place-photo > img { transition: none; } }
 .place-photo > small { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #0008; color: #fff; font-size: 12px; } /* 구글 정책: Google Maps 표시는 12px 이상, 흰색 */
 .place-photo > small a { color: inherit; }
+
+/* 답장 기다리는 동안 진행 상황 한 줄 */
+.waiting-step { align-self: center; margin-left: 6px; font-size: 12px; color: var(--mute); }

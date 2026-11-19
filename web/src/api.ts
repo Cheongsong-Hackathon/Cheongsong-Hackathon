@@ -111,7 +111,7 @@ export const api = {
     // items: 제휴 매장 체험 (내 위치 주변에 없으면 빈 배열), free: 같은 위치 기준 무료 장소
     call<{ items?: Item[]; free?: FreeRec[]; widened?: boolean; locationSource?: string }>('POST', '/recommend', b),
   experiences: (pos: LatLng | null) => call<{ items?: Item[] }>('GET', `/experiences${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
-  book: (b: { checkinId: number | null; experienceId: string; slotTime?: string; placeName?: string; lat?: number; lng?: number }) =>
+  book: (b: { checkinId: number | null; experienceId: string; slotTime?: string; moodBefore?: number; placeName?: string; lat?: number; lng?: number }) =>
     call<Booking>('POST', '/bookings', b),
   active: () => call<{ booking: Booking | null }>('GET', '/bookings/active'),
   // "도착했어": 지금 위치(getPos)를 보내면 매장 150m 안인지 확인. arrived:false여도 다녀왔어·기록은 그대로 가능

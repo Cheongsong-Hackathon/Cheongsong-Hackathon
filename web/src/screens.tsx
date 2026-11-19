@@ -11,25 +11,19 @@ import { EXPRESSIONS, useCharacterExpression, type Expression } from './Characte
 import { useOutfit } from './Outfit';
 
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험 내용은 예시예요. 가격·시간·예약은 네이버에서 확인해 줘</p>;
+export const DemoNote = () => <p className="notice">가격·영업시간·예약은 네이버에서 확인해 줘</p>;
 
 /** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
 const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
 
+/** 위쪽 뒤로 가기. 돌아갈 곳이 없으면 빈 줄을 남기지 않게 아무것도 그리지 않는다 */
 export function TopBar({ onBack }: { onBack?: () => void }) {
+  if (!onBack) return null;
   return (
     <header className="topbar">
-      {onBack ? (
-        <button className="icon-btn" onClick={onBack} aria-label="뒤로">
-          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
-        </button>
-      ) : (
-        <span className="icon-btn" />
-      )}
-      <span aria-hidden="true" />
-      <span className="icon-btn" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4" /></svg>
-      </span>
+      <button className="icon-btn" onClick={onBack} aria-label="뒤로">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
     </header>
   );
 }
@@ -237,14 +231,15 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 }
 
 // ---------- 04 예약 확인 ----------
-export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null) => void }) {
+export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null, moodBefore: number | null) => void }) {
   // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
   const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
+  const [mood, setMood] = useState<number | null>(null); // 체험 전 기분: 다녀온 뒤 "전 → 후"와 기분 기록에 쓴다 (안 골라도 됨)
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
       <h1 className="title">
-        예약 내용을 확인해 줘<span className="spark" aria-hidden="true">˚✧</span>
+        여기 가 볼래?<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
         <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} photo={p.item.photo} category={p.item.category} className="hero-art" credit />
@@ -254,15 +249,14 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
         </span>
         <p>{p.item.description}</p>
       </div>
-      <button className="btn ghost" disabled>
-        친구 초대하기 <small>준비 중</small>
-      </button>
+      <h2 className="label">지금 기분은 몇 점이야? <small className="mute">(다녀와서 비교해 줄게)</small></h2>
+      <Chips label="체험 전 기분" options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => [n, String(n)] as [number, string])} value={mood} onChange={setMood} />
       <button
         className="btn big"
         disabled={(!slot && !p.item.live) || p.busy}
         onClick={() => {
           openNaver(p.item.mapUrl);
-          p.onBook(slot);
+          p.onBook(slot, mood);
         }}
       >
         {p.busy ? '여는 중…' : '네이버에서 예약하기 ↗'}
@@ -358,8 +352,8 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
         {r.stageUp && <p className="pill solid">무무가 한 단계 자랐어</p>}
         {r.newItems.map((i) => (
           <p key={i.id} className="card soft">
-            <strong>{i.name}을(를) 얻었어!</strong>
-            <span className="meta">기록 탭에서 바꿔 씌울 수 있어.</span>
+            <strong>새 아이템 · {i.name}</strong>
+            <span className="meta">무무가 자랄 때마다 하나씩 생겨.</span>
           </p>
         ))}
         <button className="btn big" onClick={p.onClose}>
@@ -462,7 +456,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
         <span style={{ width: `${pct}%` }} />
       </div>
       <p className="small mute">
-        {c ? `${c.stage}단계 · ${c.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요` : '무무 정보를 불러오면 성장 단계를 볼 수 있어요.'}
+        {c ? `성장 모습 ${c.stage} / 5 · ${c.nextStageExp ? `다음 모습까지 ${c.nextStageExp - c.exp} EXP` : '다 자랐어'} · 쉬는 날에도 줄지 않아요` : '무무 정보를 불러오면 성장 모습을 볼 수 있어요.'}
       </p>
       {p.view !== 'shop' && <>{latest && (
         <div className="card">
@@ -543,9 +537,6 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
           </div>
         </>
       )}
-      <button className="btn ghost" disabled>
-        이웃 구경하기 <small>준비 중</small>
-      </button>
       <p className="small center mute">기록은 나만 볼 수 있어요.</p>
       {askDelete ? (
         <div className="card soft">
@@ -586,7 +577,7 @@ export function LoadState({ loading, message, onRetry }: { loading: boolean; mes
   );
 }
 
-export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void; freePlaces?: ReactNode }) {
+export function Explore({ items, error, onRetry, onPick }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void }) {
   return (
     <div className="page">
       <TopBar />
@@ -601,12 +592,12 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
           </ExpCard>
         ))}
       </div>
-      {items?.some((i) => i.photo) && (
+      {!!items?.length && (
         <p className="small center mute">
-          가게 사진은 <span translate="no">Google Maps</span>. 크게 보면 사진 올린 사람이 보여요.
+          추천 순서는 돈으로 바뀌지 않아요. 지금 기분과 거리만 봐요.
+          {items.some((i) => i.photo) && <> 가게 사진은 <span translate="no">Google Maps</span>.</>}
         </p>
       )}
-      {freePlaces}
     </div>
   );
 }
