@@ -6,6 +6,7 @@ import { validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
 import { placePhoto } from './services/googlePhoto.js';
+import { browse, parseNeed } from './services/browse.js';
 import { deleteMemory, listMemories } from './services/memory.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
@@ -63,6 +64,12 @@ api.get('/experiences', async (req, res) => {
   const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
   const { cands } = await nearbyCandidates(pos);
   res.json({ items: [...cands].sort((a, b) => a.walkMinutes - b.walkMinutes) });
+});
+
+// 둘러보기: 필요(쉬기·풀기 등)를 고르면 근처 실제 가게. 카카오·구글을 여러 번 불러서 IP당 분당 횟수를 막는다
+api.get('/browse', rateLimit('browse-ip', 30, byIp), async (req, res) => {
+  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
+  res.json({ items: await browse(pos, parseNeed(req.query.need)) });
 });
 
 // 무료 장소: 내 주변 카페·도서관·공원 (카카오 로컬). 예약 없음, 지도 링크만.

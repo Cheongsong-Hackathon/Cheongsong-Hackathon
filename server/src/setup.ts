@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { config } from './config.js';
 import { query, tx, type Q } from './db.js';
 import type { Tag } from './services/match.js';
+import { LIVE_KINDS } from './services/livePlaces.js';
 import { mmdd } from './services/memory.js';
 
 export async function migrate() {
@@ -9,7 +10,7 @@ export async function migrate() {
 }
 
 // 제휴 매장 (체험 모드): 영남대 경산캠퍼스 주변의 실제 매장 이름·위치 (카카오 로컬, 2026-11-17 조회).
-// 제휴 여부·체험 내용·가격·시간대는 시연용 예시이고 매장과 협의한 것이 아니다.
+// 제휴 여부·가격·시간대는 시연용 예시이고 매장과 협의한 것이 아니다 (분·가격은 화면에 보이지 않는다).
 // [id, 이름, 분류, 위도, 경도]  — 영남대에서 도보 11~25분
 const PLACES: [string, string, string, number, number][] = [
   ['cafe-som', '카페솜', '카페', 35.83762528785501, 128.75420010053088], // 754m
@@ -25,17 +26,20 @@ const PLACES: [string, string, string, number, number][] = [
 ];
 
 // [id, 매장, 제목, 그림, 분, 가격, 어울리는 감정, 필요한 에너지(%), 설명, 오늘 시간대]
-const EXPERIENCES: [string, string, string, string, number, number, string[], number, string, string[]][] = [
-  ['quiet-cafe', 'cafe-som', '조용한 카페에서 책 한 권', 'book', 30, 6000, ['지쳤어', '불안해'], 0, '음료 한 잔과 창가 자리. 아무 말 없이 머물러도 돼요.', ['11:00', '14:00', '16:30', '19:00']],
-  ['mini-pottery', 'tales-ceramic', '작은 도자기 만들기', 'pottery', 30, 18000, ['답답해', '지쳤어', '심심해'], 30, '손으로 흙을 만지며 작은 컵 하나를 빚어요.', ['13:30', '15:00', '18:00']],
-  ['my-scent', 'hyangmanga', '나만의 향 만들기', 'perfume', 30, 20000, ['지쳤어', '불안해'], 20, '좋아하는 향을 골라 30ml 향수를 만들어요.', ['11:00', '15:00', '19:30']],
-  ['mini-bouquet', 'rose-fleur', '미니 꽃다발 만들기', 'flower', 30, 12000, ['지쳤어', '심심해', '평온해'], 20, '오늘의 꽃 세 송이로 작은 다발을 묶어요.', ['12:00', '16:30', '18:00']],
-  ['calligraphy', 'sera-calli', '캘리그라피 한 글자', 'drawing', 30, 15000, ['답답해', '심심해', '평온해'], 20, '잘 쓰지 않아도 괜찮은, 한 글자부터 천천히 써 보는 시간.', ['14:00', '17:00', '20:00']],
-  ['candle', 'ermanas', '소이 캔들 만들기', 'candle', 60, 22000, ['불안해', '지쳤어', '평온해'], 20, '천천히 녹이고 붓고 기다리는 시간.', ['13:00', '17:30', '20:00']],
-  ['meditation', 'yoga-flower', '누워서 명상하기', 'meditation', 30, 10000, ['불안해', '지쳤어', '답답해'], 0, '누워서 숨소리만 들으면 되는 시간이에요.', ['11:30', '15:00', '18:30', '21:00']],
-  ['boardgame', 'hero-board', '보드게임 한 판', 'boardgame', 60, 8000, ['심심해', '답답해'], 40, '혼자 와도 직원이 같이 해 줘요.', ['14:00', '18:00', '20:30']],
-  ['karaoke', 'coin-karaoke', '코인노래방 몇 곡', 'karaoke', 30, 3000, ['답답해', '심심해', '지쳤어'], 50, '소리 내서 부르고 나면 조금 시원해져요.', ['11:00', '16:00', '19:00', '21:30']],
-  ['climbing', 'challenger', '볼더링 첫 체험', 'climbing', 90, 25000, ['답답해', '심심해'], 70, '장비 대여 포함. 처음이어도 쉬운 벽부터 해요.', ['15:00', '19:00']],
+// 제목·설명은 실시간 가게(LIVE_KINDS)처럼 그 업종에서 누구나 할 수 있는 일만 쓴다 (매장이 실제로 무엇을 하는지는 모름).
+// 같은 업종의 실시간 종류가 있으면 제목·그림·설명을 그대로 써서 똑같이 보이게 한다 (추천은 제목으로 중복을 거른다)
+const K = LIVE_KINDS;
+export const EXPERIENCES: [string, string, string, string, number, number, string[], number, string, string[]][] = [
+  ['quiet-cafe', 'cafe-som', K.cafe.title, K.cafe.art, 30, 6000, ['지쳤어', '불안해'], 0, K.cafe.description, ['11:00', '14:00', '16:30', '19:00']],
+  ['mini-pottery', 'tales-ceramic', K.pottery.title, K.pottery.art, 30, 18000, ['답답해', '지쳤어', '심심해'], 30, K.pottery.description, ['13:30', '15:00', '18:00']],
+  ['my-scent', 'hyangmanga', '향 공방 원데이 클래스', 'perfume', 30, 20000, ['지쳤어', '불안해'], 20, '향 만드는 원데이 클래스가 있는지 네이버에서 확인해 봐요.', ['11:00', '15:00', '19:30']],
+  ['mini-bouquet', 'rose-fleur', K.flower.title, K.flower.art, 30, 12000, ['지쳤어', '심심해', '평온해'], 20, K.flower.description, ['12:00', '16:30', '18:00']],
+  ['calligraphy', 'sera-calli', '캘리그라피 공방 원데이 클래스', 'drawing', 30, 15000, ['답답해', '심심해', '평온해'], 20, '써 보는 원데이 클래스가 있는지 네이버에서 확인해 봐요.', ['14:00', '17:00', '20:00']],
+  ['candle', 'ermanas', '캔들 공방 원데이 클래스', 'candle', 60, 22000, ['불안해', '지쳤어', '평온해'], 20, '캔들 만드는 원데이 클래스가 있는지 네이버에서 확인해 봐요.', ['13:00', '17:30', '20:00']],
+  ['meditation', 'yoga-flower', '요가원에서 몸 풀기', 'meditation', 30, 10000, ['불안해', '지쳤어', '답답해'], 0, '체험 수업이 있는지 네이버에서 확인해 봐요.', ['11:30', '15:00', '18:30', '21:00']],
+  ['boardgame', 'hero-board', K.board.title, K.board.art, 60, 8000, ['심심해', '답답해'], 40, K.board.description, ['14:00', '18:00', '20:30']],
+  ['karaoke', 'coin-karaoke', K.karaoke.title, K.karaoke.art, 30, 3000, ['답답해', '심심해', '지쳤어'], 50, K.karaoke.description, ['11:00', '16:00', '19:00', '21:30']],
+  ['climbing', 'challenger', K.climbing.title, K.climbing.art, 90, 25000, ['답답해', '심심해'], 70, K.climbing.description, ['15:00', '19:00']],
 ];
 
 // 체험 특징 태그 (services/match.ts의 TAGS). 실제 서비스에서는 제휴 매장이 체험을 등록할 때 직접 고른다.
@@ -89,8 +93,8 @@ async function seedDemoUser(q: Q) {
   const daysAgo = (n: number) => `now() - interval '${n} days'`; // n은 아래에 쓴 숫자만 (사용자 입력 아님)
   const dayLabel = (n: number) => mmdd(new Date(Date.now() - n * 86_400_000));
   const [{ id: uid }] = await q(`INSERT INTO users(nickname, client_key) VALUES ('시연', $1) RETURNING id`, [DEMO_USER_KEY]);
-  // 체험 2번(+20씩) + 미루기 1번(+5) = 45 → 2단계, 리본
-  await q(`INSERT INTO characters(user_id, level, exp, stage, items, equipped) VALUES ($1, 2, 45, 2, '["ribbon"]', 'ribbon')`, [uid]);
+  // 체험 2번(+20씩) + 미루기 1번(+5) = 45 → 3단계, 리본·목도리
+  await q(`INSERT INTO characters(user_id, level, exp, stage, items, equipped) VALUES ($1, 5, 45, 3, '["ribbon", "scarf"]', 'ribbon')`, [uid]);
 
   const checkin = async (n: number, text: string, emotion: string, energy: number, mood: number) =>
     (await q(`INSERT INTO checkins(user_id, text, emotion, energy, mood_score, risk, created_at) VALUES ($1,$2,$3,$4,$5,'NONE',${daysAgo(n)}) RETURNING id`, [uid, text, emotion, energy, mood]))[0].id;

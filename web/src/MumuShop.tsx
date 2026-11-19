@@ -31,7 +31,7 @@ function Wearing({ item, ch, size }: { item: ShopItem; ch: Character | null; siz
   return isClothes(item.kind) ? bunny : <AccessoryColorOverride item={item.kind as ColorItem} color={item.color}>{bunny}</AccessoryColorOverride>;
 }
 
-export default function MumuShop({ ch }: { ch: Character | null }) {
+export default function MumuShop({ ch, onBack }: { ch: Character | null; onBack: () => void }) {
   const [picked, setPicked] = useState<ShopItem | null>(null);
   const strip = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -41,7 +41,7 @@ export default function MumuShop({ ch }: { ch: Character | null }) {
   if (picked)
     return (
       <div className="mumu-shop-detail">
-        <button className="btn text" onClick={() => setPicked(null)}>‹ 무무샵</button>
+        <button className="btn text" onClick={() => setPicked(null)}>‹ 무무 옷장</button>
         <div className="mumu-shop-stage"><Wearing item={picked} ch={ch} size={230} /></div>
         <h2 className="title center">{picked.name}</h2>
         <p className="small center mute">입어 본 모습이에요 · 홈의 무무는 그대로예요</p>
@@ -57,7 +57,8 @@ export default function MumuShop({ ch }: { ch: Character | null }) {
 
   return (
     <div className="page mumu-shop">
-      <h1 className="title">무무샵</h1>
+      <button className="btn text back-link" onClick={onBack}>‹ 마이페이지</button>
+      <h1 className="title">무무 옷장</h1>
       <div className="mumu-shop-grid">
         {SHOP_GRID.map((it) => (
           <button key={it.id} className="mumu-shop-cell" onClick={() => setPicked(it)}>

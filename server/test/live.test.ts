@@ -69,3 +69,53 @@ test('설문 2위 전시·7위 셀프 사진관: 미술관·화랑, 즉석사진
   assert.ok(ph?.tags.includes('같이 하기'));
   assert.equal(LIVE_KINDS.museum.title, LIVE_KINDS.gallery.title); // 같은 "전시"라 종류 섞기에서 한 종류로 본다
 });
+
+test('무료로 쉬는 곳: 도서관·카페 (2026-11-19 영남대·동성로 카카오 검색 결과로 확인)', () => {
+  assert.ok(toLiveCandidate('library', doc({ place_name: '영남대학교 중앙도서관', category_name: '교육,학문 > 학습시설 > 도서관' })));
+  assert.ok(toLiveCandidate('library', doc({ place_name: '푸른도서관', category_name: '교육,학문 > 학습시설 > 도서관 > 작은도서관' })));
+  assert.equal(toLiveCandidate('library', doc({ place_name: '온누리장난감도서관 3호관', category_name: '가정,생활 > 유아 > 장난감,완구 > 장난감대여' })), null);
+  assert.equal(toLiveCandidate('library', doc({ place_name: '대구시청작은도서관 화장실', category_name: '가정,생활 > 화장실' })), null);
+  assert.ok(toLiveCandidate('cafe', doc({ place_name: '카페솜', category_name: '음식점 > 카페' })));
+  assert.ok(toLiveCandidate('cafe', doc({ place_name: '포포모모', category_name: '음식점 > 카페 > 테마카페 > 디저트카페' })));
+  // "카페"로 찾으면 섞이는 것: 보드게임카페·스터디카페·방탈출·PC방, 업종이 그냥 테마카페인 룸카페·방탈출
+  for (const category_name of [
+    '가정,생활 > 여가시설 > 보드카페', '서비스,산업 > 전문대행 > 공간대여 > 스터디카페,스터디룸', '가정,생활 > 여가시설 > 방탈출카페',
+    '가정,생활 > 여가시설 > 게임방,PC방', '음식점 > 카페 > 테마카페', '음식점 > 한식',
+  ])
+    assert.equal(toLiveCandidate('cafe', doc({ category_name })), null, category_name);
+  assert.equal(LIVE_KINDS.library.energyNeed, 0);
+  assert.deepEqual(LIVE_KINDS.cafe.tags, ['가만히 쉬기', '혼자 가능', '실내']);
+});
+
+test('그림 키: 새로 그린 그림으로', () => {
+  const art = Object.fromEntries(Object.entries(LIVE_KINDS).map(([k, v]) => [k, v.art]));
+  assert.deepEqual(
+    [art.bowling, art.photo, art.park, art.museum, art.gallery, art.library, art.cafe],
+    ['bowling', 'camera', 'park', 'gallery', 'gallery', 'library', 'cafe'],
+  );
+});
+
+test('예시 매장 체험: 매장이 실제로 하는지 모르는 말은 하지 않고, 같은 업종의 실시간 종류와 똑같이 보인다', async () => {
+  const { EXPERIENCES } = await import('../src/setup.js');
+  const byId = Object.fromEntries(EXPERIENCES.map((e) => [e[0], e]));
+  const same: Record<string, string> = { 'quiet-cafe': 'cafe', 'mini-pottery': 'pottery', 'mini-bouquet': 'flower', boardgame: 'board', karaoke: 'karaoke', climbing: 'climbing' };
+  for (const [id, kind] of Object.entries(same)) {
+    const [, , title, art, , , , , desc] = byId[id];
+    assert.deepEqual([title, art, desc], [LIVE_KINDS[kind].title, LIVE_KINDS[kind].art, LIVE_KINDS[kind].description], id);
+  }
+  assert.equal(byId['my-scent'][2], '향 공방 원데이 클래스');
+  assert.equal(byId.meditation[8], '체험 수업이 있는지 네이버에서 확인해 봐요.');
+  for (const e of EXPERIENCES) {
+    assert.doesNotMatch(e[2], /\d+분/, e[0]);
+    assert.doesNotMatch(e[8], /30ml|장비 대여|직원/, e[0]);
+  }
+});
+
+test('예시 매장 + 실시간 가게 합치기: 띄어쓰기만 다른 같은 가게는 예시 매장 쪽만 남김 (둘러보기·대화 공용)', async () => {
+  const { mergeCandidates } = await import('../src/services/livePlaces.js');
+  const db = toLiveCandidate('climbing', doc({ id: '1', place_name: '챌린져클라이밍센터 영대점', category_name: '스포츠,레저 > 클라이밍' }))!;
+  const dup = toLiveCandidate('climbing', doc({ id: '2', place_name: '챌린져 클라이밍센터영대점', category_name: '스포츠,레저 > 클라이밍' }))!;
+  const other = toLiveCandidate('karaoke', doc({ id: '3', place_name: 'Seven Star 노래방', category_name: '가정,생활 > 여가시설 > 노래방' }))!;
+  const out = mergeCandidates([{ ...db, live: undefined, id: 'climbing' }], [dup, other]);
+  assert.deepEqual(out.map((c) => c.id), ['climbing', other.id]); // 영문 s가 지워지지 않고, 띄어쓰기만 무시
+});

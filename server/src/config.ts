@@ -49,7 +49,7 @@ export const config = {
   RECOMMEND_MIN: 2, // 조건에 맞는 곳이 이보다 적으면 조건을 한 단계 넓힌다
   EXP_DONE: 20, // 체험을 다녀와서 기분을 기록하면
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
-  STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
+  STAGE_MIN_EXP: [0, 20, 40, 75, 120], // 1~5단계 시작 경험치 (화면의 무무 모습 5가지 MUMU_MILESTONES와 같게)
   ARRIVE_RADIUS_M: 150, // "도착했어": 장소에서 이 거리 안이면 방문 확인 (실내 GPS 오차를 감안해 넉넉히)
   // 요청 수 제한 (1분에). AI를 부르는 요청(마음 확인·추천·속마음)은 따로 더 좁게
   RATE_API_PER_IP: 300,
