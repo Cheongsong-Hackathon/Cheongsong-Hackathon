@@ -7,6 +7,7 @@ import { validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
+import { photoForItem } from './googlePhoto.js';
 import { liveCandidates } from './livePlaces.js';
 import { nearbyCandidates } from './recommend.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
@@ -101,6 +102,22 @@ export function keywordFeedback(message: string): (typeof FEEDBACK)[number] {
 /** 실내·바깥을 둘 다 피하면 모든 체험이 걸러진다: 모순이라 둘 다 뺀다 */
 const noContradiction = (avoid: Tag[]) => (avoid.includes('실내') && avoid.includes('바깥') ? avoid.filter((t) => t !== '실내' && t !== '바깥') : avoid);
 
+/** 피할 것은 말에 관련된 얘기가 있을 때만 받는다 (숫자 조건과 같은 원칙). 피할 것은 후보를 통째로 빼서, AI가 지어내면 0건이 된다
+ *  (실제로 "심심해, 재밌는 거 없을까"에서 AI가 실내·몸 쓰기·혼자 가능·손으로 만들기를 넣어 동성로에서 0건). "답답해"는 기분이라 실내와 무관 */
+const AVOID_HINT: Record<Tag, RegExp> = {
+  조용함: /조용|심심|지루|따분/,
+  '사람 많음': /사람|북적|붐비|혼잡|시끄/,
+  '혼자 가능': /같이|친구|함께|외로|혼자는/,
+  '같이 하기': /혼자|사람|낯가|어색/,
+  '손으로 만들기': /만들|손/,
+  '몸 쓰기': /몸|운동|땀|힘들|피곤|지쳤|지쳐|기운/,
+  '소리 내기': /시끄|소리|조용/,
+  '가만히 쉬기': /가만|지루|심심|움직/,
+  실내: /밖|바깥|바람|햇|야외|산책/,
+  바깥: /추워|추운|더워|더운|비 와|비와|눈 와|실내|안에서/,
+};
+const saidAvoid = (avoid: Tag[], message: string) => avoid.filter((t) => AVOID_HINT[t]?.test(message));
+
 export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, message = ''): Stored {
   // 키워드가 구체적인 반응(멀어·비싸·힘들어)을 잡으면 AI의 막연한 판단(다른거·별로·없음)보다 우선
   // (실제로 "좀 멀다"를 AI가 "다른거"로 분류해 거리 조건이 안 좁혀진 적이 있음)
@@ -117,7 +134,7 @@ export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, me
     need: out.need !== '모름' ? out.need : prev.need,
     energy: out.energy !== '모름' ? out.energy : prev.energy,
     want: [...new Set([...(prev.want ?? []), ...out.want])],
-    avoid: noContradiction([...new Set([...(prev.avoid ?? []), ...out.avoid])]),
+    avoid: noContradiction([...new Set([...(prev.avoid ?? []), ...saidAvoid(out.avoid, message)])]),
     // 숫자 조건은 사용자가 그 이야기를 했을 때만 받는다 (실제로 "좀 멀다"에서 AI가 예산 1만원을 지어낸 적이 있음)
     minutes: out.minutes > 0 && /분|시간|잠깐|금방|오래|짧게/.test(message) ? out.minutes : prev.minutes,
     // "멀다"는 정확한 거리가 아니라 "지난번보다 가깝게"라서 숫자를 받지 않고 아래 피드백 규칙으로만 (AI가 도보 10분을 붙여 아무것도 못 찾은 적이 있음)
@@ -247,7 +264,13 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     await save(s);
     return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: cands.length ? ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'] : [], ...support(s.prefs) } };
   }
-  const { items, fallback } = await withReasons(userId, message, prefs, ranked.items, client);
+  // 실제 사진은 AI가 이유를 쓰는 동안 같이 받아서 카드와 함께 보낸다 (화면이 그림을 띄웠다가 사진으로 바꾸지 않게)
+  const [reasoned, photos] = await Promise.all([
+    withReasons(userId, message, prefs, ranked.items, client),
+    Promise.all(ranked.items.slice(0, TALK_SHOW).map(photoForItem)),
+  ]);
+  const { fallback } = reasoned;
+  const items = reasoned.items.map((c, i) => ({ ...c, photo: photos[i] }));
   s.seen = [...new Set([...s.seen, ...items.map((i) => i.id)])];
   s.prefs.lastTop = { walk: items[0].walkMinutes, price: items[0].price, energyNeed: items[0].energyNeed };
   const reply = ranked.repeat

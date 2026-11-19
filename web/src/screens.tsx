@@ -162,7 +162,7 @@ export function ConditionSheet(p: { location?: ReactNode; reply: string; suggest
 function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
   return (
     <button className="card exp" onClick={onPick}>
-      <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} category={item.category} className="thumb" />
+      <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} photo={item.photo} category={item.category} className="thumb" />
       <span className="exp-body">
         <strong>{item.title}</strong>
         <span className="meta">
@@ -229,6 +229,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
       )}
       <p className="small center mute">
         {p.items.length > 0 && '추천 이유는 AI가 썼어요. 가격·시간은 네이버에서 확인해 줘. '}
+        {p.items.some((i) => i.photo) && <>가게 사진은 <span translate="no">Google Maps</span>. </>}
         {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
@@ -246,7 +247,7 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
         예약 내용을 확인해 줘<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
-        <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} category={p.item.category} className="hero-art" credit />
+        <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} photo={p.item.photo} category={p.item.category} className="hero-art" credit />
         <strong className="big-title">{p.item.title}</strong>
         <span className="meta">
           {p.item.placeName} · 도보 {p.item.walkMinutes}분
@@ -600,6 +601,11 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
           </ExpCard>
         ))}
       </div>
+      {items?.some((i) => i.photo) && (
+        <p className="small center mute">
+          가게 사진은 <span translate="no">Google Maps</span>. 크게 보면 사진 올린 사람이 보여요.
+        </p>
+      )}
       {freePlaces}
     </div>
   );

@@ -343,5 +343,5 @@ a.card { color: inherit; text-decoration: none; }
 .place-photo.loaded > img { opacity: 1; }
 @keyframes place-photo-wait { to { background: #f6f1fc; } }
 @media (prefers-reduced-motion: reduce) { .place-photo { animation: none; } .place-photo > img { transition: none; } }
-.place-photo > small { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #0008; color: #fff; font-size: 10px; }
+.place-photo > small { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #0008; color: #fff; font-size: 12px; } /* 구글 정책: Google Maps 표시는 12px 이상, 흰색 */
 .place-photo > small a { color: inherit; }

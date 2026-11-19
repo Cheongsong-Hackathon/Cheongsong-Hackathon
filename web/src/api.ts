@@ -1,4 +1,5 @@
 export type LatLng = { lat: number; lng: number };
+export type PlacePhoto = { uri: string; author: string; authorUri: string | null };
 export type Item = {
   id: string;
   title: string;
@@ -9,6 +10,7 @@ export type Item = {
   description: string;
   placeId?: string; // 실제 사진(구글)을 받을 때 쓴다
   hasPhoto?: boolean; // 사진 있는 매장: 그림 대신 사진 자리를 비워 두고 기다림
+  photo?: PlacePhoto | null; // 추천과 함께 온 실제 사진(구글). null이면 사진 없음 → 그림
   live?: boolean; // 실시간 검색(카카오)으로 찾은 가게: 시간대 없음, 기록할 때 가게 이름·좌표를 같이 보낸다
   lat?: number;
   lng?: number;

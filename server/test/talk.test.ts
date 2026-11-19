@@ -5,7 +5,7 @@ import { justPick, mergePrefs, TalkOut } from '../src/services/talk.js';
 const out = (o: Record<string, unknown> = {}) => TalkOut.parse({ reply: '', risk: 'NONE', ...o });
 
 test('대화에서 읽은 것을 합침: 새로 알게 된 것만 덮고, 모름·0은 이전 값 유지, 원함·피함은 누적', () => {
-  const p1 = mergePrefs({}, out({ need: '비우기', avoid: ['사람 많음'] }));
+  const p1 = mergePrefs({}, out({ need: '비우기', avoid: ['사람 많음'] }), '머리 비우고 싶어, 사람 많은 데는 싫어');
   assert.equal(p1.need, '비우기');
   const p2 = mergePrefs(p1, out({ need: '모름', want: ['조용함'], minutes: 30 }), '30분 정도면 돼');
   assert.equal(p2.need, '비우기');
@@ -76,4 +76,14 @@ test('피할 것에 실내와 바깥이 함께 있으면 둘 다 뺌 (모든 체
   const p = mergePrefs({}, out({ need: '쉬기', avoid: ['실내', '바깥', '사람 많음'] }), '사람 많은 데는 싫어');
   assert.deepEqual(p.avoid, ['사람 많음']);
   assert.equal(p.need, '쉬기');
+});
+
+test('피할 것은 말에 관련된 얘기가 있을 때만 받음: "심심해"에서 AI가 실내·몸 쓰기 등을 지어내 0건이 된 것 재현 (동성로)', () => {
+  const p = mergePrefs({}, out({ need: '즐기기', avoid: ['혼자 가능', '손으로 만들기', '몸 쓰기', '실내'] }), '심심해, 재밌는 거 없을까');
+  assert.deepEqual(p.avoid, []);
+  assert.equal(p.need, '즐기기');
+  const q = mergePrefs({}, out({ need: '쉬기', avoid: ['몸 쓰기', '사람 많음', '실내'] }), '너무 지쳐서 사람 많은 데는 싫어');
+  assert.deepEqual(q.avoid, ['몸 쓰기', '사람 많음']); // 지쳐서 → 몸 쓰기, 사람 많은 → 사람 많음. 실내는 말 안 함
+  const r = mergePrefs({}, out({ need: '풀기', avoid: ['실내'] }), '답답해서 기분 전환하고 싶어');
+  assert.deepEqual(r.avoid, []); // "답답해"는 기분이지 실내가 싫다는 말이 아님
 });

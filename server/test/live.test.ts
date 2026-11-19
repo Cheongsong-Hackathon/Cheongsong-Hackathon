@@ -43,3 +43,19 @@ test('가기로 한 곳 기록: 종류는 서버 목록에서만, 화면이 보�
   assert.equal(parseLiveBooking({ experienceId: 'live:board:1', placeName: 'x' }), null); // 좌표 없음
   assert.equal(parseLiveBooking({ experienceId: 'quiet-cafe' }), null); // 일반 체험은 여기 해당 없음
 });
+
+test('카카오 가게 ↔ 구글 장소: 80m 안이고 이름이 겹칠 때만 같은 가게 (이름만 보면 다른 가게가 걸림: 히어로보드게임 → 비둘기는멍청해보여)', async () => {
+  const { sameStore } = await import('../src/services/googlePhoto.js');
+  assert.equal(sameStore('세븐스타코인노래연습장 대구동성로점', '세븐스타 코인노래연습장', 30), true); // 지점명 차이
+  assert.equal(sameStore('펀잇 대구동성로점', '펀잇', 50), true);
+  assert.equal(sameStore('히어로보드게임카페 영남대점', '비둘기는멍청해보여', 40), false); // 가까워도 이름이 다름
+  assert.equal(sameStore('카페솜', '카페솜', 300), false); // 이름이 같아도 멀면 다른 지점
+});
+
+test('같은 가게 판정 완화: 문장부호 무시, 아주 가까우면(30m) 앞 4글자만 같아도 (천마볼링센타↔천마볼링장, 228↔2·28)', async () => {
+  const { sameStore } = await import('../src/services/googlePhoto.js');
+  assert.equal(sameStore('천마볼링센타', '천마볼링장', 7), true);
+  assert.equal(sameStore('228기념중앙공원 청소년광장', '2·28기념중앙공원', 62), true);
+  assert.equal(sameStore('천마볼링센타', '천마볼링장', 60), false); // 앞글자만 같으면 아주 가까울 때만
+  assert.equal(sameStore('펀잇 대구동성로점', '오티티프라이빗 동성로점', 20), false); // 지점명만 같은 건 다른 가게
+});
