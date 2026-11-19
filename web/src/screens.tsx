@@ -1,38 +1,33 @@
 import { checkinStorageKey, readCheckin, saveCheckin } from './homeCheckin';
 import MumuMotionControls, { useMumuMotion } from './MumuMotionControls';
+import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
+import PlaceArt from './PlaceArt';
 import Bunny from './Bunny';
 import { MUMU_FORMS, mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
-import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
 import { COLOR_ITEMS } from './AccessoryColors';
 import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
 import { useOutfit } from './Outfit';
 
 export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험·가격·시간은 예시. 예약은 네이버에서</p>;
+export const DemoNote = () => <p className="notice">가격·영업시간·예약은 네이버에서 확인해 줘</p>;
 
 /** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
 const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
 
+/** 위쪽 뒤로 가기. 돌아갈 곳이 없으면 빈 줄을 남기지 않게 아무것도 그리지 않는다 */
 export function TopBar({ onBack }: { onBack?: () => void }) {
+  if (!onBack) return null;
   return (
     <header className="topbar">
-      {onBack ? (
-        <button className="icon-btn" onClick={onBack} aria-label="뒤로">
-          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
-        </button>
-      ) : (
-        <span className="icon-btn" />
-      )}
-      <span aria-hidden="true" />
-      <span className="icon-btn" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4" /></svg>
-      </span>
+      <button className="icon-btn" onClick={onBack} aria-label="뒤로">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+      </button>
     </header>
   );
 }
@@ -71,7 +66,7 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
             <div className="grow">
               <strong>{p.active.title}</strong>
               <span className="meta">
-                오늘 {p.active.slotTime} · {p.active.placeName}
+                {p.active.placeName}
               </span>
               {p.active.mapUrl && (
                 <a className="small" href={p.active.mapUrl} target="_blank" rel="noopener noreferrer">
@@ -212,17 +207,16 @@ export function ConditionSheet(p: { location?: ReactNode; reply: string; suggest
 }
 
 // ---------- 03 경험 추천 ----------
-function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
+export function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
   return (
     <button className="card exp" onClick={onPick}>
-      <Art category={item.category} className="thumb" />
+      <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} photo={item.photo} category={item.category} className="thumb" />
       <span className="exp-body">
         <strong>{item.title}</strong>
         <span className="meta">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-          {item.minutes}분 · 도보 {item.walkMinutes}분
+          도보 {item.walkMinutes}분
         </span>
-        <span className="price">{won(item.price)}</span>
         {children}
       </span>
     </button>
@@ -282,7 +276,8 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
         </>
       )}
       <p className="small center mute">
-        {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
+        {p.items.length > 0 && '추천 이유는 AI가 썼어요. 가격·시간은 네이버에서 확인해 줘. '}
+        {p.items.some((i) => i.photo) && <>가게 사진은 <span translate="no">Google Maps</span>. </>}
         {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
@@ -290,45 +285,32 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 }
 
 // ---------- 04 예약 확인 ----------
-export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string) => void }) {
-  const slots = p.item.availableSlots.length ? p.item.availableSlots : p.item.slots;
-  const [slot, setSlot] = useState<string | null>(slots[0] ?? null);
+export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null, moodBefore: number | null) => void }) {
+  // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
+  const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
+  const [mood, setMood] = useState<number | null>(null); // 체험 전 기분: 다녀온 뒤 "전 → 후"와 기분 기록에 쓴다 (안 골라도 됨)
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
       <h1 className="title">
-        예약 내용을 확인해 줘<span className="spark" aria-hidden="true">˚✧</span>
+        여기 가 볼래?<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
-        <Art category={p.item.category} className="hero-art" />
+        <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} photo={p.item.photo} category={p.item.category} className="hero-art" credit />
         <strong className="big-title">{p.item.title}</strong>
         <span className="meta">
           {p.item.placeName} · 도보 {p.item.walkMinutes}분
         </span>
         <p>{p.item.description}</p>
-        <h2 className="label">가려는 시간</h2>
-        <Chips label="시간" options={slots.map((s) => [s, s] as [string, string])} value={slot} onChange={setSlot} />
-        <div className="facts">
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-            오늘 {slot ?? '--:--'} · {p.item.minutes}분
-          </span>
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-            1인 {won(p.item.price)}
-          </span>
-        </div>
       </div>
-      <button className="btn ghost" disabled>
-        친구 초대하기 <small>준비 중</small>
-      </button>
+      <h2 className="label">지금 기분은 몇 점이야? <small className="mute">(다녀와서 비교해 줄게)</small></h2>
+      <Chips label="체험 전 기분" options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => [n, String(n)] as [number, string])} value={mood} onChange={setMood} />
       <button
         className="btn big"
-        disabled={!slot || p.busy}
+        disabled={(!slot && !p.item.live) || p.busy}
         onClick={() => {
-          if (!slot) return;
           openNaver(p.item.mapUrl);
-          p.onBook(slot);
+          p.onBook(slot, mood);
         }}
       >
         {p.busy ? '여는 중…' : '네이버에서 예약하기 ↗'}
@@ -346,7 +328,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
       <div className="card soft">
         <strong>{booking.title}</strong>
         <span>
-          가려는 시간 {booking.slotTime} · {booking.placeName}
+          {booking.placeName}
         </span>
       </div>
       {booking.mapUrl && (
@@ -354,7 +336,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
           네이버 지도 다시 열기 ↗
         </a>
       )}
-      <p className="center mute">다녀오면 홈에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
+      <p className="center mute">다녀오면 마이페이지에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
       <button className="btn big" onClick={onHome}>
         홈으로
       </button>
@@ -424,8 +406,8 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
         {r.stageUp && <p className="pill solid">무무가 한 단계 자랐어</p>}
         {r.newItems.map((i) => (
           <p key={i.id} className="card soft">
-            <strong>{i.name}을(를) 얻었어!</strong>
-            <span className="meta">기록 탭에서 바꿔 씌울 수 있어.</span>
+            <strong>새 아이템 · {i.name}</strong>
+            <span className="meta">무무가 자랄 때마다 하나씩 생겨.</span>
           </p>
         ))}
         <button className="btn big" onClick={p.onClose}>
@@ -528,7 +510,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
         <span style={{ width: `${pct}%` }} />
       </div>
       <p className="small mute">
-        {c ? `${c.stage}단계 · ${c.nextStageExp ? `다음 단계까지 ${c.nextStageExp - c.exp}` : '끝까지 자랐어'} · 쉬는 날에도 줄지 않아요` : '무무 정보를 불러오면 성장 단계를 볼 수 있어요.'}
+        {c ? `성장 모습 ${c.stage} / 5 · ${c.nextStageExp ? `다음 모습까지 ${c.nextStageExp - c.exp} EXP` : '다 자랐어'} · 쉬는 날에도 줄지 않아요` : '무무 정보를 불러오면 성장 모습을 볼 수 있어요.'}
       </p>
       {p.view !== 'shop' && <>{latest && (
         <div className="card">
@@ -609,9 +591,6 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
           </div>
         </>
       )}
-      <button className="btn ghost" disabled>
-        이웃 구경하기 <small>준비 중</small>
-      </button>
       <p className="small center mute">기록은 나만 볼 수 있어요.</p>
       {askDelete ? (
         <div className="card soft">
@@ -652,7 +631,7 @@ export function LoadState({ loading, message, onRetry }: { loading: boolean; mes
   );
 }
 
-export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void; freePlaces?: ReactNode }) {
+export function Explore({ items, error, onRetry, onPick }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void }) {
   return (
     <div className="page">
       <TopBar />
@@ -667,7 +646,12 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
           </ExpCard>
         ))}
       </div>
-      {freePlaces}
+      {!!items?.length && (
+        <p className="small center mute">
+          추천 순서는 돈으로 바뀌지 않아요. 지금 기분과 거리만 봐요.
+          {items.some((i) => i.photo) && <> 가게 사진은 <span translate="no">Google Maps</span>.</>}
+        </p>
+      )}
     </div>
   );
 }
@@ -688,14 +672,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">우울해서 빵 사는 대신,<br />기분에 딱 맞는 활동을 찾아줄게</p>
       </div>
-      <ol className="points">
-        <li><b>1</b><span><strong>마음읽기</strong>나에게 힘든일 다 털어놔</span></li>
-        <li><b>2</b><span><strong>활동 찾기</strong>너의 기분에 맞게 활동을 추천해줄게</span></li>
-        <li><b>3</b><span><strong>기록</strong>예약하고 다녀와서 감정 변화를 남겨봐</span></li>
-        <li><b>4</b><span><strong>무무 키우기</strong>나를 귀엽게 키워봐</span></li>
-      </ol>
       <button className="btn big" onClick={onStart}>시작하기</button>
     </div>
   );

@@ -178,7 +178,8 @@ test('마음 확인 입력 정리', () => {
 });
 
 test('성장: 단계 경계와 아이템 해금', () => {
-  assert.deepEqual([0, 19, 20, 59, 60, 119, 120].map(stageOf), [1, 1, 2, 2, 3, 3, 4]);
+  assert.deepEqual([0, 19, 20, 39, 40, 74, 75, 119, 120, 999].map(stageOf), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]); // 화면의 무무 모습 5단계와 같게
+  assert.deepEqual(itemsUnlockedBetween(1, 5).map((i) => i.id), ['ribbon', 'scarf', 'beret']);
   assert.deepEqual(itemsUnlockedBetween(1, 2).map((i) => i.id), ['ribbon']);
   assert.deepEqual(itemsUnlockedBetween(1, 4).map((i) => i.id), ['ribbon', 'scarf', 'beret']);
   assert.deepEqual(itemsUnlockedBetween(2, 2), []);
@@ -207,4 +208,31 @@ test('추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가�
   assert.deepEqual(pickFree([fp('공원', '공원', 18)], 10).map((p) => p.name), ['공원']); // 10분 안에 없으면 20분까지
   assert.deepEqual(pickFree([fp('공원', '공원', 25)], 10), []);
   assert.deepEqual(pickFree([], 20), []);
+});
+test('사진 있는 매장만 hasPhoto: 화면이 그림을 먼저 띄웠다가 사진으로 바꾸지 않게 (키 없으면 전부 false)', async () => {
+  const { config } = await import('../src/config.js');
+  const { hasPhoto } = await import('../src/services/googlePhoto.js');
+  const saved = config.googlePlacesKey;
+  config.googlePlacesKey = 'test-key';
+  assert.equal(hasPhoto('cafe-som'), true);
+  assert.equal(hasPhoto('hero-board'), false);
+  config.googlePlacesKey = '';
+  assert.equal(hasPhoto('cafe-som'), false);
+  config.googlePlacesKey = saved;
+});
+
+test('체험 전 기분: 예약할 때 고른 값이 먼저, 없거나 틀리면 마음 확인 점수', async () => {
+  const { moodBeforeOf } = await import('../src/services/booking.js');
+  assert.equal(moodBeforeOf({ moodBefore: 7 }, { mood_score: 3 }), 7);
+  assert.equal(moodBeforeOf({ moodBefore: 11 }, { mood_score: 3 }), 3);
+  assert.equal(moodBeforeOf({ moodBefore: '7' }, undefined), null);
+  assert.equal(moodBeforeOf({}, { mood_score: null }), null);
+});
+
+test('미루기 경험치: 하루(한국 시간)에 한 번만', async () => {
+  const { postponeExp } = await import('../src/services/booking.js');
+  const { config } = await import('../src/config.js');
+  assert.equal(postponeExp(0), config.EXP_POSTPONE);
+  assert.equal(postponeExp(1), 0);
+  assert.equal(postponeExp(3), 0);
 });

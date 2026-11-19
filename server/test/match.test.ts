@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { historyEffects, rankForPrefs, type Prefs, type TaggedCandidate } from '../src/services/match.js';
+import { historyEffects, rankForPrefs, rankFresh, type Prefs, type TaggedCandidate } from '../src/services/match.js';
 
 const c = (id: string, tags: string[], o: Partial<TaggedCandidate> = {}): TaggedCandidate => ({
   id, title: id, category: id, minutes: 30, price: 10000, moods: [], energyNeed: 20, description: '', placeId: 'p', slots: ['19:00'],
@@ -82,4 +82,37 @@ test('필요 6분류의 경계: 몰입은 해내는 것(조용히 있기만 하�
 test('기운이 없으면 힘든 체험은 점수가 깎여 빠짐', () => {
   const r = rankForPrefs(CANDS, p({ need: '풀기', energy: '거의 없음' }));
   assert.ok(!ids(r).includes('climbing'));
+});
+
+test('"다른 거 보여 줘"를 계속 눌러 맞는 걸 다 봤으면: 빈 결과 대신 본 것 중에서 다시 (막다른 길 재현, 2026-11-19)', () => {
+  const first = rankForPrefs(CANDS, p({ need: '비우기' }));
+  const seen = ids(first);
+  assert.equal(rankForPrefs(CANDS, p({ need: '비우기' }), undefined, seen).items.length, 0); // 지금 동작: 아무것도 없음
+  const r = rankFresh(CANDS, p({ need: '비우기' }), undefined, seen);
+  assert.ok(r.items.length > 0);
+  assert.equal(r.repeat, true);
+});
+
+test('새로 보여 줄 게 있으면 본 것은 빼고, 다시 보여 주기 표시도 없음', () => {
+  const r = rankFresh(CANDS, p({ need: '비우기' }), undefined, ['meditation']);
+  assert.ok(!ids(r).includes('meditation'));
+  assert.equal(r.repeat, false);
+});
+
+test('근처에 체험이 하나도 없으면(다른 동네) 다시 보여 줄 것도 없음', () => {
+  const r = rankFresh([], p({ need: '쉬기' }), undefined, ['meditation']);
+  assert.equal(r.items.length, 0);
+});
+
+test('기운을 모를 때(말 안 함) "풀기"에도 노래방이 나옴: 낮음으로 보면 풀기 체험이 전부 빠졌음 ([답답해서 기분 전환하고 싶어] 버튼 재현)', () => {
+  const r = rankForPrefs(CANDS, p({ need: '풀기', energy: null }));
+  assert.ok(ids(r).includes('karaoke'), ids(r).join());
+});
+
+test('같은 종류(제목)가 여러 곳이면 종류마다 한 곳씩 먼저: 코인노래방 2곳 + 볼링 → 노래방, 볼링, 노래방 (동성로 재현)', () => {
+  const k1 = c('k1', ['소리 내기', '혼자 가능', '실내'], { title: '코인노래방 몇 곡', walkMinutes: 3, energyNeed: 50 });
+  const k2 = c('k2', ['소리 내기', '혼자 가능', '실내'], { title: '코인노래방 몇 곡', walkMinutes: 3, energyNeed: 50 });
+  const bw = c('bw', ['몸 쓰기', '같이 하기', '실내'], { title: '볼링 한 게임', walkMinutes: 4, energyNeed: 50 });
+  const r = rankFresh([k1, k2, bw], p({ need: '풀기', energy: '보통' }));
+  assert.deepEqual(ids(r), ['k1', 'bw', 'k2']);
 });

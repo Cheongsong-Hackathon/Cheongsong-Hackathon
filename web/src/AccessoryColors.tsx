@@ -50,3 +50,9 @@ export function AccessoryColorsPreviewProvider({ children }: { children: ReactNo
   const [colors, update] = useState<Colors>(() => ({ ...current.colors }));
   return <Context.Provider value={{ colors, setColor: (item, color) => { if (valid(color)) update(previous => ({ ...previous, [item]: color })); } }}>{children}</Context.Provider>;
 }
+
+/** 무무샵 미리보기: 액세서리 하나의 색만 잠깐 바꿔 그린다 (저장 안 함) */
+export function AccessoryColorOverride({ item, color, children }: { item: ColorItem; color: string; children: ReactNode }) {
+  const current = useAccessoryColors();
+  return <Context.Provider value={{ ...current, colors: { ...current.colors, [item]: color } }}>{children}</Context.Provider>;
+}

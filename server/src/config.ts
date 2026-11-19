@@ -36,6 +36,7 @@ export const config = {
   llm: llm('LLM'),
   llmFallback: llm('LLM_FALLBACK'),
   kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표. 비우면 두 기능만 꺼진다
+  googlePlacesKey: env.GOOGLE_PLACES_KEY ?? '', // 제휴 매장 실제 사진. 비우면 지금 그림 그대로
   // 시연 초기화(/api/demo/reset) 비밀 값. 비우면 이 컴퓨터(localhost)에서만 초기화할 수 있다
   resetToken: env.RESET_TOKEN ?? '',
 
@@ -48,7 +49,7 @@ export const config = {
   RECOMMEND_MIN: 2, // 조건에 맞는 곳이 이보다 적으면 조건을 한 단계 넓힌다
   EXP_DONE: 20, // 체험을 다녀와서 기분을 기록하면
   EXP_POSTPONE: 5, // 오늘 할 일 하나 미루기
-  STAGE_MIN_EXP: [0, 20, 60, 120], // 1~4단계 시작 경험치
+  STAGE_MIN_EXP: [0, 20, 40, 75, 120], // 1~5단계 시작 경험치 (화면의 무무 모습 5가지 MUMU_MILESTONES와 같게)
   ARRIVE_RADIUS_M: 150, // "도착했어": 장소에서 이 거리 안이면 방문 확인 (실내 GPS 오차를 감안해 넉넉히)
   // 요청 수 제한 (1분에). AI를 부르는 요청(마음 확인·추천·속마음)은 따로 더 좁게
   RATE_API_PER_IP: 300,

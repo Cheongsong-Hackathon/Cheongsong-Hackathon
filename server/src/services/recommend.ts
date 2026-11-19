@@ -4,6 +4,7 @@ import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
 import { freePlaces, naverMapUrl, pickFree } from './kakao.js';
+import { hasPhoto } from './googlePhoto.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
 import { memoryContext } from './memory.js';
 
@@ -32,6 +33,8 @@ export type Candidate = Experience & {
   walkMinutes: number;
   availableSlots: string[];
   mapUrl: string; // 예약하기: 네이버 지도에서 매장을 열어 거기서 예약 (우리 앱은 예약을 확정하지 않음)
+  hasPhoto: boolean; // 실제 사진(구글)이 있는 매장: 화면이 그림 대신 사진 자리를 비워 두고 기다림
+  live?: boolean; // 실시간 검색(카카오)으로 찾은 가게: 체험 DB에 없고 시간대·가격을 모름 (livePlaces.ts)
 };
 export type Cond = { minutes: number; walk: number; budget: number; energy: number; emotion: string | null };
 export type Item = Candidate & { reason: string; surprise?: boolean };
@@ -53,7 +56,7 @@ export function toCandidates(exps: Experience[], places: Place[], now: string | 
     const p = byId.get(e.placeId);
     if (!p || p.distanceM == null) return [];
     const walk = walkMinutes(p.distanceM);
-    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk), mapUrl: naverMapUrl(p.name) }];
+    return [{ ...e, placeName: p.name, lat: p.lat, lng: p.lng, distanceM: p.distanceM, walkMinutes: walk, availableSlots: availableSlots(e.slots, now, walk), mapUrl: naverMapUrl(p.name), hasPhoto: hasPhoto(e.placeId) }];
   });
 }
 
@@ -87,6 +90,7 @@ const DEFAULT_REASON = '지금 조건에 맞고 가까워서 골라 봤어.';
 // LLM이 없거나 이유를 비워 보냈을 때 쓰는 체험별 기본 이유
 const REASON_BY_CATEGORY: Record<string, string> = {
   book: '말 없이 머물러도 되는 곳이라 지친 날에 딱이야.',
+  cafe: '따뜻한 거 한 잔 앞에 두고 말 없이 머물러도 돼.',
   pottery: '손으로 흙을 만지다 보면 머릿속이 잠깐 조용해져.',
   perfume: '좋아하는 향을 고르다 보면 마음이 조금 풀릴 거야.',
   flower: '꽃을 고르는 30분이 생각보다 기분을 바꿔 줘.',

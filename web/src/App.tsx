@@ -1,3 +1,5 @@
+import MumuBrand from './MumuBrand';
+import type { CheckinForm } from './screens';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
@@ -5,11 +7,10 @@ import { sendTalk } from './talkClient';
 import Launcher from './Launcher';
 import Journal from './Journal';
 import MumuShop from './MumuShop';
+import Browse from './Browse';
 import Bunny from './Bunny';
 import { MumuGrowthContext } from './MumuGrowth';
-import MumuBrand from './MumuBrand';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
-import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
 import { OutfitContext, nextOutfit, scarfStorageKey } from './Outfit';
 import {
@@ -28,12 +29,11 @@ import {
   Requested,
   Safety,
   LoadState,
-  type CheckinForm,
   type Conditions,
   type PartyResult,
 } from './screens';
 
-type Tab = 'shop' | 'profile' | 'home' | 'explore' | 'journal' | 'records' | 'talk';
+type Tab = 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'shop', label: '무무샵', icon: 'M3 9l2-5h14l2 5M4 10v10h16V10M8 20v-7h8v7' },
   { id: 'home', label: '홈', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
@@ -54,7 +54,12 @@ const store = {
     } catch {}
   },
 };
-const GREETING: Msg = { who: 'bunny', text: '여기선 아무 얘기나 해도 돼. 오늘 마음에 걸리는 거 있어?' };
+// 첫마디는 눌러서 고를 수 있게 (지친 사람에게 빈 입력창부터 주지 않는다). 직접 써도 된다.
+const GREETING: Msg = {
+  who: 'bunny',
+  text: '오늘 기분이 어때? 알려 주면 근처에서 할 만한 걸 찾아 줄게.',
+  quickReplies: ['지쳐서 조용히 쉬고 싶어', '답답해서 기분 전환하고 싶어', '심심해, 재밌는 거 없을까', '그냥 추천해 줘'],
+};
 
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 
@@ -178,6 +183,9 @@ export default function App() {
     setExploreError('');
     setRecs(null);
     setConfirm(null);
+    // 장소가 바뀌면 대화도 새로: 이전 동네에서 읽은 조건·이미 본 체험을 끌고 가지 않는다
+    setMsgs([GREETING]);
+    setSessionId(null);
     if (value && !consent) answerConsent(false);
   }
 
@@ -226,9 +234,15 @@ export default function App() {
     setRecs({ items, free, widened: !!r.widened, seen: [...seen, ...items.map((i) => i.id)] });
   }
 
-  async function book(item: Item, slot: string) {
+  async function book(item: Item, slot: string | null, moodBefore: number | null = null) {
     setBusy(true);
-    const r = await api.book({ checkinId: checkin?.id ?? null, experienceId: item.id, slotTime: slot });
+    // 실시간 가게는 체험 DB에 없어서 가게 이름·좌표(공개 정보)를 같이 보낸다. 제목·종류는 서버가 정한다
+    const r = await api.book({
+      checkinId: checkin?.id ?? null,
+      experienceId: item.id,
+      ...(moodBefore ? { moodBefore } : {}),
+      ...(item.live ? { placeName: item.placeName, lat: item.lat, lng: item.lng } : { slotTime: slot ?? undefined }),
+    });
     setBusy(false);
     if (r.blocked) return enterSafety();
     if (r.code !== 200) return notify(r.error ?? '가기로 한 체험을 기록하지 못했어.');
@@ -296,7 +310,7 @@ export default function App() {
   const homeScreen = requested ? (
     <Requested booking={requested} ch={ch} onHome={() => setRequested(null)} />
   ) : confirm ? (
-    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot)} />
+    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood)} />
   ) : recs ? (
     <Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
   ) : (
@@ -335,25 +349,31 @@ export default function App() {
               <main className="screen" ref={screenRef}>
                 {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '무무와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
-                {tab === 'shop' && <MumuShop ch={ch} />}
+                {tab === 'shop' && <MumuShop ch={ch} onBack={() => setTab('profile')} />}
+                {tab === 'browse' &&
+                  (confirm ? (
+                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
+                  ) : (
+                    <Browse position={position} locationKey={JSON.stringify(savedLocation) + consent} onPick={setConfirm} />
+                  ))}
                 {tab === 'profile' && <div className="page mumu-profile"><h1 className="title">마이페이지</h1>
                   {profileLocation ? <><button className="btn text" onClick={() => setProfileLocation(false)}>‹ 마이페이지로</button><h2 className="label">현재 내 장소</h2>{locationPicker}</> : <>
                     <div className="card mumu-profile-hero"><Bunny size={110} stage={ch?.stage ?? 1} layerScarf item={ch?.equipped ?? null} /><div><h2>무무와 나의 하루 ♡</h2><p>작은 경험이 쌓이는 나만의 공간</p></div></div>
                     <ActiveExperience active={active} onComplete={b => setSheet({ kind: 'complete', booking: b })} onArrivalConfirmed={refresh} onCancel={async b => { const r = await api.cancel(b.id); if (r.code !== 200) return notify(r.error ?? '취소하지 못했어.'); refresh(); }} />
                     <section className="card"><h2 className="label">도감</h2><div className="row two"><button className="btn" onClick={() => { setJournalStart('record'); setJournalKey(k => k + 1); setTab('journal'); }}>＋ 새 도감 만들기</button><button className="btn ghost" onClick={() => { setJournalStart('library'); setJournalKey(k => k + 1); setTab('journal'); }}>▤ 도감 내역</button></div></section>
                     <button className="btn text" onClick={() => setSheet({ kind: 'postpone' })}>오늘 할 일 하나 미루기</button>
+                    <button className="card mumu-profile-link" onClick={() => setTab('shop')}><span className="eyebrow">🎀 무무 옷장</span><strong>무무에게 입혀 보기</strong><span className="meta">다녀올수록 하나씩 늘어나요 ›</span></button>
                     <button className="card mumu-profile-link" onClick={() => setTab('records')}><span className="eyebrow">♡ 기분 기록</span><strong>지금까지 쌓아온 나의 마음</strong><span className="meta">이번 주 기분과 다녀온 체험 보기 ›</span></button>
                     <button className="card mumu-profile-link" onClick={() => setProfileLocation(true)}><span className="eyebrow">📍 현재 내 장소</span><strong>{savedLocation?.label ?? (consent === 'yes' ? '현재 위치 기준' : '기본 동네 기준')}</strong><span className="meta">장소 확인하고 바꾸기 ›</span></button>
                   </>}
                 </div>}
                 {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
-                <div hidden={tab !== 'home'}>{homeScreen}</div>
+                <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
                   (confirm ? (
-                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot).then(() => setTab('home'))} />
+                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
                   ) : (
-                    <Explore items={explore} error={exploreError} onRetry={() => setTab('talk')} onPick={setConfirm}
-                      freePlaces={<FreePlaces position={position} locationKey={JSON.stringify(savedLocation) + consent} />} />
+                    <Explore items={explore} error={exploreError} onRetry={() => setTab('talk')} onPick={setConfirm} />
                   ))}
                 {tab === 'records' && (
                   recordsLoading || recordsError ? (
