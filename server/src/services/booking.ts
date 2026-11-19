@@ -10,6 +10,10 @@ import { isSafeMode, SAFETY_BLOCK } from './safety.js';
 
 const fail = (status: number, error: string) => ({ status, body: { error } });
 const mood = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 10 ? v : null);
+/** 체험 전 기분: 예약할 때 고른 값이 먼저, 없으면 마음 확인 점수 */
+export const moodBeforeOf = (body: any, ck?: { mood_score: number | null }) => mood(body?.moodBefore) ?? ck?.mood_score ?? null;
+/** 미루기 경험치는 하루(한국 시간)에 한 번만. 오늘 이미 미룬 횟수를 받는다 */
+export const postponeExp = (todayCount: number) => (todayCount > 0 ? 0 : config.EXP_POSTPONE);
 
 const BOOKING_COLS = `b.id, b.status, b.slot_time AS "slotTime", b.price, b.mood_before AS "moodBefore", b.mood_after AS "moodAfter",
   b.created_at AS "createdAt", b.completed_at AS "completedAt", b.arrived_at AS "arrivedAt", e.id AS "experienceId", e.title, e.category, e.minutes,
@@ -43,7 +47,7 @@ export async function createBooking(userId: number, body: any) {
     await q(`UPDATE bookings SET status = 'CANCELED' WHERE user_id = $1 AND status = 'REQUESTED'`, [userId]);
     const [b] = await q(
       `INSERT INTO bookings(user_id, checkin_id, experience_id, slot_time, price, mood_before) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
-      [userId, ck?.id ?? null, exp.id, slot, exp.price, ck?.mood_score ?? null],
+      [userId, ck?.id ?? null, exp.id, slot, exp.price, moodBeforeOf(body, ck)],
     );
     return b.id as number;
   });
@@ -59,7 +63,7 @@ async function createLiveBooking(userId: number, body: any) {
     await q(`UPDATE bookings SET status = 'CANCELED' WHERE user_id = $1 AND status = 'REQUESTED'`, [userId]);
     const [b] = await q(
       `INSERT INTO bookings(user_id, checkin_id, price, mood_before, live_kind, live_place, live_lat, live_lng) VALUES ($1,$2,0,$3,$4,$5,$6,$7) RETURNING id`,
-      [userId, ck?.id ?? null, ck?.mood_score ?? null, live.kind, live.placeName, live.lat, live.lng],
+      [userId, ck?.id ?? null, moodBeforeOf(body, ck), live.kind, live.placeName, live.lat, live.lng],
     );
     return b.id as number;
   });
@@ -138,8 +142,13 @@ export async function postpone(userId: number, body: any) {
   const task = typeof body?.task === 'string' ? body.task.trim().slice(0, 100) : '';
   if (!task) return fail(400, '미룰 일을 하나 적어 줘.');
   const g = await tx(async (q) => {
+    await q(`SELECT 1 FROM characters WHERE user_id = $1 FOR UPDATE`, [userId]); // 동시에 두 번 눌러도 한 번만 받게
+    const [{ n }] = await q(
+      `SELECT count(*)::int AS n FROM postpones WHERE user_id = $1 AND (created_at AT TIME ZONE 'Asia/Seoul')::date = (now() AT TIME ZONE 'Asia/Seoul')::date`,
+      [userId],
+    );
     await q(`INSERT INTO postpones(user_id, task) VALUES ($1,$2)`, [userId, task]);
-    return GrowthService.grant(q, userId, config.EXP_POSTPONE);
+    return GrowthService.grant(q, userId, postponeExp(n)); // 0이면 경험치는 그대로, 응답 모양만 같다
   });
   return { status: 200, body: { reply: `"${task}"는 내일의 너한테 맡기자. 조금은 쉬어가도 괜찮아.`, ...g } };
 }
@@ -148,12 +157,16 @@ export async function records(userId: number) {
   const done = (
     await query<any>(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.user_id = $1 AND b.status = 'DONE' ORDER BY b.completed_at DESC LIMIT 50`, [userId])
   ).map(fillLive);
-  // 최근 7일 마음 기록: 그날 남긴 기분 점수(마음 확인 + 체험 후)의 평균
+  // 최근 7일 마음 기록: 그날 남긴 기분 점수(마음 확인 + 체험 전 + 체험 후)의 평균.
+  // 체험 전 기분이 마음 확인 점수를 그대로 옮긴 것이면 두 번 세지 않는다
   const week = await query(
     `WITH days AS (SELECT ((now() AT TIME ZONE 'Asia/Seoul')::date - i) AS day FROM generate_series(0, 6) i),
           m AS (SELECT (created_at AT TIME ZONE 'Asia/Seoul')::date AS day, mood_score AS v FROM checkins WHERE user_id = $1 AND mood_score IS NOT NULL
                 UNION ALL
-                SELECT (completed_at AT TIME ZONE 'Asia/Seoul')::date, mood_after FROM bookings WHERE user_id = $1 AND status = 'DONE')
+                SELECT (completed_at AT TIME ZONE 'Asia/Seoul')::date, mood_after FROM bookings WHERE user_id = $1 AND status = 'DONE'
+                UNION ALL
+                SELECT (b.created_at AT TIME ZONE 'Asia/Seoul')::date, b.mood_before FROM bookings b LEFT JOIN checkins c ON c.id = b.checkin_id
+                WHERE b.user_id = $1 AND b.mood_before IS NOT NULL AND b.mood_before IS DISTINCT FROM c.mood_score)
      SELECT to_char(days.day, 'YYYY-MM-DD') AS date, extract(isodow FROM days.day)::int AS dow, round(avg(m.v))::int AS mood
      FROM days LEFT JOIN m ON m.day = days.day GROUP BY days.day ORDER BY days.day`,
     [userId],

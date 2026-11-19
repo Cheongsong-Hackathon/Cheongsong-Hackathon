@@ -90,6 +90,7 @@ const DEFAULT_REASON = '지금 조건에 맞고 가까워서 골라 봤어.';
 // LLM이 없거나 이유를 비워 보냈을 때 쓰는 체험별 기본 이유
 const REASON_BY_CATEGORY: Record<string, string> = {
   book: '말 없이 머물러도 되는 곳이라 지친 날에 딱이야.',
+  cafe: '따뜻한 거 한 잔 앞에 두고 말 없이 머물러도 돼.',
   pottery: '손으로 흙을 만지다 보면 머릿속이 잠깐 조용해져.',
   perfume: '좋아하는 향을 고르다 보면 마음이 조금 풀릴 거야.',
   flower: '꽃을 고르는 30분이 생각보다 기분을 바꿔 줘.',
