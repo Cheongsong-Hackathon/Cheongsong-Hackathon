@@ -1,6 +1,6 @@
 import type { MumuMotion } from './MumuMotionControls';
-import MumuReferenceArt from './MumuReferenceArt';
-﻿import { useContext } from 'react';
+import MumuCharacterDesign from './MumuCharacterDesign';
+import { useContext } from 'react';
 import { useMumuWardrobe, type Wardrobe } from './MumuWardrobe';
 import { tint, useAccessoryColors } from './AccessoryColors';
 import { useCharacterExpression, type Expression } from './CharacterExpression';
@@ -19,12 +19,12 @@ function Accessory({ id }: { id: string | null }) {
 
 export default function Bunny({ size=200, happy=false, item=null, stage=1, peek=false, faceOnly=false, expression:override, layerScarf=false, visualForm, quiet=false, previewClothes, motion=null, motionKey=0, loopMotion=false }: { size?:number;happy?:boolean;item?:string|null;stage?:number;peek?:boolean;faceOnly?:boolean;expression?:Expression;layerScarf?:boolean;visualForm?:number;quiet?:boolean;previewClothes?:Wardrobe;motion?:MumuMotion|null;motionKey?:number;loopMotion?:boolean }) {
  const exp=useContext(MumuGrowthContext);
- const level=Math.max(1,Math.min(5,visualForm??(exp!==null?mumuForm(exp):[1,2,4,5][Math.max(0,Math.min(3,stage-1))])));
+ const level=Math.max(1,Math.min(6,visualForm??(exp!==null?mumuForm(exp):[1,2,4,6][Math.max(0,Math.min(3,stage-1))])));
  const {expression}=useCharacterExpression(); const mood=override??expression; const smiling=happy||mood==='기뻐';
  const headOnly=faceOnly||peek; const outfit=useOutfit(); const {state:savedClothes}=useMumuWardrobe(); const clothes=previewClothes??savedClothes;
  const cloth=clothes.colors?.[clothes.equipped??'']??(clothes.equipped==='cape'?'#b5d9cc':'#b59bd8');
- const y=level===1?137:level===2?126:level===3?124:120; const lx=level===2?84:79,rx=level===2?124:122;
+ const y=level===1?137:level===3?128:122; const lx=level===1?82:80,rx=level===1?120:122;
  const clothing=!headOnly&&<>{clothes.equipped==='vest'&&<path d="M65 161l20-4 16 12 14-12 21 4-8 26q-28 10-55 0Z" fill={cloth} stroke={tint(cloth,-.25)} strokeWidth="2"/>}{clothes.equipped==='cape'&&<path d="M65 159q35 12 71 0l13 24q-49 15-99 0Z" fill={cloth} stroke={tint(cloth,-.25)} strokeWidth="2"/>}</>;
  const accessories=<>{!headOnly&&(layerScarf?outfit.scarf:item==='scarf')&&<Accessory id="scarf"/>}{clothes.equipped==='glasses'&&<g fill="none" stroke={cloth} strokeWidth="2.3"><circle cx={lx} cy={y} r="15"/><circle cx={rx} cy={y} r="15"/><path d={`M${lx+15} ${y-2}h12`}/></g>}{item!=='scarf'&&<Accessory id={item}/>}</>;
- return <svg xmlns="http://www.w3.org/2000/svg" viewBox={headOnly?'15 47 175 163':'0 4 205 225'} width={size} height={size} className={`bunny mumu-character${smiling&&!quiet?' happy':''}${quiet?' is-quiet':''}`} role="img" aria-label={`무무 · ${MUMU_FORMS[level-1]} · ${smiling?'기뻐':mood} 표정${item?` · ${ITEM_NAMES[item]??''} 착용`:''}`}><MumuReferenceArt loopMotion={loopMotion} motion={quiet||headOnly?null:motion} motionKey={motionKey} level={level} headOnly={headOnly} smiling={smiling} mood={mood} quiet={quiet} clothing={clothing} accessories={accessories}/></svg>;
+ return <svg xmlns="http://www.w3.org/2000/svg" viewBox={headOnly?'15 47 175 163':'0 4 205 225'} width={size} height={size} className={`bunny mumu-character${smiling&&!quiet?' happy':''}${quiet?' is-quiet':''}`} role="img" aria-label={`무무 · ${MUMU_FORMS[level-1] ?? `${level}단계 무무`} · ${smiling?'기뻐':mood} 표정${item?` · ${ITEM_NAMES[item]??''} 착용`:''}`}><MumuCharacterDesign loopMotion={loopMotion} motion={quiet||headOnly?null:motion} motionKey={motionKey} level={level} headOnly={headOnly} smiling={smiling} mood={mood} quiet={quiet} clothing={clothing} accessories={accessories}/></svg>;
 }

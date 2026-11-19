@@ -9,6 +9,7 @@ export default function useMumuAnimation(motion: MumuMotion | null, motionKey: n
   const hearts = useRef<SVGGElement>(null);
   useEffect(() => {
     if (!motion || !body.current) return;
+    if (motion === 'idle' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let frame = 0;
     let start: number | null = null;
     const duration = 2400;
@@ -25,7 +26,10 @@ export default function useMumuAnimation(motion: MumuMotion | null, motionKey: n
       const t = loop ? elapsed % duration : Math.min(elapsed, duration);
       const phase = t / duration;
       const envelope = Math.min(1, phase * 10, (1 - phase) * 10);
-      if (motion === 'wave') {
+      if (motion === 'idle') {
+        const breath = Math.sin(phase * Math.PI * 2);
+        body.current?.setAttribute('transform', centerScale(1 + breath * .008, 1 - breath * .012, -Math.max(0, breath) * 2, breath * .7));
+      } else if (motion === 'wave') {
         const swing = Math.sin(phase * Math.PI * 8);
         body.current?.setAttribute('transform', centerScale(1, 1, -Math.abs(swing) * 2, swing * 2));
         hand.current?.setAttribute('transform', `rotate(${-10 + swing * 32} 150 161)`);

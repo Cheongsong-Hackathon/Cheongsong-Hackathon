@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export type MumuMotion = 'wave' | 'heart' | 'bounce';
+export type MumuMotion = 'wave' | 'heart' | 'bounce' | 'idle';
 const ACTIONS = [
   { id: 'wave', label: '안녕', emoji: '👋' },
   { id: 'heart', label: '하트', emoji: '💜' },
