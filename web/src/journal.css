@@ -26,8 +26,8 @@ body { background: #eee8f7; }
 .location-toggle { min-height: 44px; font-size: 14px; }
 .landing { background: radial-gradient(ellipse at 20% 10%, #e5d8f8, transparent 50%), #faf7ff; }
 .points li { background: #fffdfdc9; border-radius: 16px; }
-/* 휴대폰 메인 화면 배경: web/public/wallpaper.jpg 를 넣으면 그 사진, 없으면 보라색 그라데이션. 위에 살짝 어둡게 깔아 아이콘 글자가 보이게 */
-.launcher { background: linear-gradient(#0000001f, #0000003d), url('/wallpaper.jpg') center / cover no-repeat, radial-gradient(120% 100% at 40% 0%, #bfa6e0 0%, #8d72b7 50%, #65517f 100%); }
+/* 휴대폰 메인 화면 배경: web/public/wallpaper.jpg 를 넣으면 그 사진, 없으면 저녁 하늘(남색 → 보라 → 노을) 그라데이션. 위에 살짝 어둡게 깔아 아이콘 글자가 보이게 */
+.launcher { background: linear-gradient(#0000001f, #0000003d), url('/wallpaper.jpg') center / cover no-repeat, radial-gradient(90% 45% at 50% 100%, #ffb98a99 0%, #ffb98a00 70%), linear-gradient(180deg, #1c2250 0%, #33306e 34%, #5d4a8e 60%, #b9779e 84%, #eda57f 100%); }
 .bubble { box-shadow: 0 3px 12px #654a8b06; border-color: #e6dcef; }
 .journal { padding-top: 12px; }
 .journal-header { display: flex; align-items: center; justify-content: space-between; min-height: 48px; font-size: 15px; }
