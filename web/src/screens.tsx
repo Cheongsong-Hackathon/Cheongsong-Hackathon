@@ -622,14 +622,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">우울해서 빵 사는 대신,<br />기분에 딱 맞는 활동을 찾아줄게</p>
       </div>
-      <ol className="points">
-        <li><b>1</b><span><strong>마음읽기</strong>나에게 힘든일 다 털어놔</span></li>
-        <li><b>2</b><span><strong>활동 찾기</strong>너의 기분에 맞게 활동을 추천해줄게</span></li>
-        <li><b>3</b><span><strong>기록</strong>예약하고 다녀와서 감정 변화를 남겨봐</span></li>
-        <li><b>4</b><span><strong>무무 키우기</strong>나를 귀엽게 키워봐</span></li>
-      </ol>
       <button className="btn big" onClick={onStart}>시작하기</button>
     </div>
   );
