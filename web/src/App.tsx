@@ -7,7 +7,6 @@ import Journal from './Journal';
 import MumuShop from './MumuShop';
 import Bunny from './Bunny';
 import { MumuGrowthContext } from './MumuGrowth';
-import MumuBrand from './MumuBrand';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
@@ -301,7 +300,6 @@ export default function App() {
     <MumuGrowthContext.Provider value={ch?.exp ?? null}><OutfitContext.Provider value={{ scarf }}><div className="stage">
       <div className="phone" style={{ transform: `scale(${fit})` }}>
         <div className="frame">
-          {(launched || safety) && <MumuBrand item={safety ? null : ch?.equipped ?? null} quiet={safety} />}
           {safety ? (
             <Safety onBack={backFromSafety} />
           ) : !launched ? (
