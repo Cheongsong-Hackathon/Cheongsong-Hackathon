@@ -1,4 +1,4 @@
-import MumuBrand from './MumuBrand';
+import BookingNotification from './BookingNotification';
 import type { CheckinForm } from './screens';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
@@ -76,6 +76,7 @@ export default function App() {
   });
   const [tab, setTab] = useState<Tab>('home');
   const [profileLocation, setProfileLocation] = useState(false);
+  const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
   const primaryTab = tab === 'shop' ? 'shop' : ['profile', 'records', 'journal'].includes(tab) ? 'profile' : 'home';
@@ -335,7 +336,7 @@ export default function App() {
     <MumuGrowthContext.Provider value={ch?.exp ?? null}><OutfitContext.Provider value={{ scarf }}><div className="stage">
       <div className="phone" style={{ transform: `scale(${fit})` }}>
         <div className="frame">
-          {(launched || safety) && <MumuBrand item={safety ? null : ch?.equipped ?? null} quiet={safety} />}
+
           {safety ? (
             <Safety onBack={backFromSafety} />
           ) : !launched ? (
@@ -346,8 +347,9 @@ export default function App() {
             <LocationConsent onAnswer={answerConsent} location={locationPicker} />
           ) : (
             <div className="app">
+              <BookingNotification booking={active} error={refreshError} enabled={!safety && launched && landed && !!consent} onRetry={refresh} onView={()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');}} />
               <main className="screen" ref={screenRef}>
-                {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '무무와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
+
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
                 {tab === 'shop' && <MumuShop ch={ch} onBack={() => setTab('profile')} />}
                 {tab === 'browse' &&
@@ -359,7 +361,7 @@ export default function App() {
                 {tab === 'profile' && <div className="page mumu-profile"><h1 className="title">마이페이지</h1>
                   {profileLocation ? <><button className="btn text" onClick={() => setProfileLocation(false)}>‹ 마이페이지로</button><h2 className="label">현재 내 장소</h2>{locationPicker}</> : <>
                     <div className="card mumu-profile-hero"><Bunny size={110} stage={ch?.stage ?? 1} layerScarf item={ch?.equipped ?? null} /><div><h2>무무와 나의 하루 ♡</h2><p>작은 경험이 쌓이는 나만의 공간</p></div></div>
-                    <ActiveExperience active={active} onComplete={b => setSheet({ kind: 'complete', booking: b })} onArrivalConfirmed={refresh} onCancel={async b => { const r = await api.cancel(b.id); if (r.code !== 200) return notify(r.error ?? '취소하지 못했어.'); refresh(); }} />
+                    {active && <details className="mumu-booking-details" open={bookingExpanded} onToggle={e => setBookingExpanded(e.currentTarget.open)}><summary>예약 내역 보기</summary><ActiveExperience active={active} onComplete={b => setSheet({ kind: 'complete', booking: b })} onArrivalConfirmed={refresh} onCancel={async b => { const r = await api.cancel(b.id); if (r.code !== 200) return notify(r.error ?? '취소하지 못했어.'); refresh(); }} /></details>}
                     <section className="card"><h2 className="label">도감</h2><div className="row two"><button className="btn" onClick={() => { setJournalStart('record'); setJournalKey(k => k + 1); setTab('journal'); }}>＋ 새 도감 만들기</button><button className="btn ghost" onClick={() => { setJournalStart('library'); setJournalKey(k => k + 1); setTab('journal'); }}>▤ 도감 내역</button></div></section>
                     <button className="btn text" onClick={() => setSheet({ kind: 'postpone' })}>오늘 할 일 하나 미루기</button>
                     <button className="card mumu-profile-link" onClick={() => setTab('shop')}><span className="eyebrow">🎀 무무 옷장</span><strong>무무에게 입혀 보기</strong><span className="meta">다녀올수록 하나씩 늘어나요 ›</span></button>

@@ -136,7 +136,7 @@ export function Home(p: {
       <div className="mumu-room-center">
         <p className="mumu-room-speech">오늘도 만나서 반가워 ♡</p>
         <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
-          <Bunny motion={motion.motion} motionKey={motion.motionKey} size={260} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+          <Bunny motion={motion.motion ?? 'idle'} loopMotion={!motion.motion} motionKey={motion.motionKey} size={260} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
         </button>
         <p className="mumu-room-hint">무무를 톡 눌러 이야기해 봐</p>
       </div>
