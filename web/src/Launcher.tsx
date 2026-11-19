@@ -68,13 +68,13 @@ const apps = (now: Date): App[] => [
     label: '음악',
     bg: 'linear-gradient(#fb5c74, #fa233b)',
     art: (
-      <path
-        d="M25 41V19l18-4v22M25 41a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0zM43 37a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0z"
-        fill="#fff"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
+      <g fill="#fff">
+        {/* 겹친 8분음표: 기둥 두 개 + 위 막대 + 머리 두 개 */}
+        <path d="M23 43V21M41 39V17" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" />
+        <path d="M21.3 19.6L42.7 14.8v6.2L21.3 25.8z" />
+        <ellipse cx="18.6" cy="43.2" rx="6.2" ry="4.8" transform="rotate(-18 18.6 43.2)" />
+        <ellipse cx="36.6" cy="39.2" rx="6.2" ry="4.8" transform="rotate(-18 36.6 39.2)" />
+      </g>
     ),
   },
   {
