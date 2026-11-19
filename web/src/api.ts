@@ -1,4 +1,5 @@
 export type LatLng = { lat: number; lng: number };
+export type PlacePhoto = { uri: string; author: string; authorUri: string | null };
 export type Item = {
   id: string;
   title: string;
@@ -7,6 +8,12 @@ export type Item = {
   price: number;
   moods: string[];
   description: string;
+  placeId?: string; // 실제 사진(구글)을 받을 때 쓴다
+  hasPhoto?: boolean; // 사진 있는 매장: 그림 대신 사진 자리를 비워 두고 기다림
+  photo?: PlacePhoto | null; // 추천과 함께 온 실제 사진(구글). null이면 사진 없음 → 그림
+  live?: boolean; // 실시간 검색(카카오)으로 찾은 가게: 시간대 없음, 기록할 때 가게 이름·좌표를 같이 보낸다
+  lat?: number;
+  lng?: number;
   placeName: string;
   mapUrl: string; // 예약하기 → 네이버 지도(네이버 예약)
   walkMinutes: number;
@@ -19,7 +26,7 @@ export type Item = {
 export type Booking = {
   id: number;
   status: 'REQUESTED' | 'DONE' | 'CANCELED';
-  slotTime: string;
+  slotTime: string | null; // 실시간 가게는 없음
   price: number;
   moodBefore: number | null;
   moodAfter: number | null;
@@ -104,7 +111,8 @@ export const api = {
     // items: 제휴 매장 체험 (내 위치 주변에 없으면 빈 배열), free: 같은 위치 기준 무료 장소
     call<{ items?: Item[]; free?: FreeRec[]; widened?: boolean; locationSource?: string }>('POST', '/recommend', b),
   experiences: (pos: LatLng | null) => call<{ items?: Item[] }>('GET', `/experiences${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
-  book: (b: { checkinId: number | null; experienceId: string; slotTime: string }) => call<Booking>('POST', '/bookings', b),
+  book: (b: { checkinId: number | null; experienceId: string; slotTime?: string; placeName?: string; lat?: number; lng?: number }) =>
+    call<Booking>('POST', '/bookings', b),
   active: () => call<{ booking: Booking | null }>('GET', '/bookings/active'),
   // "도착했어": 지금 위치(getPos)를 보내면 매장 150m 안인지 확인. arrived:false여도 다녀왔어·기록은 그대로 가능
   arrive: (id: number, pos: LatLng | null) =>

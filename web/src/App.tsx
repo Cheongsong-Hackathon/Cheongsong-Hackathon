@@ -7,7 +7,6 @@ import Journal from './Journal';
 import MumuShop from './MumuShop';
 import Bunny from './Bunny';
 import { MumuGrowthContext } from './MumuGrowth';
-import MumuBrand from './MumuBrand';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import FreePlaces from './FreePlaces';
 import useAppViewport from './useAppViewport';
@@ -28,7 +27,6 @@ import {
   Requested,
   Safety,
   LoadState,
-  type CheckinForm,
   type Conditions,
   type PartyResult,
 } from './screens';
@@ -54,7 +52,12 @@ const store = {
     } catch {}
   },
 };
-const GREETING: Msg = { who: 'bunny', text: '여기선 아무 얘기나 해도 돼. 오늘 마음에 걸리는 거 있어?' };
+// 첫마디는 눌러서 고를 수 있게 (지친 사람에게 빈 입력창부터 주지 않는다). 직접 써도 된다.
+const GREETING: Msg = {
+  who: 'bunny',
+  text: '오늘 기분이 어때? 알려 주면 근처에서 할 만한 걸 찾아 줄게.',
+  quickReplies: ['지쳐서 조용히 쉬고 싶어', '답답해서 기분 전환하고 싶어', '심심해, 재밌는 거 없을까', '그냥 추천해 줘'],
+};
 
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 
@@ -178,6 +181,9 @@ export default function App() {
     setExploreError('');
     setRecs(null);
     setConfirm(null);
+    // 장소가 바뀌면 대화도 새로: 이전 동네에서 읽은 조건·이미 본 체험을 끌고 가지 않는다
+    setMsgs([GREETING]);
+    setSessionId(null);
     if (value && !consent) answerConsent(false);
   }
 
@@ -199,19 +205,6 @@ export default function App() {
 
   }, [tab, savedLocation]);
 
-  async function submitCheckin(f: CheckinForm) {
-    setBusy(true);
-    const r = await api.checkin(f);
-    setBusy(false);
-    // 서버에 닿지 못해도 위기 표현은 놓치지 않는다
-    if (r.state === 'SAFETY' || (r.code === 0 && CRISIS.test(f.text.replace(/\s+/g, '')))) return enterSafety();
-    if (!r.reply) return notify(r.error ?? '잠깐 문제가 생겼어. 다시 해 줄래?');
-    if (!r.checkinId) return notify('마음을 저장하지 못했어. 연결을 확인하고 다시 눌러 줘.');
-    setCheckin({ id: r.checkinId, reply: r.reply, suggestPostpone: !!r.suggestPostpone });
-    setMsgs(m => [...m, { who: 'bunny', text: r.reply }]);
-    setTab('talk');
-  }
-
   async function recommend(c: Conditions, seen: string[]) {
     if (!checkin?.id) return notify('마음 확인을 다시 해 줄래?');
     setBusy(true);
@@ -226,9 +219,14 @@ export default function App() {
     setRecs({ items, free, widened: !!r.widened, seen: [...seen, ...items.map((i) => i.id)] });
   }
 
-  async function book(item: Item, slot: string) {
+  async function book(item: Item, slot: string | null) {
     setBusy(true);
-    const r = await api.book({ checkinId: checkin?.id ?? null, experienceId: item.id, slotTime: slot });
+    // 실시간 가게는 체험 DB에 없어서 가게 이름·좌표(공개 정보)를 같이 보낸다. 제목·종류는 서버가 정한다
+    const r = await api.book({
+      checkinId: checkin?.id ?? null,
+      experienceId: item.id,
+      ...(item.live ? { placeName: item.placeName, lat: item.lat, lng: item.lng } : { slotTime: slot ?? undefined }),
+    });
     setBusy(false);
     if (r.blocked) return enterSafety();
     if (r.code !== 200) return notify(r.error ?? '가기로 한 체험을 기록하지 못했어.');
@@ -300,28 +298,13 @@ export default function App() {
   ) : recs ? (
     <Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
   ) : (
-    <Home
-      ch={ch}
-      active={active}
-      busy={busy}
-      onTalk={() => setTab('talk')}
-      onSubmit={submitCheckin}
-      onComplete={(b) => setSheet({ kind: 'complete', booking: b })}
-      onArrivalConfirmed={refresh}
-      onCancel={async (b) => {
-        const r = await api.cancel(b.id);
-        if (r.code !== 200) return notify(r.error ?? '취소하지 못했어. 다시 해 줄래?');
-        refresh();
-      }}
-      onPostpone={() => setSheet({ kind: 'postpone' })}
-    />
+    <Home ch={ch} onTalk={() => setTab('talk')} />
   );
 
   return (
     <MumuGrowthContext.Provider value={ch?.exp ?? null}><OutfitContext.Provider value={{ scarf }}><div className="stage">
       <div className="phone" style={{ transform: `scale(${fit})` }}>
         <div className="frame">
-          {(launched || safety) && <MumuBrand item={safety ? null : ch?.equipped ?? null} quiet={safety} />}
           {safety ? (
             <Safety onBack={backFromSafety} />
           ) : !launched ? (
@@ -347,7 +330,7 @@ export default function App() {
                   </>}
                 </div>}
                 {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
-                <div hidden={tab !== 'home'}>{homeScreen}</div>
+                <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
                   (confirm ? (
                     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot).then(() => setTab('home'))} />

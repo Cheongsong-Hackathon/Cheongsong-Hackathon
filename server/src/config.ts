@@ -36,6 +36,7 @@ export const config = {
   llm: llm('LLM'),
   llmFallback: llm('LLM_FALLBACK'),
   kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표. 비우면 두 기능만 꺼진다
+  googlePlacesKey: env.GOOGLE_PLACES_KEY ?? '', // 제휴 매장 실제 사진. 비우면 지금 그림 그대로
   // 시연 초기화(/api/demo/reset) 비밀 값. 비우면 이 컴퓨터(localhost)에서만 초기화할 수 있다
   resetToken: env.RESET_TOKEN ?? '',
 

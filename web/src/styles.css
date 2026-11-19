@@ -29,7 +29,9 @@ h1, h2, h3, p { margin: 0; }
 .phone::before { left: -3px; top: 170px; height: 34px; box-shadow: 0 62px 0 #2b2a33, 0 124px 0 #2b2a33; }
 .phone::after { right: -3px; top: 230px; height: 90px; }
 .frame { position: relative; width: 390px; height: 844px; border-radius: 54px; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
-.screen { flex: 1; min-height: 0; overflow-y: auto; }
+.screen { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-top: 18px; } /* 휴대폰처럼 스크롤바는 숨긴다 (스크롤은 됨). 위쪽 여백: 휴대폰 둥근 모서리에 붙지 않게 */
+.landing, .sheet, .log, .safety, .journal-panel { scrollbar-width: none; } /* 랜딩·시트·대화·안전·도감 패널도 같은 방식 */
+.screen::-webkit-scrollbar, .landing::-webkit-scrollbar, .sheet::-webkit-scrollbar, .log::-webkit-scrollbar, .safety::-webkit-scrollbar, .journal-panel::-webkit-scrollbar { display: none; }
 
 /* 공통 */
 .page { padding: 8px 20px 28px; display: flex; flex-direction: column; gap: 12px; }
@@ -196,7 +198,6 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .landing h1.sm { font-size: 22px; color: var(--ink); letter-spacing: 0; margin-top: 8px; }
 .tagline { font-size: 20px; font-weight: 800; line-height: 1.4; }
 .tagline em { font-style: normal; color: var(--purple); }
-.promise { margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--purple-d); background: linear-gradient(transparent 55%, #ffe68099 55%); }
 .points { list-style: none; margin: 0 0 auto; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .points li { display: flex; gap: 12px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; animation: rise .4s backwards; }
 .points li:nth-child(2) { animation-delay: .12s; }
@@ -223,8 +224,6 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .batt { fill: none; stroke: #fff; stroke-width: 1.4; }
 .batt-fill { fill: #fff; }
 .island { width: 112px; height: 32px; border-radius: 99px; background: #0b0b0f; }
-.widget { margin-top: 18px; padding: 16px 18px; border-radius: 24px; background: #ffffff1f; display: flex; flex-direction: column; gap: 4px; color: #ffffffb8; font-size: 14px; }
-.widget strong { font-size: 21px; line-height: 1.35; color: #ffffffe0; }
 .launcher .grid { margin-top: 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 6px; align-content: start; flex: 1; }
 .app-icon { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; background: none; border: 0; padding: 0; color: #fff; }
 .app-icon.dim { opacity: .55; }
@@ -336,3 +335,13 @@ a.card { color: inherit; text-decoration: none; }
 .mem-kind { font-weight: 600; color: var(--purple); margin-right: 4px; }
 .mem-del { border: 0; background: none; color: var(--mute); font-size: 12px; cursor: pointer; white-space: nowrap; padding: 4px; }
 
+
+/* 매장 실제 사진 (구글). 그림과 같은 자리·크기 */
+.place-photo { position: relative; display: block; overflow: hidden; background: #eee6f8; animation: place-photo-wait 1.2s ease-in-out infinite alternate; }
+.place-photo.loaded { animation: none; }
+.place-photo > img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .35s; }
+.place-photo.loaded > img { opacity: 1; }
+@keyframes place-photo-wait { to { background: #f6f1fc; } }
+@media (prefers-reduced-motion: reduce) { .place-photo { animation: none; } .place-photo > img { transition: none; } }
+.place-photo > small { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #0008; color: #fff; font-size: 12px; } /* 구글 정책: Google Maps 표시는 12px 이상, 흰색 */
+.place-photo > small a { color: inherit; }

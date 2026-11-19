@@ -68,13 +68,13 @@ const apps = (now: Date): App[] => [
     label: '음악',
     bg: 'linear-gradient(#fb5c74, #fa233b)',
     art: (
-      <path
-        d="M25 41V19l18-4v22M25 41a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0zM43 37a5 4.4 0 1 1-10 0 5 4.4 0 0 1 10 0z"
-        fill="#fff"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
+      <g fill="#fff">
+        {/* 겹친 8분음표: 기둥 두 개 + 위 막대 + 머리 두 개 */}
+        <path d="M23 43V21M41 39V17" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" />
+        <path d="M21.3 19.6L42.7 14.8v6.2L21.3 25.8z" />
+        <ellipse cx="18.6" cy="43.2" rx="6.2" ry="4.8" transform="rotate(-18 18.6 43.2)" />
+        <ellipse cx="36.6" cy="39.2" rx="6.2" ry="4.8" transform="rotate(-18 36.6 39.2)" />
+      </g>
     ),
   },
   {
@@ -195,16 +195,6 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
         </svg>
       </div>
 
-      <div className="widget" aria-hidden="true">
-        <span>무무 · 오늘의 회복 제안</span>
-        <strong>
-          오늘 할 일 하나,
-          <br />
-          미뤄도 괜찮아요
-        </strong>
-        <span>대신 기분에 딱 맞는 30분을 찾아 줄게요</span>
-      </div>
-
       <div className="grid">
         {apps(now).map((a) => (
           <Icon key={a.label} {...a} />
@@ -219,10 +209,10 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
           </svg>
           <span className="name">무무</span>
           <span className="tip">
-            <strong>클릭!</strong>
-            오늘 기분에 맞는 체험을
+            <strong>눌러 봐!</strong>
+            무무랑 얘기하면 근처에서
             <br />
-            가까운 곳에서 찾아 줘요
+            기분 전환할 거리를 찾아 줘요
           </span>
         </button>
       </div>

@@ -1,20 +1,17 @@
-import { checkinStorageKey, readCheckin, saveCheckin } from './homeCheckin';
-import MumuMotionControls, { useMumuMotion } from './MumuMotionControls';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
+import PlaceArt from './PlaceArt';
 import Bunny from './Bunny';
 import { mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
-import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
 import { COLOR_ITEMS } from './AccessoryColors';
 import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
 import { useOutfit } from './Outfit';
 
-export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
-export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험·가격·시간은 예시. 예약은 네이버에서</p>;
+export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험 내용은 예시예요. 가격·시간·예약은 네이버에서 확인해 줘</p>;
 
 /** 네이버 지도(네이버 예약)를 새 창으로. 팝업 차단을 피하려고 클릭 순간에 바로 연다 */
 const openNaver = (url?: string) => url && window.open(url, '_blank', 'noopener,noreferrer');
@@ -71,7 +68,7 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
             <div className="grow">
               <strong>{p.active.title}</strong>
               <span className="meta">
-                오늘 {p.active.slotTime} · {p.active.placeName}
+                {p.active.placeName}
               </span>
               {p.active.mapUrl && (
                 <a className="small" href={p.active.mapUrl} target="_blank" rel="noopener noreferrer">
@@ -94,51 +91,26 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
 </>;
 }
 
-export function Home(p: {
-  ch: Character | null;
-  active: Booking | null;
-  busy: boolean;
-  onSubmit: (f: CheckinForm) => void;
-  onComplete: (b: Booking) => void;
-  onCancel: (b: Booking) => void;
-  onPostpone: () => void;
-  onArrivalConfirmed: () => void;
-  onTalk: () => void;
-}) {
-  const { expression, setExpression } = useCharacterExpression();
-  const [checkinKey] = useState(checkinStorageKey);
-  const [f, setF] = useState<CheckinForm>(() => ({ text: '', ...readCheckin(checkinKey, expression) }));
-  useEffect(() => { saveCheckin(checkinKey, f); }, [checkinKey, f.emotion, f.energy, f.mood]);
-  const growth = mumuProgress(p.ch?.exp ?? 0);
-  const motion = useMumuMotion();
-  const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
+/** 무무 경험치: 다음 성장 모습까지 */
+function ExpBar({ exp }: { exp: number }) {
+  const g = mumuProgress(exp);
+  return (
+    <section className="mumu-home-exp" aria-label="무무 경험치">
+      <div className="row"><strong>성장 모습 {g.level} / 5</strong><span>{exp} EXP{g.next !== null ? ` / ${g.next}` : ' · 다 자랐어'}</span></div>
+      <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(g.percent)}><span style={{ width: `${g.percent}%` }} /></div>
+    </section>
+  );
+}
+
+/** 홈: 무무가 먼저 묻는다 (목표는 체험, 무무는 입구). 누르면 대화 화면으로 */
+export function Home(p: { ch: Character | null; onTalk: () => void }) {
   return (
     <div className="page mumu-home">
-      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
-        <Bunny motion={motion.motion} motionKey={motion.motionKey} size={240} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무와 이야기하고 기분 전환할 거리 찾기">
+        <p className="mumu-home-bubble">오늘 어땠어?<br />근처에서 기분 전환할 거리<br />같이 찾아볼까?</p>
+        <Bunny size={230} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </button>
-      <section className="mumu-home-exp" aria-label="무무 경험치">
-        {p.ch ? <><div className="row"><strong>성장 모습 {growth.level} / 5</strong><span>{p.ch.exp} EXP{growth.next !== null ? ` / ${growth.next} EXP` : ' · 마지막 성장'}</span></div>
-          <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(growth.percent)}><span style={{ width: `${growth.percent}%` }} /></div></> : <p className="small mute">무무 경험치를 불러오는 중이에요.</p>}
-        <p className="small mute">무무를 누르면 이야기를 나눌 수 있어요 ♡</p>
-      </section>
-      <MumuMotionControls motion={motion.motion} play={motion.play} />
-      <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
-      <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
-      <h2 className="label">
-        지금 나의 에너지 레벨은? <span className="pill">{f.energy}%</span>
-      </h2>
-      <input type="range" min={0} max={100} step={5} value={f.energy} onChange={(e) => set({ energy: Number(e.target.value) })} aria-label="에너지" style={{ ['--v' as string]: `${f.energy}%` }} />
-      <h2 className="label">
-        지금 기분은 몇 점이야? <span className="pill">{f.mood} / 10</span>
-      </h2>
-      <input type="range" min={1} max={10} value={f.mood} onChange={(e) => set({ mood: Number(e.target.value) })} aria-label="기분 점수" style={{ ['--v' as string]: `${((f.mood - 1) / 9) * 100}%` }} />
-      <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => p.onSubmit(f)}>
-        {p.busy ? '마음을 읽는 중…' : '기분 남기고 무무와 대화하기 ›'}
-      </button>
-      {p.busy && <LoadState loading message="마음을 읽고 있어. 답장이 조금 늦어도 잠깐만 기다려 줘…" />}
-      <DemoNote />
-      <p className="small center mute">무무는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
+      <ExpBar exp={p.ch?.exp ?? 0} />
     </div>
   );
 }
@@ -190,14 +162,13 @@ export function ConditionSheet(p: { location?: ReactNode; reply: string; suggest
 function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
   return (
     <button className="card exp" onClick={onPick}>
-      <Art category={item.category} className="thumb" />
+      <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} photo={item.photo} category={item.category} className="thumb" />
       <span className="exp-body">
         <strong>{item.title}</strong>
         <span className="meta">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-          {item.minutes}분 · 도보 {item.walkMinutes}분
+          도보 {item.walkMinutes}분
         </span>
-        <span className="price">{won(item.price)}</span>
         {children}
       </span>
     </button>
@@ -257,7 +228,8 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
         </>
       )}
       <p className="small center mute">
-        {p.items.length > 0 && '가격·시간은 매장 정보 그대로이고, 추천 이유만 AI가 썼어요. '}
+        {p.items.length > 0 && '추천 이유는 AI가 썼어요. 가격·시간은 네이버에서 확인해 줘. '}
+        {p.items.some((i) => i.photo) && <>가게 사진은 <span translate="no">Google Maps</span>. </>}
         {p.free.length > 0 && '돈 안 드는 곳은 네이버 지도 장소 정보예요.'}
       </p>
     </div>
@@ -265,9 +237,9 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 }
 
 // ---------- 04 예약 확인 ----------
-export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string) => void }) {
-  const slots = p.item.availableSlots.length ? p.item.availableSlots : p.item.slots;
-  const [slot, setSlot] = useState<string | null>(slots[0] ?? null);
+export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null) => void }) {
+  // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
+  const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
   return (
     <div className="page">
       <TopBar onBack={p.onBack} />
@@ -275,33 +247,20 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
         예약 내용을 확인해 줘<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
-        <Art category={p.item.category} className="hero-art" />
+        <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} photo={p.item.photo} category={p.item.category} className="hero-art" credit />
         <strong className="big-title">{p.item.title}</strong>
         <span className="meta">
           {p.item.placeName} · 도보 {p.item.walkMinutes}분
         </span>
         <p>{p.item.description}</p>
-        <h2 className="label">가려는 시간</h2>
-        <Chips label="시간" options={slots.map((s) => [s, s] as [string, string])} value={slot} onChange={setSlot} />
-        <div className="facts">
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>
-            오늘 {slot ?? '--:--'} · {p.item.minutes}분
-          </span>
-          <span>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-            1인 {won(p.item.price)}
-          </span>
-        </div>
       </div>
       <button className="btn ghost" disabled>
         친구 초대하기 <small>준비 중</small>
       </button>
       <button
         className="btn big"
-        disabled={!slot || p.busy}
+        disabled={(!slot && !p.item.live) || p.busy}
         onClick={() => {
-          if (!slot) return;
           openNaver(p.item.mapUrl);
           p.onBook(slot);
         }}
@@ -321,7 +280,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
       <div className="card soft">
         <strong>{booking.title}</strong>
         <span>
-          가려는 시간 {booking.slotTime} · {booking.placeName}
+          {booking.placeName}
         </span>
       </div>
       {booking.mapUrl && (
@@ -329,7 +288,7 @@ export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Chara
           네이버 지도 다시 열기 ↗
         </a>
       )}
-      <p className="center mute">다녀오면 홈에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
+      <p className="center mute">다녀오면 마이페이지에서 “다녀왔어”를 눌러 줘. 체험 전후 기분을 같이 남겨 둘게.</p>
       <button className="btn big" onClick={onHome}>
         홈으로
       </button>
@@ -642,6 +601,11 @@ export function Explore({ items, error, onRetry, onPick, freePlaces }: { items: 
           </ExpCard>
         ))}
       </div>
+      {items?.some((i) => i.photo) && (
+        <p className="small center mute">
+          가게 사진은 <span translate="no">Google Maps</span>. 크게 보면 사진 올린 사람이 보여요.
+        </p>
+      )}
       {freePlaces}
     </div>
   );
@@ -663,14 +627,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
           <br />
           <em>나에게 맞는 하나의 경험.</em>
         </p>
-        <p className="promise">우울해서 빵 사는 대신,<br />기분에 딱 맞는 활동을 찾아줄게</p>
       </div>
-      <ol className="points">
-        <li><b>1</b><span><strong>마음읽기</strong>나에게 힘든일 다 털어놔</span></li>
-        <li><b>2</b><span><strong>활동 찾기</strong>너의 기분에 맞게 활동을 추천해줄게</span></li>
-        <li><b>3</b><span><strong>기록</strong>예약하고 다녀와서 감정 변화를 남겨봐</span></li>
-        <li><b>4</b><span><strong>무무 키우기</strong>나를 귀엽게 키워봐</span></li>
-      </ol>
       <button className="btn big" onClick={onStart}>시작하기</button>
     </div>
   );

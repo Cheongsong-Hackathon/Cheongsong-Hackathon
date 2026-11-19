@@ -65,7 +65,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
           setText('');
         }}
       >
-        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 속마음 말하기" maxLength={500} aria-label="메시지" />
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 오늘 기분 말하기" maxLength={500} aria-label="메시지" />
         <button className="btn send" disabled={p.busy || !text.trim()}>
           보내기
         </button>

@@ -208,3 +208,14 @@ test('추천에 붙일 무료 장소: 도보 조건 안에서 종류마다 가�
   assert.deepEqual(pickFree([fp('공원', '공원', 25)], 10), []);
   assert.deepEqual(pickFree([], 20), []);
 });
+test('사진 있는 매장만 hasPhoto: 화면이 그림을 먼저 띄웠다가 사진으로 바꾸지 않게 (키 없으면 전부 false)', async () => {
+  const { config } = await import('../src/config.js');
+  const { hasPhoto } = await import('../src/services/googlePhoto.js');
+  const saved = config.googlePlacesKey;
+  config.googlePlacesKey = 'test-key';
+  assert.equal(hasPhoto('cafe-som'), true);
+  assert.equal(hasPhoto('hero-board'), false);
+  config.googlePlacesKey = '';
+  assert.equal(hasPhoto('cafe-som'), false);
+  config.googlePlacesKey = saved;
+});

@@ -5,6 +5,7 @@ import { query, toId } from './db.js';
 import { validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
+import { placePhoto } from './services/googlePhoto.js';
 import { deleteMemory, listMemories } from './services/memory.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
@@ -69,6 +70,13 @@ api.get('/places/free', async (req, res) => {
   const pos = validLatLng(Number(req.query.lat), Number(req.query.lng)) ?? config.demoCenter;
   const items = await freePlaces(pos);
   res.json(items === null ? { items: [], disabled: true } : { items });
+});
+
+// 제휴 매장의 실제 사진 (구글). 볼 때마다 받는다: 사진 주소는 저장할 수 없고 잠깐만 유효하다.
+// 호출마다 구글 요금이 붙어서 IP당 분당 횟수를 막는다.
+api.get('/places/:id/photo', rateLimit('photo-ip', 60, byIp), async (req, res) => {
+  const p = await placePhoto(String(req.params.id));
+  p ? res.json(p) : res.status(204).end(); // 사진 없음: 화면은 그림을 그대로 쓴다
 });
 
 // 주소나 장소 이름 → 좌표. 화면은 이 좌표를 추천·체험 목록의 lat/lng로 쓴다 (서버에 저장하지 않음).
