@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
+import { mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
 import { COLOR_ITEMS } from './AccessoryColors';
@@ -89,13 +90,25 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
 </>;
 }
 
-/** 홈: 무무만. 누르면 대화 화면으로 */
+/** 무무 경험치: 다음 성장 모습까지 */
+function ExpBar({ exp }: { exp: number }) {
+  const g = mumuProgress(exp);
+  return (
+    <section className="mumu-home-exp" aria-label="무무 경험치">
+      <div className="row"><strong>성장 모습 {g.level} / 5</strong><span>{exp} EXP{g.next !== null ? ` / ${g.next}` : ' · 다 자랐어'}</span></div>
+      <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(g.percent)}><span style={{ width: `${g.percent}%` }} /></div>
+    </section>
+  );
+}
+
+/** 홈: 무무와 경험치. 무무를 누르면 대화 화면으로 */
 export function Home(p: { ch: Character | null; onTalk: () => void }) {
   return (
     <div className="page mumu-home">
       <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
         <Bunny size={280} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </button>
+      {p.ch && <ExpBar exp={p.ch.exp} />}
     </div>
   );
 }
