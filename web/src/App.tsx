@@ -182,6 +182,9 @@ export default function App() {
     setExploreError('');
     setRecs(null);
     setConfirm(null);
+    // 장소가 바뀌면 대화도 새로: 이전 동네에서 읽은 조건·이미 본 체험을 끌고 가지 않는다
+    setMsgs([GREETING]);
+    setSessionId(null);
     if (value && !consent) answerConsent(false);
   }
 

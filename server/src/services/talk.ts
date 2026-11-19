@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { query, toId } from '../db.js';
 import { validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
-import { ENERGIES, historyEffects, NEEDS, rankForPrefs, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
+import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { nearbyCandidates } from './recommend.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
@@ -230,19 +230,24 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
      WHERE b.user_id = $1 AND b.status = 'DONE'`,
     [userId],
   );
-  const ranked = rankForPrefs(cands.map(withTags), prefs, historyEffects(done), s.seen, s.prefs.locked ?? []);
+  const ranked = rankFresh(cands.map(withTags), prefs, historyEffects(done), s.seen, s.prefs.locked ?? []);
   const assumptions = [...assumed, ...ranked.relaxed.map((r) => `맞는 데가 없어서 ${r}`)].join(', ');
 
   if (!ranked.items.length) {
-    const reply = '지금 조건에 딱 맞는 데가 근처에 없어. 조금 넓혀서 볼까?';
+    // 근처에 제휴 체험이 아예 없으면(다른 동네) 조건을 넓혀도 소용없으니 장소를 바꾸자고 한다
+    const reply = cands.length
+      ? '지금 조건에 딱 맞는 데가 근처에 없어. 조금 넓혀서 볼까?'
+      : '이 근처엔 아직 함께하는 매장이 없어. 마이페이지에서 장소를 바꿔 볼래?';
     await say(s.id, 'assistant', reply);
     await save(s);
-    return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'], ...support(s.prefs) } };
+    return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: cands.length ? ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'] : [], ...support(s.prefs) } };
   }
   const { items, fallback } = await withReasons(userId, message, prefs, ranked.items, client);
   s.seen = [...new Set([...s.seen, ...items.map((i) => i.id)])];
   s.prefs.lastTop = { walk: items[0].walkMinutes, price: items[0].price, energyNeed: items[0].energyNeed };
-  const reply = (out?.action === 'recommend' && out.reply) || '가까운 데서 지금 할 만한 걸 찾아봤어.';
+  const reply = ranked.repeat
+    ? '새로운 건 더 없어서, 아까 본 것 중에 다시 골라 봤어.'
+    : (out?.action === 'recommend' && out.reply) || '가까운 데서 지금 할 만한 걸 찾아봤어.';
   await say(s.id, 'assistant', `${reply} (${items.map((i) => i.title).join(', ')})`);
   await save(s);
   return {

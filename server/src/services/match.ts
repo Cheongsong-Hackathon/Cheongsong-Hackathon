@@ -162,3 +162,11 @@ export function rankForPrefs(
   }
   return { items: [] as Scored[], relaxed };
 }
+
+/** 이미 본 것을 빼고 고르되, 맞는 걸 다 봤으면 본 것 중에서 다시 고른다 (repeat: true).
+ *  "다른 거 보여 줘"를 계속 누르다 빈 결과에 갇히지 않게. 근처에 맞는 게 아예 없으면 그대로 빈 결과. */
+export function rankFresh(...[cands, p, fx, seen = [], locked]: Parameters<typeof rankForPrefs>) {
+  const fresh = rankForPrefs(cands, p, fx, seen, locked);
+  if (fresh.items.length || !seen.length) return { ...fresh, repeat: false };
+  return { ...rankForPrefs(cands, p, fx, [], locked), repeat: true };
+}
