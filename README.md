@@ -1,213 +1,224 @@
-# 무드패스 (MoodPass)
+# 무무 (MoodPass)
 
-오늘의 감정과 에너지에 맞는 가까운 체험을 추천하고, 네이버 예약 연결부터 체험 후 기분 기록까지 연결하는 AI 기반 일상 회복 모바일 웹 (해커톤 시연용). 기준 문서: `무드패스_사업계획서 .pdf`.
+> 집에만 있는 지친 날, "뭘 하지"를 대신 정해 주고 실제로 나가면 자라는 친구.
 
-- `server/` — Express + TypeScript + PostgreSQL. API와 `web/` 빌드 결과를 함께 서빙
-- `web/` — React + Vite 모바일 웹 (항상 휴대폰 테두리 안에 표시)
-- 체험 모드: 제휴 매장은 영남대 주변 실제 매장의 이름·위치를 빌려 왔고, 제휴 여부·가격·시간·예약은 예시입니다. 실결제는 없습니다
+무무와 이야기하거나 지금 필요한 것을 고르면 **근처 실제 가게**(카페·도서관·공원·코인노래방·볼링장·공방·전시·셀프 사진관 등)를 추천하고, 네이버 지도(네이버 예약)로 연결합니다. 다녀와서 기분을 기록하면 무무가 자랍니다. 제2회 영남대 SW중심대학 융합그룹 창업 해커톤 출품작(모바일 웹 시연)입니다.
+
+- `server/`: Express + TypeScript + PostgreSQL. API와 `web/` 빌드 결과를 함께 서빙
+- `web/`: React + Vite 모바일 웹 (항상 휴대폰 테두리 안에 표시)
+- 배포: https://blackapple.store (네이버 클라우드, Docker)
+- 결제는 없습니다. 가격·영업시간·실제 예약은 네이버에서 확인합니다.
 
 ## 화면 흐름
 
-휴대폰 메인 화면 → 무드패스 아이콘 → 랜딩 → 위치 동의 → 앱
+```
+휴대폰 메인 화면 "눌러 봐!" → 랜딩 → 위치 동의(거절해도 됨)
+  ├─ 홈: 무무 + 말풍선 → 누르면 대화 (첫마디는 버튼 4개 또는 직접 입력)
+  └─ 둘러보기: 지금 필요한 것(조용히 쉬고 싶어 / 털어내고 싶어 / 재밌는 거 …)을 고르면 근처 가게
+        ↓ 카드 (실제 사진, 도보 N분)
+  "여기 가 볼래?" → 지금 기분(1~10) → "네이버에서 예약하기" (네이버 지도의 그 가게가 열림)
+        ↓
+  마이페이지 "가기로 한 체험" → 도착했어(GPS) / 다녀왔어 + 기분 → 체험 전 4 → 후 8, 무무 성장
+```
 
-| 사업계획서 | 화면 |
+| 하단 탭 | 내용 |
 | --- | --- |
-| 01 마음 확인 | 홈: 한 줄, 감정 칩, 에너지 %, 지금 기분 점수(1~10) |
-| 02 조건 확인 | 하단 시트: 시간·거리(도보)·예산. 에너지 20% 이하면 "할 일 하나 미루기"를 먼저 권함 |
-| 03 경험 추천 | 체험 DB를 규칙으로 거른 뒤 AI가 어울리는 순서를 정하고 이유 한 줄을 씀 (개수는 정하지 않고 많아도 5개) |
-| 04 예약·체험 | 가려는 시간 선택 → "네이버에서 예약하기": 네이버 지도에서 매장을 열고(네이버 예약·전화), 앱에는 "가기로 한 체험"만 기록 (결제 없음) |
-| 05 기분 기록 | "다녀왔어" → 체험 후 점수 → 체험 전/후 비교, 토끼 성장, 꾸미기 |
+| **홈** | 무무, 말풍선 "오늘 어땠어? 근처에서 기분 전환할 거리 같이 찾아볼까?", 경험치 막대. 무무를 누르면 대화 |
+| **둘러보기** | 대화 없이 필요를 골라 근처 실제 가게 6곳 (설문 1위 기능 "주변 장소 탐색" 74%) |
+| **마이페이지** | 가기로 한 체험, 도감, 무무 옷장(입혀 보기), 기분 기록(이번 주 표정·무무가 기억하는 것·기록 지우기), 내 장소 바꾸기, 할 일 미루기 |
 
-탭: 홈 · 체험(전체 체험 목록) · 기록 · 속마음(토끼와의 공감 대화)
+## 추천은 어떻게 고르나
+
+대화(`/api/talk`)와 둘러보기(`/api/browse`)는 같은 후보와 같은 점수 규칙을 씁니다.
+
+| 단계 | 누가 | 내용 |
+| --- | --- | --- |
+| 1. 말에서 읽기 (대화만) | AI | 필요 6가지(비우기·쉬기·풀기·몰입·즐기기·연결, 근거: `docs/필요분류_근거.md`), 기운, 원함·피함(고정 태그), 반응(멀어·비싸·힘들어) |
+| 2. 묻기 | 코드 | 필요를 모를 때만, 많아도 2번. "그냥 추천해 줘"·"아무거나"면 묻지 않고 바로 추천 |
+| 3. 후보 모으기 | 코드 | 예시 매장 10곳(영남대 근처) + **카카오 실시간 검색**(만화카페·찜질방·공원·꽃집·도자기공방·코인노래방·볼링장·클라이밍·보드게임카페·방탈출·미술관·갤러리·셀프 사진관·도서관·카페). 검색어는 정해진 목록에서만, 카카오 업종 이름으로 한 번 더 거름 (`services/livePlaces.ts`) |
+| 4. 점수 | 코드 (`services/match.ts`) | 필요·원함과 맞는 특징, 지금 기운으로 할 만한지, 도보(기본 20분, 맞는 게 없으면 30분까지), 전에 다녀와서 기분이 오른 체험. 필요와 반대되는 특징은 감점. 같은 종류는 한 곳씩 먼저. **맞는 것만 (채워 넣지 않음)** |
+| 5. 이유 (대화만) | AI | 순서는 바꾸지 않고 이유 한 줄만 |
+| 6. 사진 | 구글 | 이유를 쓰는 동안 함께 받아 카드와 같이 보냄 (아래 "사진") |
+
+**AI가 지어내지 못하게 코드가 막는 것** (모두 실제로 나온 실패를 재현한 테스트가 있음)
+
+- 피할 것·시간·예산은 사용자가 관련된 말을 했을 때만 받음 ("심심해"에서 AI가 "실내"를 피하게 해 0건이 된 적 있음)
+- 기운을 말하지 않으면 "보통"으로 봄 ("낮음"으로 보면 노래방·볼링이 전부 빠졌음)
+- "다른 거 보여 줘"로 맞는 걸 다 봤으면 본 것 중에서 다시 ("새로운 건 더 없어서…")
+- 근처에 맞는 곳이 아예 없으면 "장소를 바꿔 볼래?"
+- 장소를 바꾸면 대화를 새로 시작
+
+**안전망:** 위기(CRISIS)면 추천을 멈추고 안전 화면으로 갑니다. 위험도가 WATCH로 한 번이라도 나오면 그 대화의 응답마다 상담 번호(109·1577-0199)를 함께 보냅니다. 추천은 막지 않습니다 (근거·평가: `docs/설계근거_점검.md`).
+
+## 진짜인 것과 확인 안 된 것
+
+| 진짜 | 확인 안 됨 |
+| --- | --- |
+| 가게 이름·위치(카카오), 사진(구글), 네이버 지도 링크 | 가게가 실제로 원데이 클래스 등을 하는지 → 문구는 "있는지 네이버에서 확인해 봐요" |
+| 도보 시간 (단, 직선거리 ÷ 분당 67m라 실제보다 짧게 나올 수 있음) | 영업시간 (카카오가 주지 않음) |
+| 내 기록, 무무 성장, 무무가 기억하는 것 | 가격·소요 시간·시간대 → **화면과 추천 판단에서 모두 뺐음** (DB에는 남아 있음) |
+
+예시 매장 10곳은 영남대 근처 실제 가게의 이름·위치를 빌려 왔고 **제휴하지 않았습니다**. 같은 업종의 실시간 가게와 같은 문구를 씁니다.
 
 ## 처음 실행
 
 필요한 것: Node 22 이상, Docker.
 
 ```bash
-cp .env.example .env                 # LLM 키를 넣는다 (없어도 기본 답장으로 동작)
+cp .env.example .env                 # 키를 넣는다 (없어도 기본 답장·예시 매장만으로 동작)
 docker compose up -d db              # PostgreSQL (localhost:5433)
 
 cd server && npm install
 npm run migrate                      # 테이블 생성 (server/schema.sql)
-npm run seed                         # 모든 데이터를 지우고 seed(영남대 주변 매장 10곳, 체험 10개)를 다시 넣음
+npm run seed                         # 모든 데이터를 지우고 seed를 다시 넣음
 
 cd ../web && npm install && npm run build
-cd ../server && npm run dev          # http://localhost:3000 (API + 화면)
+cd ../server && npm run dev          # http://localhost:3000 (API + 화면, .env의 PORT)
 ```
 
-서버는 시작할 때 마이그레이션을 스스로 하고, 체험 DB가 비어 있으면 seed도 넣습니다.
-
-화면을 고치면서 볼 때는 터미널을 하나 더 열어 `cd web && npm run dev` (http://localhost:5173, `/api`는 서버로 프록시).
+서버는 시작할 때 마이그레이션을 스스로 하고, 체험 DB가 비어 있으면 seed도 넣습니다. 화면을 고치면서 볼 때는 터미널을 하나 더 열어 `cd web && npm run dev` (http://localhost:5173, `/api`는 서버로 프록시).
 
 ## .env
 
 | 값 | 설명 |
 | --- | --- |
-| `PORT` | 서버 포트 (기본 3000) |
+| `PORT` | 서버 포트 (기본 3000. 다른 프로그램이 3000을 쓰면 3100 등으로) |
+| `APP_PORT` | `docker compose --profile app`의 바깥 포트. 배포 서버는 `127.0.0.1:3200` (Caddy가 받음) |
 | `DATABASE_URL` | PostgreSQL 주소. 클라우드 DB는 보통 끝에 `?sslmode=require` |
 | `DEMO_MODE` | `true`면 지난 시간대·영업시간을 따지지 않고, "도착했어"의 거리를 따지지 않음. `/api/demo/reset` 열림 |
-| `DEMO_CENTER_LAT/LNG` | seed 매장을 배치하는 기준 좌표, 위치 동의를 안 했을 때의 기준 위치. 위치가 있으면 추천은 항상 그 위치 기준(주변에 제휴 매장이 없으면 무료 장소만). 바꾸면 `npm run seed`를 다시 |
+| `DEMO_CENTER_LAT/LNG` | 위치 동의를 안 했을 때의 기준 위치 (기본: 영남대 경산캠퍼스) |
 | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | 주 LLM (OpenAI 호환 API) |
-| `LLM_FALLBACK_BASE_URL`, `LLM_FALLBACK_MODEL`, `LLM_FALLBACK_API_KEY` | 예비 LLM (CLOVA Studio HCX-007). 비우면 사용 안 함 |
-| `LLM_FALLBACK_STRUCTURED`, `LLM_FALLBACK_EXTRA` | 예비 LLM에 응답 형식(JSON 스키마)을 강제하고 공급자 전용 옵션을 보냄. CLOVA는 `true`, `{"reasoning_effort":"none"}` (주 LLM도 `LLM_STRUCTURED`, `LLM_EXTRA`로 같은 설정 가능) |
-| `RESET_TOKEN` | 시연 초기화(`/api/demo/reset`, `npm run smoke`) 비밀 값. 비우면 서버 컴퓨터 자신(localhost)에서만 초기화 가능. **배포 서버에는 꼭 넣기** |
-| `KAKAO_REST_API_KEY` | 카카오 로컬 REST API 키. 무료 장소 검색과 주소 → 좌표. 비우면 두 기능만 꺼짐 |
+| `LLM_FALLBACK_*` | 예비 LLM (CLOVA Studio HCX-007). 비우면 사용 안 함. CLOVA는 `LLM_FALLBACK_STRUCTURED=true`, `LLM_FALLBACK_EXTRA={"reasoning_effort":"none"}` |
+| `KAKAO_REST_API_KEY` | 카카오 로컬. **실시간 가게 검색·둘러보기**, 주소 → 좌표. 비우면 예시 매장만 |
+| `GOOGLE_PLACES_KEY` | Google Places API (New). 가게 실제 사진. 비우면 그림 |
+| `RESET_TOKEN` | 시연 초기화 비밀 값. 비우면 서버 컴퓨터 자신(localhost)에서만 초기화 가능. **배포 서버에는 꼭 넣기** |
 
-API 키는 서버에만 있고 프론트로 보내지 않습니다. `.env`는 커밋하지 않습니다.
+API 키는 서버에만 있고 화면으로 보내지 않습니다. `.env`는 커밋하지 않습니다.
 
-### 무료 LLM 설정 예
+### LLM
 
-| 공급자 | `LLM_BASE_URL` | `LLM_MODEL` 예 |
-| --- | --- | --- |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-flash-lite` (2026-11 기준) |
-| CLOVA Studio (예비) | `https://clovastudio.stream.ntruss.com/v1/openai` | `HCX-007` + 형식 강제 |
+| 공급자 | `LLM_BASE_URL` | 모델 | 쓰임 |
+| --- | --- | --- | --- |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.1-flash-lite` | **주 LLM** (JSON 17/17, 1.5~5초, 사용자 사정을 반영) |
+| CLOVA Studio | `https://clovastudio.stream.ntruss.com/v1/openai` | `HCX-007` + 형식 강제, 추론 끔 | **예비 LLM** (JSON 17/17, 0.7~0.9초, 짧고 일반적) |
 
-**모델 선택 근거 (2026-11-18, `npm run prompt-eval` 테스트 문장 17개)**
+모델 선택 근거는 2026-11-18 `npm run prompt-eval`(테스트 문장 17개). HCX-005·HCX-DASH-002는 JSON 지시를 무시해서, NVIDIA 무료 모델은 대기열로 시간 초과가 나서 쓰지 않습니다.
 
-| 모델 | JSON 형식 | 속도 | 말투·개인화 | 쓰임 |
-| --- | --- | --- | --- | --- |
-| Gemini 3.1 Flash Lite | 17/17 | 1.5~5초 | 공감 후 다음 화면으로 이어 주고, 사용자 사정을 반영 | **주 LLM** |
-| CLOVA HCX-007 (형식 강제, 추론 끔) | 17/17 | 0.7~0.9초 (추천 2~3초) | 한 문장으로 짧고 일반적. 위기 판단은 정확(다소 예민) | **예비 LLM** |
-| CLOVA HCX-005, HCX-DASH-002 | 마음 확인·속마음 거의 실패 | 0.6~2초 | JSON 지시를 무시하고 문장으로 답함, 형식 강제 미지원 | 사용 안 함 |
-| NVIDIA Build 무료 모델들 | — | 13~30초 이상 | 대기열 때문에 시간 초과 | 사용 안 함 |
+동작 순서: 주 공급자 → (429·타임아웃·오류) 예비 공급자 → 기본 답장. 전체 8초를 넘기면 기본 답장. 서버를 켜면 AI를 한 번 미리 부르고, 로그에 `[llm] 준비 완료`가 나오면 정상입니다. 호출마다 로그에 `[llm] 2026-11-20 #12 primary ok 840ms`처럼 남고, `GET /api/health`(배포: https://blackapple.store/api/health)에서 지금 모델과 오늘 집계를 볼 수 있습니다.
 
-주 LLM을 일부러 고장 낸 상태에서도 smoke 전체가 CLOVA만으로 통과합니다 (예비 호출 12/12 성공).
+### 사진 (Google Places API New)
 
-모델 이름과 무료 한도는 자주 바뀌니 각 공급자 콘솔에서 확인하세요. 모델이 종료되면 404 "no longer available"이 나고 모든 답이 기본 답장으로 바뀝니다. 지금 쓸 수 있는 이름은 `GET {LLM_BASE_URL}/models`(키 필요)로 볼 수 있습니다.
+- 가게 근처에서 이름으로 구글 장소를 찾고, **80m 안이면서 이름이 겹칠 때만** 같은 가게로 봅니다 (아주 가까우면 앞 4글자만 같아도). 이름만 보면 다른 가게가 걸리기 때문입니다 (`services/googlePhoto.ts`).
+- 약관상 저장해도 되는 건 구글 장소 ID뿐이라, ID만 서버 메모리에 기억하고 사진은 볼 때마다 받습니다.
+- 큰 사진에는 사진 올린 사람과 "Google Maps"를 표시합니다 (구글 정책).
+- 사진이 없거나 같은 가게로 확인되지 않으면 업종 그림(`web/src/Art.tsx`)을 보여 줍니다.
 
-서버를 켜면 AI를 한 번 미리 불러 둡니다(첫 호출이 8초를 넘기곤 해서). 로그에 `[llm] 준비 완료`가 나오면 정상, `준비 호출 실패`가 나오면 모델 이름과 키를 확인하세요.
+## 무무 성장과 기록
 
-동작 순서: 주 공급자 → (429·타임아웃·오류) 예비 공급자 → 기본 답장. 전체 8초를 넘기면 기본 답장으로 넘어갑니다. LLM은 세 곳에만 씁니다: 마음 확인의 공감 한마디, 추천 순서와 이유, 속마음 대화. 가격·시간·장소는 AI가 만들지 않고 체험 DB 값만 보여 줍니다.
+- 경험치: **다녀왔어 + 기분 기록 +20**, 할 일 미루기 +5 (하루 한 번). 대화나 추천만으로는 오르지 않습니다. 줄어들지 않습니다.
+- 성장 모습 5단계: 0·20·40·75·120 EXP (서버 단계와 화면의 무무 모습이 같음). 단계마다 리본·목도리·베레모가 생깁니다.
+- 체험 전 기분(예약할 때)과 체험 후 기분(다녀왔어)으로 "전 4 → 후 8"과 이번 주 기분 표정을 만듭니다.
+- **무무의 기억:** 대화가 끝나면 AI가 "다음에 도움이 될 사실"(취향·상황·사건, 사용자당 최대 20개)을 뽑아 둡니다 (`services/memory.ts`). 위기·건강·연락처는 저장하지 않고, 마이페이지 → 기분 기록에서 하나씩 지우거나 모두 지울 수 있습니다.
+- **시연용 사용자:** 주소 끝에 `?demo`를 붙여 열면 일주일 남짓 써 온 사용자가 됩니다 (기록·기억이 미리 들어 있음, seed·초기화 때 다시 만들어짐).
 
-### LLM 사용량 확인
-
-호출할 때마다 서버 로그에 한 줄씩 남습니다. `#` 뒤 숫자가 오늘 누적 호출 수입니다.
-
-```
-[llm] 2026-11-20 #12 primary ok 840ms
-[llm] 2026-11-20 #13 primary FAIL 5001ms timeout
-[llm] 2026-11-20 #14 fallback ok 610ms
-```
-
-`GET /api/health`에서도 지금 쓰는 모델(`llm.model`, 키가 없으면 `null`)과 오늘 집계를 볼 수 있습니다. 배포 서버는 `https://blackapple.store/api/health`. 서버를 다시 시작하면 0부터 셉니다.
-
-## 대화 추천 (`/api/talk`)
-
-사용자는 조건이 아니라 기분을 말하고, 토끼가 그걸 필요로 번역해 **실제 주변 체험만** 추천합니다.
-
-| 단계 | 누가 | 내용 |
-| --- | --- | --- |
-| 1. 말에서 읽기 | AI | 필요 6가지(비우기·쉬기·풀기·몰입·즐기기·연결, 근거: docs/필요분류_근거.md), 기운, 원함·피함(고정 태그), 반응(멀어·비싸·힘들어) |
-| 2. 묻기 / 추천 결정 | 코드 | 필요를 모를 때만, 많아도 2번 묻고 고르기 버튼을 줌 |
-| 3. 빈 조건 채우기 | 코드 | 말한 것 > 지난 기록(예: 지난번 가격대) > 지금 상황(시간대) > 기본값. 가정을 `assumptions`로 밝힘 |
-| 4. 거르기·점수 | 코드 (`services/match.ts`) | 시간·도보·예산·오늘 시간대·피할 것 + 필요·원함과 맞는 특징, 기운, 지난 기분 변화(같은 체험 최대 +3, 비슷한 특징 최대 +2), 필요와 반대되는 특징 감점. **맞는 것만, 많아도 3개 (채워 넣지 않음)** |
-| 5. 이유 쓰기 | AI | 순서는 바꾸지 않고, 사용자 말·기억 하나와 사실 하나를 넣은 이유만 |
-
-**안전망:** 위기(CRISIS)면 추천을 멈추고 안전 화면으로 갑니다. AI가 돌려 말한 위기를 못 잡을 수 있어서, 위험도가 WATCH로 한 번이라도 나오면 그 대화의 응답마다 `support`(상담 번호 109·1577-0199)를 함께 보냅니다. 추천은 막지 않습니다 (근거·평가: docs/설계근거_점검.md).
-
-AI가 놓치거나 지어내기 쉬운 부분은 코드가 막습니다: "멀다·비싸다·힘들다"는 키워드로도 잡고, 사용자가 말하지 않은 숫자 조건(예산 등)은 받지 않으며, 사용자가 직접 좁힌 조건은 "맞는 게 없을 때 넓히기"에서도 넓히지 않습니다. 모두 시나리오 검사에서 실제로 나온 실패를 막은 것입니다.
-
-**시나리오 검사:** `cd server && SCENARIO_RUNS=5 npm run scenario` — 시연 사용자가 영남대에서 "시험 끝났는데 머리가 꽉 찼어. 뭘 해야 할지 모르겠어" → "음 좀 멀다". 질문 없이 추천, 필요 "비우기", 시끄럽거나 사람 많은 체험 없음, 조건 지킴, 1위는 효과 있었던 도자기와 그 이유, "멀다" 뒤엔 더 가깝고 안 본 것만. **5/5 통과 (2026-11-18)**
-
-## 토끼의 기억 (개인화)
-
-- 마음 확인과 속마음 대화가 끝나면, 응답과 따로 AI가 "다음에 도움이 될 사실"을 뽑아 `memories` 테이블에 저장합니다. 종류는 취향·상황·사건이고, 사용자당 최대 20개입니다 (`server/src/services/memory.ts`).
-- 다음 마음 확인·추천·속마음에는 이 기억과 "다녀온 체험의 기분 변화(예: 도자기 4 → 8)"를 함께 넣습니다. 그래서 토끼가 "지난번 도자기 하고 기분이 8까지 올랐으니"처럼 말합니다.
-- 무엇을 기억할지는 AI가 정하고, 안전장치는 코드가 정합니다. 위기·건강·연락처는 저장하지 않고, 사건 기억은 AI가 지우지 못하며(사용자만), 기록 탭에서 하나씩 지우거나 "모두 지우기"로 함께 지울 수 있습니다.
-- "평소와 다른 하나"(오늘 감정에 어울리지 않고 다녀온 적 없는 종류 하나를 추천 끝에 섞기)는 **지금 꺼 두었습니다.** 코드와 테스트는 남아 있고, `config.ts`의 `SURPRISE_PICK`을 `true`로 바꾸면 다시 켜집니다.
-- **시연:** 주소 끝에 `?demo`를 붙여 열면 일주일 남짓 써 온 시연용 사용자가 됩니다 (기록·기억이 미리 들어 있음, `npm run seed`나 초기화 때 다시 만들어짐). 원래 사용자로 돌아가려면 브라우저 사이트 데이터를 지우세요.
-
-## 시연 전 확인
+## 확인하기
 
 ```bash
 cd server
-npm run smoke                                   # 로컬 서버 (.env의 PORT)
-BASE_URL=https://배포주소 RESET_TOKEN=서버와같은값 npm run smoke   # 배포 서버  (PowerShell: $env:BASE_URL='https://...'; $env:RESET_TOKEN='...'; npm run smoke)
+npm test                         # 단위 테스트 (73개)
+npm run smoke                    # API를 한 번에 돌려 보기 (아래 주의)
+SCENARIO_RUNS=5 npm run scenario # 대화 시나리오 검사
+npm run eval:sim && npm run eval:score   # 평가 시험지 (server/eval/goldens*.json)
 ```
 
-"마음 확인 → 조건 → 추천 → 예약 요청 → 기분 기록 → 성장"과 "위기 표현 → 안전 모드"를 API로 한 번에 돌리고 단계마다 ✓/✗를 찍습니다. **모든 사용자의 데이터를 초기화하므로** `DEMO_MODE=true` 서버에서만 동작하고, 끝나면 깨끗한 상태로 되돌려 놓습니다. 팀원들이 쓰고 있는 배포 서버에서 돌리면 그 사람들의 기록과 토끼도 지워집니다.
+- `smoke`는 **모든 사용자의 데이터를 초기화**합니다. `DEMO_MODE=true` 서버에서만 동작하고 끝나면 다시 초기화합니다. 팀원들이 쓰는 배포 서버에서 돌리면 그 기록도 지워집니다. 배포 서버 대상: `BASE_URL=https://... RESET_TOKEN=... npm run smoke`.
+- 평가(2026-11-18): AI가 만든 시험지 30문항 필요 정답률 96%, 사람이 쓴 26문항 68%. 사람 문장에서 틀린 것은 대부분 "비우기"로 잘못 읽은 경우였습니다.
 
-단위 테스트: `cd server && npm test`
+## 휴대폰으로 보기
 
-## 휴대폰으로 테스트
-
-브라우저 위치 기능은 HTTPS나 localhost에서만 동작합니다. 같은 와이파이의 `http://192.168.x.x:3000`으로 열면 위치 권한 창이 뜨지 않습니다. 터널로 HTTPS 주소를 만드세요.
+브라우저 위치 기능은 HTTPS나 localhost에서만 동작합니다. 배포 주소(https://blackapple.store)로 열거나, 로컬은 터널로 HTTPS 주소를 만드세요.
 
 ```bash
-cd web && npm run build              # 서버가 web/dist를 서빙
-cd ../server && npm run dev
-
-# 다른 터미널에서 (계정 없이 사용 가능)
-winget install Cloudflare.cloudflared          # macOS: brew install cloudflared
-cloudflared tunnel --url http://localhost:3000
+cd web && npm run build && cd ../server && npm run dev
+cloudflared tunnel --url http://localhost:3000     # 설치: winget install Cloudflare.cloudflared
 ```
 
-출력되는 `https://....trycloudflare.com` 주소를 휴대폰에서 엽니다. 위치 동의 화면에서 다시 묻게 하려면 브라우저 사이트 데이터를 지우세요.
-
-## 배포 (Docker 이미지 하나)
+## 배포
 
 ```bash
-docker build -t moodpass .
-docker run -p 3000:3000 --env-file .env -e DATABASE_URL=postgres://... moodpass
+# 배포 서버 (blackapple.store)
+cd ~/Cheongsong-Hackathon && git pull
+docker compose --profile app up -d --build        # 앱 + DB, 127.0.0.1:3200 → Caddy
+curl -s -X POST localhost:3200/api/demo/reset     # seed가 바뀐 배포 뒤에만 (모든 데이터 초기화)
+curl -s localhost:3200/api/health
 ```
 
-로컬에서 배포 이미지를 그대로 확인하려면 `docker compose --profile app up --build` → http://localhost:3200
+docker-compose가 컨테이너 안의 `PORT=3000`과 `DATABASE_URL`(db 컨테이너)을 정합니다. 서버 `.env`에는 키들과 `APP_PORT=127.0.0.1:3200`, `RESET_TOKEN`을 넣습니다. 이미지만 따로: `docker build -t moodpass . && docker run -p 3000:3000 --env-file .env -e DATABASE_URL=postgres://... moodpass`.
 
 ## 구조
 
 ```
-server/schema.sql            테이블: users, characters, places, partners, experiences, experience_slots,
-                             checkins, bookings, postpones, chat_sessions, messages
-server/src/config.ts         환경 변수 + 숫자 설정값 (반경, 도보 속도, 경험치, 단계 기준 등)
-server/src/setup.ts          migrate, seed (제휴 매장·체험·시간대, 체험 모드)
-server/src/routes.ts         API
+server/schema.sql             테이블 (users, characters, places, experiences, bookings, chat_sessions, messages, memories, postpones 등)
+server/src/config.ts          환경 변수 + 숫자 설정값 (반경, 도보 속도, 경험치, 성장 단계, 요청 제한)
+server/src/setup.ts           migrate, seed (예시 매장 10곳·체험, 시연용 사용자)
+server/src/routes.ts          API
 server/src/services/
-  checkin.ts                 01 마음 확인 (위기 감지 → 공감 한마디)
-  recommend.ts               02~03 규칙 필터(시간·도보·예산·에너지·남은 시간대) → AI 선택·이유 → id 검증
-  booking.ts                 04 예약 요청, 05 완료·기분 기록, 미루기, 기록 조회·삭제
-  growth.ts                  경험치, 단계, 꾸미기 아이템
-  chat.ts                    속마음 대화
-  safety.ts                  위기 키워드, 안전 모드
-  llm.ts                     LLMClient, OpenAI 호환 구현체, 예비 전환, JSON 추출 + zod 검증
-  places.ts                  PlaceRepository (제휴 매장 저장소), 영업시간 필터
-server/scripts/smoke.ts      시연 전 확인 스크립트
-web/src/                     App(흐름·탭), screens(화면), Chat(속마음), Bunny(토끼 SVG), Art(체험 그림), Launcher(메인 화면)
+  talk.ts                     대화 추천: 말 읽기 → 묻기/추천 → 점수 → 이유 → 사진
+  browse.ts                   둘러보기: 필요를 고르면 같은 후보·점수로 근처 가게
+  livePlaces.ts               카카오 실시간 가게 종류(LIVE_KINDS), 업종 거르기, 예시 매장과 합치기
+  match.ts                    필요·태그·점수 규칙 (rankForPrefs, 종류 섞기, 다시 보여 주기)
+  recommend.ts                예시 매장 후보(체험 DB), 도보 계산
+  googlePhoto.ts              구글 사진, 같은 가게 판정
+  kakao.ts                    카카오 검색, 네이버 지도 링크, 주소 → 좌표
+  booking.ts                  가기로 한 체험(예시 매장·실시간 가게), 도착 확인, 다녀왔어, 미루기, 기록
+  growth.ts                   경험치, 성장 단계, 아이템
+  memory.ts                   무무의 기억
+  safety.ts, llm.ts           위기 감지·안전 모드, LLM 클라이언트(예비 전환, JSON 검증)
+server/eval/                  평가 시험지·실행·채점
+web/src/
+  App.tsx                     흐름·탭
+  screens.tsx                 홈·확인·완료·기록 등 화면
+  Chat.tsx, talkClient.ts     무무와 대화
+  Browse.tsx                  둘러보기
+  PlaceArt.tsx, Art.tsx       가게 사진 / 업종 그림
+  Bunny.tsx, MumuShop.tsx     무무 캐릭터 / 무무 옷장
+  Launcher.tsx                휴대폰 메인 화면 (배경: web/public/wallpaper.jpg를 넣으면 그 사진, 없으면 저녁 하늘)
+docs/                         설계근거_점검.md(주장별 근거 등급), 필요분류_근거.md, 김준수_작업안내.md
 ```
 
 ## API
 
-로그인은 없고 브라우저마다 따로 씁니다. 화면이 처음 열릴 때 무작위 키를 만들어 브라우저에 저장하고, 모든 요청에 `X-User-Key` 헤더로 보냅니다. 서버는 처음 보는 키면 사용자와 토끼를 새로 만듭니다. 헤더가 없으면(curl 등) 기본 사용자 1번입니다.
+로그인은 없고 브라우저마다 따로 씁니다. 화면이 처음 열릴 때 무작위 키를 만들어 브라우저에 저장하고, 모든 요청에 `X-User-Key` 헤더로 보냅니다. 처음 보는 키면 사용자와 무무를 새로 만듭니다.
 
 | | |
 | --- | --- |
-| `POST /api/checkin` | `{text, emotion, energy, mood}` → `{checkinId, reply, suggestPostpone}` |
-| `POST /api/recommend` | `{checkinId, minutes, walk, budget, lat?, lng?, exclude?}` → `{items, free, widened}`. `items`: 위치 주변 제휴 매장 체험(많아도 5개, 없으면 빈 배열), `free`: 같은 위치의 무료 장소(도보 조건 안, 종류별 가장 가까운 곳) |
-| `GET /api/experiences` | 전체 체험 (도보 분 포함) |
-| `POST /api/bookings` | `{checkinId, experienceId, slotTime}` → 가기로 한 체험 기록 (`mapUrl`: 네이버 지도 링크). 실제 예약은 네이버에서 |
-| `GET /api/bookings/active` | 진행 중인 예약 요청 (`arrivedAt`: 도착 확인 시각) |
-| `POST /api/bookings/:id/arrive` | `{lat, lng}` → 매장 150m 안이면 `{arrived: true}`. 좌표는 저장하지 않음. 확인이 안 돼도 완료·기록은 가능. `DEMO_MODE`는 거리 무시 |
-| `GET /api/places/free?lat&lng` | 주변 무료 장소(카페·도서관·공원, 카카오 로컬로 찾고 `url`은 네이버 지도 검색 링크) `{items}`. 카카오 키가 없으면 `{items: [], disabled: true}` |
-| `GET /api/geocode?query=` | 주소·장소 이름 → `{lat, lng, label}`. 화면은 이 좌표를 브라우저에만 저장하고 추천·체험·무료 장소에 `lat/lng`로 넘김. 키가 없으면 503 |
+| `POST /api/talk` | **대화 추천 (핵심).** `{sessionId?, message, lat?, lng?}` → `{action: ask \| recommend \| none \| safety, reply, quickReplies, items(많아도 3개, photo 포함), assumptions, support?}` |
+| `GET /api/browse?need&lat&lng` | 둘러보기. `need`는 필요 6가지 중 하나(없으면 전체) → `{items}` (많아도 6개, photo 포함) |
+| `POST /api/bookings` | 가기로 한 체험 기록. 예시 매장 `{experienceId, slotTime, moodBefore?}`, 실시간 가게 `{experienceId: "live:종류:카카오id", placeName, lat, lng, moodBefore?}` (제목·그림은 서버 목록에서). 응답의 `mapUrl`은 네이버 지도 |
+| `GET /api/bookings/active` | 진행 중인 것 (`arrivedAt`: 도착 확인 시각) |
+| `POST /api/bookings/:id/arrive` | `{lat, lng}` → 가게 150m 안이면 `{arrived: true}`. 좌표는 저장하지 않음. `DEMO_MODE`는 거리 무시 |
 | `POST /api/bookings/:id/complete` | `{moodAfter}` → 체험 전/후, 경험치, 새 아이템 |
-| `POST /api/bookings/:id/cancel` | 예약 요청 취소 |
-| `POST /api/postpone` | `{task}` → 오늘 할 일 하나 미루기 |
-| `POST /api/talk` | **대화로 추천받기 (핵심 흐름).** `{sessionId?, message, lat?, lng?}` → `{action: ask \| recommend \| none \| safety, reply, quickReplies, items(많아도 3개), assumptions, support?}`. 아래 "대화 추천" 참고 |
-| `GET /api/memories`, `DELETE /api/memories/:id` | 토끼가 기억하는 것 보기, 하나씩 지우기 |
-| `GET/DELETE /api/records` | 기록 조회 / 모두 지우기 (성장은 유지) |
-| `GET /api/character`, `POST /api/character/equip` | 캐릭터, 꾸미기 |
-| `POST /api/chat` | 속마음 대화 |
+| `POST /api/bookings/:id/cancel` | 취소 |
+| `POST /api/postpone` | `{task}` → 할 일 하나 미루기 (경험치는 하루 한 번) |
+| `GET /api/places/:id/photo` | 예시 매장 사진 (없으면 204) |
+| `GET /api/geocode?query=` | 주소·장소 이름 → `{lat, lng, label}`. 화면은 이 좌표를 브라우저에만 저장 |
+| `GET /api/memories`, `DELETE /api/memories/:id` | 무무가 기억하는 것 |
+| `GET/DELETE /api/records` | 기록 조회(이번 주 기분 포함) / 모두 지우기 (성장은 유지) |
+| `GET /api/character`, `POST /api/character/equip` | 캐릭터, 아이템 착용 |
 | `POST /api/safety/resume` | 안전 모드에서 "대화로 돌아갈래" |
+| `GET /api/health` | 상태, 모델, 오늘 LLM 호출 수 |
+
+이전 흐름의 API(`/api/checkin`, `/api/recommend`, `/api/chat`, `/api/experiences`, `/api/places/free`)는 남아 있지만 지금 화면에서는 쓰지 않습니다 (`npm run smoke`가 사용).
 
 ## 지키는 것
 
 - 위기 표현(키워드 또는 AI의 CRISIS 판단)이 나오면 추천·예약을 멈추고 109, 1577-0199를 안내합니다. 새로고침해도 유지됩니다.
-- 무드패스는 치료·진단 서비스가 아니며, 토끼는 AI 캐릭터임을 화면에 알립니다.
-- 가격·시간은 체험 DB 값만 보여 주고, 예약은 "요청"으로만 표시합니다.
-- 위치는 동의한 경우에만 추천할 때 읽고, 좌표는 저장하지 않습니다.
-- 기록·토끼·안전 모드는 브라우저(사용자)마다 따로입니다. 한 사람의 위기 표현이 다른 사람의 화면을 막지 않습니다.
+- 무무는 치료·진단 서비스가 아니며, AI 캐릭터임을 화면에 알립니다.
+- 확인되지 않은 가격·시간·가게의 체험 내용을 보여 주지 않습니다. 실제 정보는 네이버에서 확인하게 합니다.
+- **추천 순서는 돈으로 바뀌지 않습니다** (설문 1위 우려: 광고·제휴 위주 추천 37%).
+- 위치는 동의한 경우에만 읽고, 사용자 좌표는 저장하지 않습니다 (가게 좌표는 공개 정보라 기록에 남김).
 - 경험치와 단계는 줄지 않습니다. 쉬는 날 불이익이나 강제 알림이 없습니다.
-- 기록은 비공개이고, "내 기록 모두 지우기"를 제공합니다.
-- LLM이나 DB가 실패해도 기본 응답으로 화면이 이어집니다.
-- 요청 수 제한 (1분에): 전체 API는 IP당 300번, AI를 부르는 마음 확인·추천·속마음은 IP당 60번·사용자당 20번. 넘으면 429와 "조금 천천히 해 줘". 위기 표현이 담긴 요청은 제한하지 않습니다. 숫자는 `config.ts`
+- 기록은 비공개이고, "내 기록 모두 지우기"를 제공합니다. 기록·무무·안전 모드는 사용자마다 따로입니다.
+- LLM·카카오·구글·DB가 실패해도 기본 답장, 예시 매장, 그림으로 화면이 이어집니다.
+- 요청 수 제한 (1분에): 전체 API는 IP당 300번, AI를 부르는 요청은 IP당 60번·사용자당 20번, 둘러보기 IP당 30번, 사진 IP당 60번. 위기 표현이 담긴 요청은 제한하지 않습니다.
 - 시연 초기화는 `RESET_TOKEN`을 아는 사람만 (없으면 서버 컴퓨터 자신만) 할 수 있습니다.
