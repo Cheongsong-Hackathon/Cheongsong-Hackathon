@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
-import { mumuProgress } from './MumuGrowth';
+import { MUMU_FORMS, mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
 import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
@@ -111,34 +111,59 @@ export function Home(p: {
   useEffect(() => { saveCheckin(checkinKey, f); }, [checkinKey, f.emotion, f.energy, f.mood]);
   const growth = mumuProgress(p.ch?.exp ?? 0);
   const motion = useMumuMotion();
+  const [editingMood, setEditingMood] = useState(false);
   const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
   return (
-    <div className="page mumu-home">
-      <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
-        <Bunny motion={motion.motion} motionKey={motion.motionKey} size={240} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
-      </button>
-      <section className="mumu-home-exp" aria-label="무무 경험치">
-        {p.ch ? <><div className="row"><strong>성장 모습 {growth.level} / 5</strong><span>{p.ch.exp} EXP{growth.next !== null ? ` / ${growth.next} EXP` : ' · 마지막 성장'}</span></div>
-          <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(growth.percent)}><span style={{ width: `${growth.percent}%` }} /></div></> : <p className="small mute">무무 경험치를 불러오는 중이에요.</p>}
-        <p className="small mute">무무를 누르면 이야기를 나눌 수 있어요 ♡</p>
+    <div className="page mumu-home mumu-home-room">
+      <section className="mumu-room-status" aria-label="무무와 오늘의 상태">
+        <div className="mumu-room-identity">
+          <span className="mumu-room-avatar"><Bunny size={48} faceOnly quiet layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} /></span>
+          <div className="mumu-room-name"><strong>무무</strong><span>성장 {growth.level} / {MUMU_FORMS.length}</span></div>
+          <div className="mumu-room-exp">
+            <div><span>경험치</span><strong>{p.ch ? `${p.ch.exp}${growth.next !== null ? ` / ${growth.next}` : ''} EXP` : '불러오는 중'}</strong></div>
+            <div className="mumu-room-meter mumu-room-meter-exp" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(growth.percent)}><span style={{ width: `${growth.percent}%` }} /></div>
+          </div>
+        </div>
+        <div className="mumu-room-today">
+          <button type="button" className="mumu-room-stat" onClick={() => setEditingMood(true)} aria-label="오늘의 기분 수정">
+            <span className="mumu-room-stat-label"><span aria-hidden="true">{f.emotion ? HOME_MOOD_ICONS[f.emotion] : '♡'}</span> 오늘의 기분 <span aria-hidden="true">›</span></span>
+            <strong>{f.emotion ?? '골라 주세요'}<small>{f.mood}/10</small></strong>
+            <span className="mumu-room-meter mumu-room-meter-mood"><span style={{ width: `${f.mood * 10}%` }} /></span>
+          </button>
+          <button type="button" className="mumu-room-stat" onClick={() => setEditingMood(true)} aria-label="오늘의 에너지 수정">
+            <span className="mumu-room-stat-label"><span aria-hidden="true">ϟ</span> 에너지 <span aria-hidden="true">›</span></span>
+            <strong>{f.energy}<small>/ 100</small></strong>
+            <span className="mumu-room-meter mumu-room-meter-energy"><span style={{ width: `${f.energy}%` }} /></span>
+          </button>
+        </div>
       </section>
-      <MumuMotionControls motion={motion.motion} play={motion.play} />
-      <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
-      <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
-      <h2 className="label">
-        지금 나의 에너지 레벨은? <span className="pill">{f.energy}%</span>
-      </h2>
-      <input type="range" min={0} max={100} step={5} value={f.energy} onChange={(e) => set({ energy: Number(e.target.value) })} aria-label="에너지" style={{ ['--v' as string]: `${f.energy}%` }} />
-      <h2 className="label">
-        지금 기분은 몇 점이야? <span className="pill">{f.mood} / 10</span>
-      </h2>
-      <input type="range" min={1} max={10} value={f.mood} onChange={(e) => set({ mood: Number(e.target.value) })} aria-label="기분 점수" style={{ ['--v' as string]: `${((f.mood - 1) / 9) * 100}%` }} />
-      <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => p.onSubmit(f)}>
-        {p.busy ? '마음을 읽는 중…' : '기분 남기고 무무와 대화하기 ›'}
-      </button>
-      {p.busy && <LoadState loading message="마음을 읽고 있어. 답장이 조금 늦어도 잠깐만 기다려 줘…" />}
-      <DemoNote />
-      <p className="small center mute">무무는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
+
+      <div className="mumu-room-center">
+        <p className="mumu-room-speech">오늘도 만나서 반가워 ♡</p>
+        <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
+          <Bunny motion={motion.motion} motionKey={motion.motionKey} size={260} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+        </button>
+        <p className="mumu-room-hint">무무를 톡 눌러 이야기해 봐</p>
+      </div>
+
+      <div className="mumu-room-actions">
+        <MumuMotionControls motion={motion.motion} play={motion.play} />
+        <button type="button" className="mumu-room-checkin" onClick={() => setEditingMood(true)}>♡ 오늘의 마음 남기기 <span aria-hidden="true">›</span></button>
+        <p className="mumu-room-disclaimer">무무는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
+      </div>
+
+      {editingMood && <Sheet label="오늘의 마음과 에너지" onClose={() => setEditingMood(false)}>
+        <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="title">오늘은 어떤 하루야?</h2><button type="button" className="icon-btn" aria-label="마음 기록 닫기" onClick={() => setEditingMood(false)}>×</button></div>
+        <h3 className="label">지금의 마음과 비슷한 감정은?</h3>
+        <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
+        <h3 className="label">에너지 <span className="pill">{f.energy}%</span></h3>
+        <input type="range" min={0} max={100} step={5} value={f.energy} onChange={(e) => set({ energy: Number(e.target.value) })} aria-label="에너지" style={{ ['--v' as string]: `${f.energy}%` }} />
+        <h3 className="label">기분 점수 <span className="pill">{f.mood} / 10</span></h3>
+        <input type="range" min={1} max={10} value={f.mood} onChange={(e) => set({ mood: Number(e.target.value) })} aria-label="기분 점수" style={{ ['--v' as string]: `${((f.mood - 1) / 9) * 100}%` }} />
+        <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => { setEditingMood(false); p.onSubmit(f); }}>{p.busy ? '마음을 읽는 중…' : '기분 남기고 무무와 대화하기 ›'}</button>
+        <button type="button" className="btn text" onClick={() => setEditingMood(false)}>홈에서 무무와 있기</button>
+      </Sheet>}
+      {p.busy && <p className="mumu-room-loading" role="status">무무가 네 마음을 읽고 있어…</p>}
     </div>
   );
 }
@@ -655,7 +680,7 @@ export function Landing({ onStart }: { onStart: () => void }) {
         <div className="mumu-welcome-greeting">
           <p className="mumu-welcome-bubble">오늘 하루도 고생했어.<br />지금부터 나랑 놀자</p>
           {/* This introductory illustration does not change the user's growth progress. */}
-          <Bunny size={160} visualForm={2} expression="기뻐" motion="wave" loopMotion previewClothes={{ owned: [], equipped: null, colors: {} }} />
+          <Bunny size={160} visualForm={1} expression="기뻐" motion="wave" loopMotion previewClothes={{ owned: [], equipped: null, colors: {} }} />
         </div>
         <h1>무무</h1>
         <p className="tagline">
