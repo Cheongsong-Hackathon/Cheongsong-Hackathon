@@ -71,6 +71,9 @@ type Stored = {
 };
 type Session = { id: number; prefs: Stored; asks: number; seen: string[] };
 
+/** "그냥 추천해 줘", "아무거나": 고르기 싫다는 뜻이라 되묻지 않고 기본값으로 바로 추천한다 */
+export const justPick = (m: string) => /아무거나|알아서/.test(m) || (/그냥|상관없/.test(m) && /추천|골라|찾아|보여/.test(m));
+
 export const NEED_CHOICES: { label: string; need: Need }[] = [
   { label: '조용히 비우고 싶어', need: '비우기' },
   { label: '털어내고 싶어', need: '풀기' },
@@ -95,6 +98,9 @@ export function keywordFeedback(message: string): (typeof FEEDBACK)[number] {
 
 /** 이번 턴에 읽은 것을 지금까지 읽은 것에 합친다. 피드백("멀어", "힘들어", "비싸")은 지난 1위를 기준으로 조건을 좁힌다. (순수 함수)
  *  AI가 실패해도(out이 null) 키워드 피드백은 적용한다. */
+/** 실내·바깥을 둘 다 피하면 모든 체험이 걸러진다: 모순이라 둘 다 뺀다 */
+const noContradiction = (avoid: Tag[]) => (avoid.includes('실내') && avoid.includes('바깥') ? avoid.filter((t) => t !== '실내' && t !== '바깥') : avoid);
+
 export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, message = ''): Stored {
   // 키워드가 구체적인 반응(멀어·비싸·힘들어)을 잡으면 AI의 막연한 판단(다른거·별로·없음)보다 우선
   // (실제로 "좀 멀다"를 AI가 "다른거"로 분류해 거리 조건이 안 좁혀진 적이 있음)
@@ -103,12 +109,15 @@ export function mergePrefs(prev: Stored, out: z.infer<typeof TalkOut> | null, me
   const feedback = specific(kw) && !specific(out?.feedback ?? '없음') ? kw : (out?.feedback ?? kw);
   if (!out) out = TalkOut.parse({ risk: 'NONE', feedback });
   out = { ...out, feedback };
+  // "그냥 추천해 줘"는 고르기 싫다는 뜻: AI가 그 말에서 읽어 낸 필요·원함·피함은 지어낸 것이라 받지 않는다
+  // (실제로 피할 것에 실내·바깥을 다 넣어 체험이 0개가 된 적이 있음)
+  if (justPick(message)) out = { ...out, need: '모름', want: [], avoid: [] };
   const p: Stored = {
     ...prev,
     need: out.need !== '모름' ? out.need : prev.need,
     energy: out.energy !== '모름' ? out.energy : prev.energy,
     want: [...new Set([...(prev.want ?? []), ...out.want])],
-    avoid: [...new Set([...(prev.avoid ?? []), ...out.avoid])],
+    avoid: noContradiction([...new Set([...(prev.avoid ?? []), ...out.avoid])]),
     // 숫자 조건은 사용자가 그 이야기를 했을 때만 받는다 (실제로 "좀 멀다"에서 AI가 예산 1만원을 지어낸 적이 있음)
     minutes: out.minutes > 0 && /분|시간|잠깐|금방|오래|짧게/.test(message) ? out.minutes : prev.minutes,
     // "멀다"는 정확한 거리가 아니라 "지난번보다 가깝게"라서 숫자를 받지 않고 아래 피드백 규칙으로만 (AI가 도보 10분을 붙여 아무것도 못 찾은 적이 있음)
@@ -215,7 +224,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
 
   s.prefs = mergePrefs(s.prefs, out, message);
   // 묻기는 코드가 정한다: 필요를 모르고, 아직 덜 물었을 때만
-  if (!s.prefs.need && s.asks < TALK_MAX_ASKS) {
+  if (!s.prefs.need && s.asks < TALK_MAX_ASKS && !justPick(message)) {
     s.asks++;
     const reply = out?.action === 'ask' && out.reply ? out.reply : '그랬구나. 오늘은 어떤 쪽이 끌려?';
     await say(s.id, 'assistant', reply);

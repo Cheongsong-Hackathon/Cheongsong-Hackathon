@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mergePrefs, TalkOut } from '../src/services/talk.js';
+import { justPick, mergePrefs, TalkOut } from '../src/services/talk.js';
 
 const out = (o: Record<string, unknown> = {}) => TalkOut.parse({ reply: '', risk: 'NONE', ...o });
 
@@ -57,4 +57,23 @@ test('위험도 WATCH면 그 대화 동안 상담 번호를 함께 보여 줌 (�
   assert.equal(p.need, '연결'); // 추천은 계속
   assert.equal(mergePrefs(p, out({ risk: 'NONE' }), '보드게임 좋아').watch, true); // 다음 턴에도 유지
   assert.ok(!mergePrefs({}, out(), '심심해').watch);
+});
+
+test('"그냥 추천해 줘"·"아무거나"는 되묻지 않고 바로 추천 ("그냥이라니, 고민 좀 해 봐" 재현, 2026-11-19)', () => {
+  for (const m of ['그냥 추천해 줘', '아무거나 골라 줘', '알아서 찾아 줘', '상관없어 아무거나'])
+    assert.equal(justPick(m), true, m);
+  for (const m of ['그냥 쉬고 싶어', '심심해', '그냥 그래']) assert.equal(justPick(m), false, m);
+});
+
+test('"그냥 추천해 줘"에서 AI가 지어낸 필요·피할 것은 받지 않음 (피할 것에 실내·바깥을 다 넣어 0건이 된 것 재현)', () => {
+  const p = mergePrefs({}, out({ need: '즐기기', want: ['사람 많음'], avoid: ['조용함', '실내', '바깥'] }), '그냥 추천해 줘');
+  assert.equal(p.need, undefined);
+  assert.deepEqual(p.want, []);
+  assert.deepEqual(p.avoid, []);
+});
+
+test('피할 것에 실내와 바깥이 함께 있으면 둘 다 뺌 (모든 체험이 걸러짐)', () => {
+  const p = mergePrefs({}, out({ need: '쉬기', avoid: ['실내', '바깥', '사람 많음'] }), '사람 많은 데는 싫어');
+  assert.deepEqual(p.avoid, ['사람 많음']);
+  assert.equal(p.need, '쉬기');
 });
