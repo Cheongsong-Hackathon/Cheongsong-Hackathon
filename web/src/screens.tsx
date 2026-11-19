@@ -1,18 +1,13 @@
-import { checkinStorageKey, readCheckin, saveCheckin } from './homeCheckin';
-import MumuMotionControls, { useMumuMotion } from './MumuMotionControls';
 import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import Bunny from './Bunny';
-import { mumuProgress } from './MumuGrowth';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
-import MoodLabel, { HOME_MOOD_ICONS } from './MoodLabel';
 import { COLOR_ITEMS } from './AccessoryColors';
 import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
 import { useOutfit } from './Outfit';
 
-export const EMOTIONS = ['지쳤어', '답답해', '불안해', '심심해', '평온해'];
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
 export const DemoNote = () => <p className="notice">체험 모드: 매장 위치는 실제, 체험·가격·시간은 예시. 예약은 네이버에서</p>;
 
@@ -94,51 +89,13 @@ export function ActiveExperience(p: { active: Booking | null; onComplete: (b: Bo
 </>;
 }
 
-export function Home(p: {
-  ch: Character | null;
-  active: Booking | null;
-  busy: boolean;
-  onSubmit: (f: CheckinForm) => void;
-  onComplete: (b: Booking) => void;
-  onCancel: (b: Booking) => void;
-  onPostpone: () => void;
-  onArrivalConfirmed: () => void;
-  onTalk: () => void;
-}) {
-  const { expression, setExpression } = useCharacterExpression();
-  const [checkinKey] = useState(checkinStorageKey);
-  const [f, setF] = useState<CheckinForm>(() => ({ text: '', ...readCheckin(checkinKey, expression) }));
-  useEffect(() => { saveCheckin(checkinKey, f); }, [checkinKey, f.emotion, f.energy, f.mood]);
-  const growth = mumuProgress(p.ch?.exp ?? 0);
-  const motion = useMumuMotion();
-  const set = (patch: Partial<CheckinForm>) => setF((x) => ({ ...x, ...patch }));
+/** 홈: 무무만. 누르면 대화 화면으로 */
+export function Home(p: { ch: Character | null; onTalk: () => void }) {
   return (
     <div className="page mumu-home">
       <button className="mumu-home-character" onClick={p.onTalk} aria-label="무무를 눌러 대화하기">
-        <Bunny motion={motion.motion} motionKey={motion.motionKey} size={240} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
+        <Bunny size={280} layerScarf item={p.ch?.equipped ?? null} stage={p.ch?.stage ?? 1} />
       </button>
-      <section className="mumu-home-exp" aria-label="무무 경험치">
-        {p.ch ? <><div className="row"><strong>성장 모습 {growth.level} / 5</strong><span>{p.ch.exp} EXP{growth.next !== null ? ` / ${growth.next} EXP` : ' · 마지막 성장'}</span></div>
-          <div className="bar" role="progressbar" aria-label="다음 성장 모습까지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(growth.percent)}><span style={{ width: `${growth.percent}%` }} /></div></> : <p className="small mute">무무 경험치를 불러오는 중이에요.</p>}
-        <p className="small mute">무무를 누르면 이야기를 나눌 수 있어요 ♡</p>
-      </section>
-      <MumuMotionControls motion={motion.motion} play={motion.play} />
-      <h2 className="label">지금의 마음과 비슷한 감정은?</h2>
-      <Chips label="감정" options={EMOTIONS.map((e) => [e, <MoodLabel label={e} emoji={HOME_MOOD_ICONS[e]} />])} value={f.emotion} onChange={(emotion) => { set({ emotion }); setExpression(emotion as Expression); }} />
-      <h2 className="label">
-        지금 나의 에너지 레벨은? <span className="pill">{f.energy}%</span>
-      </h2>
-      <input type="range" min={0} max={100} step={5} value={f.energy} onChange={(e) => set({ energy: Number(e.target.value) })} aria-label="에너지" style={{ ['--v' as string]: `${f.energy}%` }} />
-      <h2 className="label">
-        지금 기분은 몇 점이야? <span className="pill">{f.mood} / 10</span>
-      </h2>
-      <input type="range" min={1} max={10} value={f.mood} onChange={(e) => set({ mood: Number(e.target.value) })} aria-label="기분 점수" style={{ ['--v' as string]: `${((f.mood - 1) / 9) * 100}%` }} />
-      <button className="btn big" disabled={p.busy || (!f.text.trim() && !f.emotion)} onClick={() => p.onSubmit(f)}>
-        {p.busy ? '마음을 읽는 중…' : '기분 남기고 무무와 대화하기 ›'}
-      </button>
-      {p.busy && <LoadState loading message="마음을 읽고 있어. 답장이 조금 늦어도 잠깐만 기다려 줘…" />}
-      <DemoNote />
-      <p className="small center mute">무무는 AI 캐릭터예요. 진단·치료를 대신하지 않아요.</p>
     </div>
   );
 }

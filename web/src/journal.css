@@ -205,15 +205,16 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 .mumu-product-icon { display: grid; place-items: center; height: 80px; border-radius: 14px; background: #eee4f9; font-size: 42px; color: #9f85c6; }
 .mumu-product-icon.cape { color: #77a994; background: #e4f0e8; }
 .mumu-product-icon.glasses { color: #8e7b9f; background: #f1eaf7; }
-.mumu-home { padding-top: 12px; gap: 14px; }
-.mumu-home-character { display: grid; place-items: center; width: 100%; min-height: 250px; padding: 0; border: 0; border-radius: 32px; background: radial-gradient(ellipse at center, #e8dcf866, transparent 70%); cursor: pointer; }
+.home-host:not([hidden]) { height: 100%; }
+.mumu-home { height: 100%; padding: 0; justify-content: center; overflow: hidden; }
+.mumu-home-character { display: grid; place-items: center; width: 100%; flex: 1; padding: 0; border: 0; border-radius: 32px; background: radial-gradient(ellipse at center, #e8dcf866, transparent 70%); cursor: pointer; }
 .mumu-home-character:active { transform: scale(.98); }
 .mumu-home-exp { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 8px; }
 .mumu-home-exp .row { justify-content: space-between; font-size: 13px; color: var(--purple-d); }
 .mumu-home-exp .row > span { font-size: 12px; font-weight: 700; }
 .mumu-home-exp .bar { height: 10px; }
 .mumu-home-exp p { text-align: center; font-size: 11px; }
-@media (max-height: 740px) { .mumu-home-character { min-height: 200px; }.mumu-home-character > svg { width: 200px; height: 200px; } }
+
 .mumu-chat-turn { display: flex; flex-direction: column; gap: 12px; }
 .mumu-talk-offer { margin-left: 46px; width: auto; background: #f1e9fb; border-color: #d8c6ef; }
 .mumu-talk-offer strong { font-size: 15px; line-height: 1.6; }

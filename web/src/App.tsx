@@ -28,7 +28,6 @@ import {
   Requested,
   Safety,
   LoadState,
-  type CheckinForm,
   type Conditions,
   type PartyResult,
 } from './screens';
@@ -199,19 +198,6 @@ export default function App() {
 
   }, [tab, savedLocation]);
 
-  async function submitCheckin(f: CheckinForm) {
-    setBusy(true);
-    const r = await api.checkin(f);
-    setBusy(false);
-    // 서버에 닿지 못해도 위기 표현은 놓치지 않는다
-    if (r.state === 'SAFETY' || (r.code === 0 && CRISIS.test(f.text.replace(/\s+/g, '')))) return enterSafety();
-    if (!r.reply) return notify(r.error ?? '잠깐 문제가 생겼어. 다시 해 줄래?');
-    if (!r.checkinId) return notify('마음을 저장하지 못했어. 연결을 확인하고 다시 눌러 줘.');
-    setCheckin({ id: r.checkinId, reply: r.reply, suggestPostpone: !!r.suggestPostpone });
-    setMsgs(m => [...m, { who: 'bunny', text: r.reply }]);
-    setTab('talk');
-  }
-
   async function recommend(c: Conditions, seen: string[]) {
     if (!checkin?.id) return notify('마음 확인을 다시 해 줄래?');
     setBusy(true);
@@ -300,21 +286,7 @@ export default function App() {
   ) : recs ? (
     <Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={() => cond && recommend(cond, recs.seen)} onBack={() => setRecs(null)} />
   ) : (
-    <Home
-      ch={ch}
-      active={active}
-      busy={busy}
-      onTalk={() => setTab('talk')}
-      onSubmit={submitCheckin}
-      onComplete={(b) => setSheet({ kind: 'complete', booking: b })}
-      onArrivalConfirmed={refresh}
-      onCancel={async (b) => {
-        const r = await api.cancel(b.id);
-        if (r.code !== 200) return notify(r.error ?? '취소하지 못했어. 다시 해 줄래?');
-        refresh();
-      }}
-      onPostpone={() => setSheet({ kind: 'postpone' })}
-    />
+    <Home ch={ch} onTalk={() => setTab('talk')} />
   );
 
   return (
@@ -347,7 +319,7 @@ export default function App() {
                   </>}
                 </div>}
                 {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
-                <div hidden={tab !== 'home'}>{homeScreen}</div>
+                <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
                   (confirm ? (
                     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot) => book(confirm, slot).then(() => setTab('home'))} />
