@@ -22,6 +22,11 @@ export const LIVE_KINDS: Record<string, Kind> = {
   climbing: { q: '클라이밍', cat: '클라이밍', title: '클라이밍 체험', description: '처음이면 쉬운 벽부터 해 봐요.', art: 'climbing', tags: ['몸 쓰기', '사람 많음', '실내'], energyNeed: 70 },
   board: { q: '보드게임카페', cat: '보드카페', title: '보드게임 한 판', description: '친구랑, 혹은 가볍게 한 판.', art: 'boardgame', tags: ['같이 하기', '사람 많음', '실내'], energyNeed: 40 },
   escape: { q: '방탈출', cat: '방탈출', title: '방탈출 한 번', description: '머리 쓰며 같이 빠져나와요.', art: 'boardgame', tags: ['같이 하기', '실내'], energyNeed: 40 },
+  // 설문(2026-11-19, 86명) "해 보고 싶은 체험" 2위 전시·팝업 53%, 7위 셀프 사진관 20%를 보고 추가.
+  // 전시는 "미술관"(문화시설>미술관)과 "갤러리"(화랑)로 찾는다. "전시회"로 찾으면 식당이 나오고, 팝업스토어는 기간 한정이라 지도에 거의 없어서 뺌
+  museum: { q: '미술관', cat: '미술관', title: '전시 보러 가기', description: '천천히 둘러보며 머리를 비워요. 지금 하는 전시는 네이버에서 확인해 줘.', art: 'drawing', tags: ['조용함', '혼자 가능', '실내'], energyNeed: 20 },
+  gallery: { q: '갤러리', cat: '화랑', title: '전시 보러 가기', description: '천천히 둘러보며 머리를 비워요. 지금 하는 전시는 네이버에서 확인해 줘.', art: 'drawing', tags: ['조용함', '혼자 가능', '실내'], energyNeed: 20 },
+  photo: { q: '셀프사진관', cat: '즉석사진', title: '셀프 사진관에서 네 컷', description: '친구랑, 혹은 혼자 가볍게 찍고 와요.', art: 'drawing', tags: ['같이 하기', '혼자 가능', '실내'], energyNeed: 20 },
 };
 
 /** 카카오 검색 결과 하나 → 추천 후보. 업종이 다르거나 좌표·거리가 없으면 null */

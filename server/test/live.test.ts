@@ -59,3 +59,13 @@ test('같은 가게 판정 완화: 문장부호 무시, 아주 가까우면(30m)
   assert.equal(sameStore('천마볼링센타', '천마볼링장', 60), false); // 앞글자만 같으면 아주 가까울 때만
   assert.equal(sameStore('펀잇 대구동성로점', '오티티프라이빗 동성로점', 20), false); // 지점명만 같은 건 다른 가게
 });
+
+test('설문 2위 전시·7위 셀프 사진관: 미술관·화랑, 즉석사진 업종만 (갤러리로 찾으면 보드카페·미용실도 섞임)', () => {
+  assert.ok(toLiveCandidate('museum', doc({ place_name: '인교갤러리', category_name: '문화,예술 > 문화시설 > 미술관' })));
+  assert.ok(toLiveCandidate('gallery', doc({ place_name: '갤러리청아', category_name: '문화,예술 > 미술,공예 > 화랑' })));
+  assert.equal(toLiveCandidate('gallery', doc({ place_name: '조인철헤어갤러리', category_name: '서비스,산업 > 미용 > 미용실' })), null);
+  assert.equal(toLiveCandidate('gallery', doc({ place_name: '갤러리보드게임카페', category_name: '가정,생활 > 여가시설 > 보드카페' })), null);
+  const ph = toLiveCandidate('photo', doc({ place_name: '인생네컷 대구영남대점', category_name: '서비스,산업 > 사진 > 사진관,포토스튜디오 > 즉석사진 > 인생네컷' }));
+  assert.ok(ph?.tags.includes('같이 하기'));
+  assert.equal(LIVE_KINDS.museum.title, LIVE_KINDS.gallery.title); // 같은 "전시"라 종류 섞기에서 한 종류로 본다
+});
