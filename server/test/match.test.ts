@@ -103,3 +103,16 @@ test('근처에 체험이 하나도 없으면(다른 동네) 다시 보여 줄 �
   const r = rankFresh([], p({ need: '쉬기' }), undefined, ['meditation']);
   assert.equal(r.items.length, 0);
 });
+
+test('기운을 모를 때(말 안 함) "풀기"에도 노래방이 나옴: 낮음으로 보면 풀기 체험이 전부 빠졌음 ([답답해서 기분 전환하고 싶어] 버튼 재현)', () => {
+  const r = rankForPrefs(CANDS, p({ need: '풀기', energy: null }));
+  assert.ok(ids(r).includes('karaoke'), ids(r).join());
+});
+
+test('같은 종류(제목)가 여러 곳이면 종류마다 한 곳씩 먼저: 코인노래방 2곳 + 볼링 → 노래방, 볼링, 노래방 (동성로 재현)', () => {
+  const k1 = c('k1', ['소리 내기', '혼자 가능', '실내'], { title: '코인노래방 몇 곡', walkMinutes: 3, energyNeed: 50 });
+  const k2 = c('k2', ['소리 내기', '혼자 가능', '실내'], { title: '코인노래방 몇 곡', walkMinutes: 3, energyNeed: 50 });
+  const bw = c('bw', ['몸 쓰기', '같이 하기', '실내'], { title: '볼링 한 게임', walkMinutes: 4, energyNeed: 50 });
+  const r = rankFresh([k1, k2, bw], p({ need: '풀기', energy: '보통' }));
+  assert.deepEqual(ids(r), ['k1', 'bw', 'k2']);
+});

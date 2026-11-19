@@ -34,6 +34,7 @@ export type Candidate = Experience & {
   availableSlots: string[];
   mapUrl: string; // 예약하기: 네이버 지도에서 매장을 열어 거기서 예약 (우리 앱은 예약을 확정하지 않음)
   hasPhoto: boolean; // 실제 사진(구글)이 있는 매장: 화면이 그림 대신 사진 자리를 비워 두고 기다림
+  live?: boolean; // 실시간 검색(카카오)으로 찾은 가게: 체험 DB에 없고 시간대·가격을 모름 (livePlaces.ts)
 };
 export type Cond = { minutes: number; walk: number; budget: number; energy: number; emotion: string | null };
 export type Item = Candidate & { reason: string; surprise?: boolean };

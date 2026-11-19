@@ -1,11 +1,13 @@
 // 대화로 추천받기: 사용자가 기분을 말하면 AI가 필요·조건을 읽고, 코드가 거르고 점수를 매겨 실제 주변 체험만 추천한다.
 // AI: 말에서 필요 읽기, 질문 문장, 추천 순서·이유 / 코드: 묻기·추천 결정, 조건 지키기, 후보 밖 금지, 채워 넣기 금지
 import { z } from 'zod';
+import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
+import { liveCandidates } from './livePlaces.js';
 import { nearbyCandidates } from './recommend.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
 
@@ -223,20 +225,24 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   }
 
   const { prefs, assumed } = await fillPrefs(s.prefs);
-  const { cands } = await nearbyCandidates(validLatLng(body?.lat, body?.lng));
+  // 체험 DB(영남대 근처 예시 매장) + 실시간으로 찾은 근처 가게(어느 동네에서든). 같은 가게면 체험 DB 쪽을 남긴다
+  const pos = validLatLng(body?.lat, body?.lng);
+  const [{ cands: dbCands }, live] = await Promise.all([nearbyCandidates(pos), liveCandidates(pos ?? config.demoCenter)]);
+  const dbNames = new Set(dbCands.map((c) => c.placeName.replace(/s/g, '')));
+  const cands = [...dbCands.map(withTags), ...live.filter((c) => !dbNames.has(c.placeName.replace(/s/g, '')))];
   const done = await query<{ id: string; tags: string[]; before: number | null; after: number }>(
     `SELECT e.id, e.tags, b.mood_before AS before, b.mood_after AS after FROM bookings b JOIN experiences e ON e.id = b.experience_id
      WHERE b.user_id = $1 AND b.status = 'DONE'`,
     [userId],
   );
-  const ranked = rankFresh(cands.map(withTags), prefs, historyEffects(done), s.seen, s.prefs.locked ?? []);
+  const ranked = rankFresh(cands, prefs, historyEffects(done), s.seen, s.prefs.locked ?? []);
   const assumptions = [...assumed, ...ranked.relaxed.map((r) => `맞는 데가 없어서 ${r}`)].join(', ');
 
   if (!ranked.items.length) {
-    // 근처에 제휴 체험이 아예 없으면(다른 동네) 조건을 넓혀도 소용없으니 장소를 바꾸자고 한다
+    // 근처에 체험도 실시간 가게도 아예 없으면 조건을 넓혀도 소용없으니 장소를 바꾸자고 한다
     const reply = cands.length
       ? '지금 조건에 딱 맞는 데가 근처에 없어. 조금 넓혀서 볼까?'
-      : '이 근처엔 아직 함께하는 매장이 없어. 마이페이지에서 장소를 바꿔 볼래?';
+      : '이 근처에서 지금 찾을 수 있는 곳이 없어. 마이페이지에서 장소를 바꿔 볼래?';
     await say(s.id, 'assistant', reply);
     await save(s);
     return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: cands.length ? ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'] : [], ...support(s.prefs) } };

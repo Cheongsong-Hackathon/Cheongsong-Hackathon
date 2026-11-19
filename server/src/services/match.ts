@@ -92,7 +92,8 @@ export function scoreOne(c: TaggedCandidate, p: Prefs, fx: Effects): Scored {
     score += wantHits.length * 2;
     why.push(`원하는 것(${wantHits.join(', ')}) +${wantHits.length * 2}`);
   }
-  const pct = p.energy ? ENERGY_PCT[p.energy] : ENERGY_PCT['낮음'];
+  // 기운을 말하지 않았으면 보통으로 본다. 낮음으로 보면 풀기 체험(노래방·볼링 50%)이 전부 빠졌다. 지쳤다고 하면 AI가 낮음으로 읽는다
+  const pct = p.energy ? ENERGY_PCT[p.energy] : ENERGY_PCT['보통'];
   if (c.energyNeed <= pct) {
     score += 2;
     why.push('지금 기운으로 할 만함 +2');
@@ -140,7 +141,7 @@ export function rankForPrefs(
   seen: string[] = [],
   locked: ('walk' | 'minutes' | 'budget')[] = [], // 사용자가 직접 좁힌 조건은 넓히지 않는다
 ) {
-  const base = cands.filter((c) => !seen.includes(c.id) && c.availableSlots.length > 0 && !p.avoid.some((t) => c.tags.includes(t)));
+  const base = cands.filter((c) => !seen.includes(c.id) && (c.live || c.availableSlots.length > 0) && !p.avoid.some((t) => c.tags.includes(t)));
   const relaxSteps: [string, 'walk' | 'minutes' | 'budget', number][] = [
     ['도보 10분 더', 'walk', 10],
     ['시간 30분 더', 'minutes', 30],
@@ -167,6 +168,13 @@ export function rankForPrefs(
  *  "다른 거 보여 줘"를 계속 누르다 빈 결과에 갇히지 않게. 근처에 맞는 게 아예 없으면 그대로 빈 결과. */
 export function rankFresh(...[cands, p, fx, seen = [], locked]: Parameters<typeof rankForPrefs>) {
   const fresh = rankForPrefs(cands, p, fx, seen, locked);
-  if (fresh.items.length || !seen.length) return { ...fresh, repeat: false };
-  return { ...rankForPrefs(cands, p, fx, [], locked), repeat: true };
+  const r = fresh.items.length || !seen.length ? { ...fresh, repeat: false } : { ...rankForPrefs(cands, p, fx, [], locked), repeat: true };
+  return { ...r, items: spread(r.items) };
+}
+
+/** 같은 종류(제목)는 종류마다 한 곳씩 먼저, 나머지는 뒤로 (점수 순서는 유지). 실시간 가게는 같은 업종이 여러 곳 나와서 */
+export function spread<T extends { title: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const first = items.filter((i) => !seen.has(i.title) && seen.add(i.title));
+  return [...first, ...items.filter((i) => !first.includes(i))];
 }

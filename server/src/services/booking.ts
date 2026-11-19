@@ -4,6 +4,7 @@ import { query, toId, tx } from '../db.js';
 import { haversineM, validLatLng } from '../geo.js';
 import { GrowthService } from './growth.js';
 import { naverMapUrl } from './kakao.js';
+import { LIVE_KINDS, parseLiveBooking } from './livePlaces.js';
 import { nowHHMM } from './recommend.js';
 import { isSafeMode, SAFETY_BLOCK } from './safety.js';
 
@@ -12,13 +13,19 @@ const mood = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v 
 
 const BOOKING_COLS = `b.id, b.status, b.slot_time AS "slotTime", b.price, b.mood_before AS "moodBefore", b.mood_after AS "moodAfter",
   b.created_at AS "createdAt", b.completed_at AS "completedAt", b.arrived_at AS "arrivedAt", e.id AS "experienceId", e.title, e.category, e.minutes,
-  p.name AS "placeName"`;
+  COALESCE(p.name, b.live_place) AS "placeName", b.live_kind AS "liveKind"`;
+/** 실시간 가게 기록은 제목·그림을 서버 목록(LIVE_KINDS)에서 채운다 */
+const fillLive = (b: any) => {
+  const k = b.liveKind ? LIVE_KINDS[b.liveKind] : undefined;
+  return k ? { ...b, title: k.title, category: k.art } : b;
+};
 /** 다시 예약하러 갈 수 있게 네이버 지도 링크를 붙인다 */
-const withMap = <T extends { placeName: string }>(b: T | undefined) => (b ? { ...b, mapUrl: naverMapUrl(b.placeName) } : null);
-const BOOKING_FROM = `FROM bookings b JOIN experiences e ON e.id = b.experience_id JOIN places p ON p.id = e.place_id`;
+const withMap = <T extends { placeName: string }>(b: T | undefined) => (b ? { ...fillLive(b), mapUrl: naverMapUrl(b.placeName) } : null);
+const BOOKING_FROM = `FROM bookings b LEFT JOIN experiences e ON e.id = b.experience_id LEFT JOIN places p ON p.id = e.place_id`;
 
 export async function createBooking(userId: number, body: any) {
   if (await isSafeMode(userId)) return SAFETY_BLOCK;
+  if (String(body?.experienceId ?? '').startsWith('live:')) return createLiveBooking(userId, body);
   const [exp] = await query(
     `SELECT e.id, e.price, array_agg(s.start_time) AS slots FROM experiences e
      JOIN experience_slots s ON s.experience_id = e.id WHERE e.id = $1 GROUP BY e.id`,
@@ -37,6 +44,22 @@ export async function createBooking(userId: number, body: any) {
     const [b] = await q(
       `INSERT INTO bookings(user_id, checkin_id, experience_id, slot_time, price, mood_before) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
       [userId, ck?.id ?? null, exp.id, slot, exp.price, ck?.mood_score ?? null],
+    );
+    return b.id as number;
+  });
+  return { status: 200, body: await getBooking(userId, id) };
+}
+
+/** 실시간으로 찾은 가게를 "가기로 한 곳"으로. 시간대·가격은 모르므로 비워 둔다 */
+async function createLiveBooking(userId: number, body: any) {
+  const live = parseLiveBooking(body);
+  if (!live) return fail(400, '그 가게 정보를 읽지 못했어. 다시 골라 줘.');
+  const [ck] = await query(`SELECT id, mood_score FROM checkins WHERE id = $1 AND user_id = $2`, [toId(body?.checkinId), userId]);
+  const id = await tx(async (q) => {
+    await q(`UPDATE bookings SET status = 'CANCELED' WHERE user_id = $1 AND status = 'REQUESTED'`, [userId]);
+    const [b] = await q(
+      `INSERT INTO bookings(user_id, checkin_id, price, mood_before, live_kind, live_place, live_lat, live_lng) VALUES ($1,$2,0,$3,$4,$5,$6,$7) RETURNING id`,
+      [userId, ck?.id ?? null, ck?.mood_score ?? null, live.kind, live.placeName, live.lat, live.lng],
     );
     return b.id as number;
   });
@@ -84,8 +107,8 @@ export async function completeBooking(userId: number, id: number, body: any) {
  *  확인이 안 돼도 "다녀왔어"와 기분 기록은 막지 않는다 (불이익 없음). DEMO_MODE에서는 거리를 따지지 않는다. */
 export async function arriveBooking(userId: number, id: number, body: any) {
   const [b] = await query(
-    `SELECT b.status, b.arrived_at, p.lat, p.lng FROM bookings b JOIN experiences e ON e.id = b.experience_id
-     JOIN places p ON p.id = e.place_id WHERE b.id = $1 AND b.user_id = $2`,
+    `SELECT b.status, b.arrived_at, COALESCE(p.lat, b.live_lat) AS lat, COALESCE(p.lng, b.live_lng) AS lng FROM bookings b
+     LEFT JOIN experiences e ON e.id = b.experience_id LEFT JOIN places p ON p.id = e.place_id WHERE b.id = $1 AND b.user_id = $2`,
     [id, userId],
   );
   if (!b) return fail(404, '그런 예약은 없어.');
@@ -122,9 +145,9 @@ export async function postpone(userId: number, body: any) {
 }
 
 export async function records(userId: number) {
-  const done = await query(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.user_id = $1 AND b.status = 'DONE' ORDER BY b.completed_at DESC LIMIT 50`, [
-    userId,
-  ]);
+  const done = (
+    await query<any>(`SELECT ${BOOKING_COLS} ${BOOKING_FROM} WHERE b.user_id = $1 AND b.status = 'DONE' ORDER BY b.completed_at DESC LIMIT 50`, [userId])
+  ).map(fillLive);
   // 최근 7일 마음 기록: 그날 남긴 기분 점수(마음 확인 + 체험 후)의 평균
   const week = await query(
     `WITH days AS (SELECT ((now() AT TIME ZONE 'Asia/Seoul')::date - i) AS day FROM generate_series(0, 6) i),

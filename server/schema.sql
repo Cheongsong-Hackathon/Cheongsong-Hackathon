@@ -110,6 +110,14 @@ CREATE TABLE IF NOT EXISTS bookings (
 );
 -- "도착했어"를 GPS로 확인한 시각. 좌표는 저장하지 않는다.
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS arrived_at timestamptz;
+-- 실시간 검색(카카오)으로 찾은 가게도 "가기로 한 곳"으로 기록한다. 체험 DB에 없어서 종류(livePlaces.ts의 키)와
+-- 가게 이름·좌표(가게의 공개 정보, 도착 확인용)를 직접 둔다. 사용자 좌표는 여전히 저장하지 않는다.
+ALTER TABLE bookings ALTER COLUMN experience_id DROP NOT NULL;
+ALTER TABLE bookings ALTER COLUMN slot_time DROP NOT NULL;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS live_kind text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS live_place text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS live_lat double precision;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS live_lng double precision;
 
 -- 토끼의 기억: AI가 대화·마음 확인에서 뽑은 사실 (위기·건강 정보는 저장하지 않음, 사용자가 지울 수 있음)
 CREATE TABLE IF NOT EXISTS memories (

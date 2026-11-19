@@ -236,7 +236,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 }
 
 // ---------- 04 예약 확인 ----------
-export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string) => void }) {
+export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null) => void }) {
   // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
   const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
   return (
@@ -258,9 +258,8 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
       </button>
       <button
         className="btn big"
-        disabled={!slot || p.busy}
+        disabled={(!slot && !p.item.live) || p.busy}
         onClick={() => {
-          if (!slot) return;
           openNaver(p.item.mapUrl);
           p.onBook(slot);
         }}

@@ -219,9 +219,14 @@ export default function App() {
     setRecs({ items, free, widened: !!r.widened, seen: [...seen, ...items.map((i) => i.id)] });
   }
 
-  async function book(item: Item, slot: string) {
+  async function book(item: Item, slot: string | null) {
     setBusy(true);
-    const r = await api.book({ checkinId: checkin?.id ?? null, experienceId: item.id, slotTime: slot });
+    // 실시간 가게는 체험 DB에 없어서 가게 이름·좌표(공개 정보)를 같이 보낸다. 제목·종류는 서버가 정한다
+    const r = await api.book({
+      checkinId: checkin?.id ?? null,
+      experienceId: item.id,
+      ...(item.live ? { placeName: item.placeName, lat: item.lat, lng: item.lng } : { slotTime: slot ?? undefined }),
+    });
     setBusy(false);
     if (r.blocked) return enterSafety();
     if (r.code !== 200) return notify(r.error ?? '가기로 한 체험을 기록하지 못했어.');

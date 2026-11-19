@@ -30,6 +30,10 @@ async function search(path: string, params: Record<string, string | number>): Pr
  *  (2026-11-18 확인: "현재 위치에서 6.9km"인 경산 매장이 1위. 링크에 좌표(c=)를 넣어도 네이버가 무시함) */
 export const naverMapUrl = (name: string) => `https://map.naver.com/p/search/${encodeURIComponent(name)}`;
 
+/** 키워드로 내 주변 가게 찾기 (가까운 순). null이면 키가 없거나 카카오 실패 */
+export const searchKeyword = (query: string, pos: LatLng, radius: number) =>
+  search('keyword', { query, x: pos.lng, y: pos.lat, radius, sort: 'distance', size: 15 });
+
 export type FreePlace = {
   id: string;
   name: string;
