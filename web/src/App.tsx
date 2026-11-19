@@ -5,6 +5,7 @@ import { sendTalk } from './talkClient';
 import Launcher from './Launcher';
 import Journal from './Journal';
 import MumuShop from './MumuShop';
+import Browse from './Browse';
 import Bunny from './Bunny';
 import { MumuGrowthContext } from './MumuGrowth';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
@@ -30,10 +31,11 @@ import {
   type PartyResult,
 } from './screens';
 
-type Tab = 'shop' | 'profile' | 'home' | 'explore' | 'journal' | 'records' | 'talk';
+type Tab = 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'shop', label: '무무샵', icon: 'M3 9l2-5h14l2 5M4 10v10h16V10M8 20v-7h8v7' },
+  // 하단 탭: 찾기(홈 대화 · 둘러보기) → 가기 → 성장(마이페이지). 무무 옷장은 마이페이지 안으로 (꾸미기에 끌림 8%)
   { id: 'home', label: '홈', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
+  { id: 'browse', label: '둘러보기', icon: 'M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14M16 16l4 4' },
   { id: 'profile', label: '마이페이지', icon: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-2a8 8 0 0 1 16 0v2' },
 ];
 const CRISIS = /죽고싶|죽을래|사라지고싶|없어지고싶|자해|자살|살기싫/;
@@ -75,7 +77,7 @@ export default function App() {
   const [profileLocation, setProfileLocation] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
-  const primaryTab = tab === 'shop' ? 'shop' : ['profile', 'records', 'journal'].includes(tab) ? 'profile' : 'home';
+  const primaryTab = tab === 'browse' ? 'browse' : ['profile', 'records', 'journal', 'shop'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
@@ -318,13 +320,20 @@ export default function App() {
               <main className="screen" ref={screenRef}>
                 {tab !== 'journal' && (refreshLoading || refreshError) && <div className="page"><LoadState loading={refreshLoading} message={refreshError || '무무와 예약 정보를 불러오는 중이야…'} onRetry={refresh} /></div>}
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
-                {tab === 'shop' && <MumuShop ch={ch} />}
+                {tab === 'shop' && <MumuShop ch={ch} onBack={() => setTab('profile')} />}
+                {tab === 'browse' &&
+                  (confirm ? (
+                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
+                  ) : (
+                    <Browse position={position} locationKey={JSON.stringify(savedLocation) + consent} onPick={setConfirm} />
+                  ))}
                 {tab === 'profile' && <div className="page mumu-profile"><h1 className="title">마이페이지</h1>
                   {profileLocation ? <><button className="btn text" onClick={() => setProfileLocation(false)}>‹ 마이페이지로</button><h2 className="label">현재 내 장소</h2>{locationPicker}</> : <>
                     <div className="card mumu-profile-hero"><Bunny size={110} stage={ch?.stage ?? 1} layerScarf item={ch?.equipped ?? null} /><div><h2>무무와 나의 하루 ♡</h2><p>작은 경험이 쌓이는 나만의 공간</p></div></div>
                     <ActiveExperience active={active} onComplete={b => setSheet({ kind: 'complete', booking: b })} onArrivalConfirmed={refresh} onCancel={async b => { const r = await api.cancel(b.id); if (r.code !== 200) return notify(r.error ?? '취소하지 못했어.'); refresh(); }} />
                     <section className="card"><h2 className="label">도감</h2><div className="row two"><button className="btn" onClick={() => { setJournalStart('record'); setJournalKey(k => k + 1); setTab('journal'); }}>＋ 새 도감 만들기</button><button className="btn ghost" onClick={() => { setJournalStart('library'); setJournalKey(k => k + 1); setTab('journal'); }}>▤ 도감 내역</button></div></section>
                     <button className="btn text" onClick={() => setSheet({ kind: 'postpone' })}>오늘 할 일 하나 미루기</button>
+                    <button className="card mumu-profile-link" onClick={() => setTab('shop')}><span className="eyebrow">🎀 무무 옷장</span><strong>무무에게 입혀 보기</strong><span className="meta">다녀올수록 하나씩 늘어나요 ›</span></button>
                     <button className="card mumu-profile-link" onClick={() => setTab('records')}><span className="eyebrow">♡ 기분 기록</span><strong>지금까지 쌓아온 나의 마음</strong><span className="meta">이번 주 기분과 다녀온 체험 보기 ›</span></button>
                     <button className="card mumu-profile-link" onClick={() => setProfileLocation(true)}><span className="eyebrow">📍 현재 내 장소</span><strong>{savedLocation?.label ?? (consent === 'yes' ? '현재 위치 기준' : '기본 동네 기준')}</strong><span className="meta">장소 확인하고 바꾸기 ›</span></button>
                   </>}

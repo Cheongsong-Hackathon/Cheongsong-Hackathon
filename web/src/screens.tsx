@@ -153,7 +153,7 @@ export function ConditionSheet(p: { location?: ReactNode; reply: string; suggest
 }
 
 // ---------- 03 경험 추천 ----------
-function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
+export function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
   return (
     <button className="card exp" onClick={onPick}>
       <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} photo={item.photo} category={item.category} className="thumb" />

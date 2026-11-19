@@ -6,7 +6,8 @@
 import { config } from '../config.js';
 import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
 import { naverMapUrl, searchKeyword } from './kakao.js';
-import type { Tag, TaggedCandidate } from './match.js';
+import { withTags, type Tag, type TaggedCandidate } from './match.js';
+import { nearbyCandidates } from './recommend.js';
 
 // cat: 업종 이름 일부(맨 앞 큰 분류를 뺀 나머지 중 하나에 들어 있으면 통과), 또는 업종 전체에 맞출 정규식
 type Kind = { q: string; cat: string | RegExp; title: string; description: string; art: string; tags: Tag[]; energyNeed: number };
@@ -79,6 +80,20 @@ export async function liveCandidates(pos: LatLng, perKind = 2): Promise<TaggedCa
     ),
   );
   return lists.flat();
+}
+
+const noSpace = (s: string) => s.replace(/\s/g, '');
+
+/** 예시 매장 + 실시간 가게. 띄어쓰기만 다른 같은 가게는 예시 매장 쪽(사진 고정 ID 등)을 남긴다 */
+export function mergeCandidates(db: TaggedCandidate[], live: TaggedCandidate[]) {
+  const names = new Set(db.map((c) => noSpace(c.placeName)));
+  return [...db, ...live.filter((c) => !names.has(noSpace(c.placeName)))];
+}
+
+/** 대화 추천과 둘러보기가 같이 쓰는 후보 전체 (위치가 없으면 기본 동네 기준) */
+export async function allCandidates(pos: LatLng | null) {
+  const [{ cands }, live] = await Promise.all([nearbyCandidates(pos), liveCandidates(pos ?? config.demoCenter)]);
+  return mergeCandidates(cands.map(withTags), live);
 }
 
 /** "가기로 한 곳" 기록용 입력. 종류(제목·그림)는 id에서 서버 목록으로만 정하고, 화면에서 받는 건 가게 이름과 좌표(공개 정보)뿐 */

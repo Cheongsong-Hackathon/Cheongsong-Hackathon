@@ -110,3 +110,12 @@ test('예시 매장 체험: 매장이 실제로 하는지 모르는 말은 하�
     assert.doesNotMatch(e[8], /30ml|장비 대여|직원/, e[0]);
   }
 });
+
+test('예시 매장 + 실시간 가게 합치기: 띄어쓰기만 다른 같은 가게는 예시 매장 쪽만 남김 (둘러보기·대화 공용)', async () => {
+  const { mergeCandidates } = await import('../src/services/livePlaces.js');
+  const db = toLiveCandidate('climbing', doc({ id: '1', place_name: '챌린져클라이밍센터 영대점', category_name: '스포츠,레저 > 클라이밍' }))!;
+  const dup = toLiveCandidate('climbing', doc({ id: '2', place_name: '챌린져 클라이밍센터영대점', category_name: '스포츠,레저 > 클라이밍' }))!;
+  const other = toLiveCandidate('karaoke', doc({ id: '3', place_name: 'Seven Star 노래방', category_name: '가정,생활 > 여가시설 > 노래방' }))!;
+  const out = mergeCandidates([{ ...db, live: undefined, id: 'climbing' }], [dup, other]);
+  assert.deepEqual(out.map((c) => c.id), ['climbing', other.id]); // 영문 s가 지워지지 않고, 띄어쓰기만 무시
+});

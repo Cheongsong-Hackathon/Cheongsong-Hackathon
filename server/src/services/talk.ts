@@ -1,15 +1,13 @@
 // 대화로 추천받기: 사용자가 기분을 말하면 AI가 필요·조건을 읽고, 코드가 거르고 점수를 매겨 실제 주변 체험만 추천한다.
 // AI: 말에서 필요 읽기, 질문 문장, 추천 순서·이유 / 코드: 묻기·추천 결정, 조건 지키기, 후보 밖 금지, 채워 넣기 금지
 import { z } from 'zod';
-import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
-import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, withTags, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
+import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { photoForItem } from './googlePhoto.js';
-import { liveCandidates } from './livePlaces.js';
-import { nearbyCandidates } from './recommend.js';
+import { allCandidates } from './livePlaces.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
 
 export const TALK_MAX_ASKS = 2; // 추천 전에 묻는 건 많아도 이만큼. 적게 묻고 먼저 묻는 방향은 Ma 외 2024, 숫자 2는 임시값 (docs/설계근거_점검.md)
@@ -243,10 +241,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
 
   const { prefs, assumed } = await fillPrefs(s.prefs);
   // 체험 DB(영남대 근처 예시 매장) + 실시간으로 찾은 근처 가게(어느 동네에서든). 같은 가게면 체험 DB 쪽을 남긴다
-  const pos = validLatLng(body?.lat, body?.lng);
-  const [{ cands: dbCands }, live] = await Promise.all([nearbyCandidates(pos), liveCandidates(pos ?? config.demoCenter)]);
-  const dbNames = new Set(dbCands.map((c) => c.placeName.replace(/s/g, '')));
-  const cands = [...dbCands.map(withTags), ...live.filter((c) => !dbNames.has(c.placeName.replace(/s/g, '')))];
+  const cands = await allCandidates(validLatLng(body?.lat, body?.lng));
   const done = await query<{ id: string; tags: string[]; before: number | null; after: number }>(
     `SELECT e.id, e.tags, b.mood_before AS before, b.mood_after AS after FROM bookings b JOIN experiences e ON e.id = b.experience_id
      WHERE b.user_id = $1 AND b.status = 'DONE'`,
