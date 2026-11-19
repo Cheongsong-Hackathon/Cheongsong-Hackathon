@@ -11,6 +11,9 @@ export const GOOGLE_PLACE_IDS: Record<string, string> = {
   challenger: 'ChIJB3XR8UMMZjUREMOLGJJk3ZU',
 };
 
+/** 실제 사진을 받을 수 있는 매장인지. 화면은 이걸 보고 사진 자리를 비워 두고 기다린다(그림이 먼저 번쩍이지 않게) */
+export const hasPhoto = (placeId: string) => !!config.googlePlacesKey && placeId in GOOGLE_PLACE_IDS;
+
 const BASE = 'https://places.googleapis.com/v1';
 const TIMEOUT_MS = 4000;
 

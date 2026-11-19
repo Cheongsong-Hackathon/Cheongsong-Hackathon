@@ -339,7 +339,11 @@ a.card { color: inherit; text-decoration: none; }
 
 
 /* 매장 실제 사진 (구글). 그림과 같은 자리·크기 */
-.place-photo { position: relative; display: block; overflow: hidden; background: #eee6f8; }
-.place-photo > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.place-photo { position: relative; display: block; overflow: hidden; background: #eee6f8; animation: place-photo-wait 1.2s ease-in-out infinite alternate; }
+.place-photo.loaded { animation: none; }
+.place-photo > img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity .35s; }
+.place-photo.loaded > img { opacity: 1; }
+@keyframes place-photo-wait { to { background: #f6f1fc; } }
+@media (prefers-reduced-motion: reduce) { .place-photo { animation: none; } .place-photo > img { transition: none; } }
 .place-photo > small { position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #0008; color: #fff; font-size: 10px; }
 .place-photo > small a { color: inherit; }

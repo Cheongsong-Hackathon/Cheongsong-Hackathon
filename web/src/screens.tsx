@@ -162,7 +162,7 @@ export function ConditionSheet(p: { location?: ReactNode; reply: string; suggest
 function ExpCard({ item, onPick, children }: { item: Item; onPick: () => void; children?: ReactNode }) {
   return (
     <button className="card exp" onClick={onPick}>
-      <PlaceArt placeId={item.placeId} category={item.category} className="thumb" />
+      <PlaceArt placeId={item.placeId} hasPhoto={item.hasPhoto} category={item.category} className="thumb" />
       <span className="exp-body">
         <strong>{item.title}</strong>
         <span className="meta">
@@ -247,7 +247,7 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
         예약 내용을 확인해 줘<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
-        <PlaceArt placeId={p.item.placeId} category={p.item.category} className="hero-art" credit />
+        <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} category={p.item.category} className="hero-art" credit />
         <strong className="big-title">{p.item.title}</strong>
         <span className="meta">
           {p.item.placeName} · 도보 {p.item.walkMinutes}분

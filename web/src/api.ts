@@ -8,6 +8,7 @@ export type Item = {
   moods: string[];
   description: string;
   placeId?: string; // 실제 사진(구글)을 받을 때 쓴다
+  hasPhoto?: boolean; // 사진 있는 매장: 그림 대신 사진 자리를 비워 두고 기다림
   placeName: string;
   mapUrl: string; // 예약하기 → 네이버 지도(네이버 예약)
   walkMinutes: number;
