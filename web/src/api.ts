@@ -7,6 +7,7 @@ export type Item = {
   price: number;
   moods: string[];
   description: string;
+  placeId?: string; // 실제 사진(구글)을 받을 때 쓴다
   placeName: string;
   mapUrl: string; // 예약하기 → 네이버 지도(네이버 예약)
   walkMinutes: number;
