@@ -35,8 +35,8 @@ import {
 
 type Tab = 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'shop', label: '무무샵', icon: 'M3 9l2-5h14l2 5M4 10v10h16V10M8 20v-7h8v7' },
   { id: 'home', label: '홈', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
+  { id: 'shop', label: '무무샵', icon: 'M3 9l2-5h14l2 5M4 10v10h16V10M8 20v-7h8v7' },
   { id: 'profile', label: '마이페이지', icon: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-2a8 8 0 0 1 16 0v2' },
 ];
 const CRISIS = /죽고싶|죽을래|사라지고싶|없어지고싶|자해|자살|살기싫/;
@@ -98,8 +98,8 @@ export default function App() {
   }
 
   async function equipItem(id: string | null) {
-    if (equipping.current || !ch) return;
-    if (id && !ch.allItems.some((i) => i.id === id && i.unlocked)) return;
+    if (equipping.current || !ch) return false;
+    if (id && !ch.allItems.some((i) => i.id === id && i.unlocked)) return false;
     equipping.current = true;
     setEquipBusy(true);
     try {
@@ -107,10 +107,11 @@ export default function App() {
       // 서버의 단일 착용 슬롯은 머리 아이템에 사용하고, 목도리는 브라우저에 별도로 저장한다.
       if (ch.equipped !== nextHead) {
         const r = await api.equip(nextHead);
-        if (r.code !== 200) return notify(r.error ?? '아이템을 바꾸지 못했어. 다시 해 줄래?');
+        if (r.code !== 200) { notify(r.error ?? '아이템을 바꾸지 못했어. 다시 해 줄래?'); return false; }
         setCh((previous) => previous ? { ...previous, equipped: nextHead } : previous);
       }
       saveScarf(nextScarf);
+      return true;
     } finally {
       equipping.current = false;
       setEquipBusy(false);
@@ -351,7 +352,7 @@ export default function App() {
               <main className="screen" ref={screenRef}>
 
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
-                {tab === 'shop' && <MumuShop ch={ch} onBack={() => setTab('profile')} />}
+                {tab === 'shop' && <MumuShop ch={ch} onEquip={equipItem} equipBusy={equipBusy} onBack={() => setTab('profile')} />}
                 {tab === 'browse' &&
                   (confirm ? (
                     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
