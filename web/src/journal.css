@@ -179,7 +179,6 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 .journal-editor-toolbar button { color: #65527f; font-weight: 700; font-size: 11px; }
 .journal-done-actions h1 { font-weight: 800; color: #2b263e; }
 .journal-done-actions p { font-weight: 700; color: #60566f; }
-.journal-font-credit { font-size: 11px; color: #8c7b9e; text-underline-offset: 3px; }
 @media (max-width: 360px) { .journal-record-fields .chips { flex-wrap: nowrap; }.journal-record-fields .chip { font-size: 11px; padding: 5px 3px; gap: 2px; }.journal-mood-emoji { font-size: 13px; } }
 .accessory-color-options { margin: 0; padding: 0; border: 0; min-width: 0; }
 .accessory-colors > .btn:disabled { cursor: not-allowed; opacity: .6; box-shadow: none; }

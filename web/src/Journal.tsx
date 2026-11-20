@@ -4,7 +4,6 @@ import { drawJournal as draw, themes, themeDescriptions, type JournalEntry as En
 type SavedEntry = { entry: Entry; image: string };
 import JournalControls, { type Tool } from './JournalControls';
 import MoodLabel, { JOURNAL_MOODS } from './MoodLabel';
-import fontLicense from './assets/fonts/LICENSE-NAVER.txt?url';
 const makeId = () => typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const fresh = (): Entry => ({ id: makeId(), title: '오늘의 경험 도감 ♡', date: today(), mood: '', photos: [], theme: 0, note: '', decorations: [] });
@@ -175,7 +174,6 @@ export default function Journal({ onFocusChange, initialStep = 'library', onExit
     {message && <p className="journal-message" role="status">{message}</p>}
     {step === 'library' ? <>
       <p className="small mute">사진과 도감은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라지니, 소중한 기록은 이미지로 내려받아 주세요.</p>
-      <a className="journal-font-credit" href={fontLicense} target="_blank" rel="noreferrer">글꼴: 네이버 나눔스퀘어라운드 · 라이선스</a>
       <h2 className="label">나의 도감 <span className="pill">{saved.length}</span></h2>
       {loading ? <p role="status">도감을 펼치는 중이에요…</p> : !saved.length ? <div className="journal-empty"><span aria-hidden="true">♡</span><strong>첫 번째 페이지를 기다리고 있어요</strong><p>사진 없이 글과 스티커만으로도 남길 수 있어요.</p></div> : <div className="journal-library">{saved.map(row => <button className="journal-saved" key={row.entry.id} onClick={() => { reset(row.entry); setStep('edit'); }}><img src={row.image} alt={row.entry.title} /><strong>{row.entry.title}</strong><small>{row.entry.date}</small></button>)}</div>}
     </> : step === 'record' ? <>
