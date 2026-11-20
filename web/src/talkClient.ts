@@ -1,6 +1,7 @@
 ﻿import type { Item, LatLng } from './api';
+export type Science = { text: string; source: string; url: string }; // 왜 기분 전환이 되나: 확인한 연구 한 줄
 export type TalkOffer = { items: Item[]; prefs?: { need: string | null; energy: string | null; want: string[]; avoid: string[] }; assumptions?: string; quickReplies?: string[]; support?: { text: string; lines: { name: string; tel: string }[] } };
-export type TalkReply = Partial<TalkOffer> & { code: number; sessionId?: number | null; action?: 'ask' | 'recommend' | 'none' | 'safety' | 'play'; game?: 'tarot' | 'words' | 'balance' | 'fortune'; state?: string; reply?: string; error?: string };
+export type TalkReply = Partial<TalkOffer> & { code: number; sessionId?: number | null; science?: Science | null; action?: 'ask' | 'recommend' | 'none' | 'safety' | 'play'; game?: 'tarot' | 'words' | 'balance' | 'fortune'; state?: string; reply?: string; error?: string };
 /** Existing POST /api/talk contract. No intent inference or payment decisions on the client. */
 export async function sendTalk(sessionId: number | null, message: string, position: LatLng | null): Promise<TalkReply> {
   try {

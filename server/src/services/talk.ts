@@ -80,6 +80,24 @@ type Stored = {
 };
 type Session = { id: number; prefs: Stored; asks: number; seen: string[] };
 
+// ---- 추천 근거 (화면 "왜 여기?"): 점수를 실제로 올린 사실만, 사람이 읽는 말로 ----
+const NEED_LABEL: Record<string, string> = { 쉬기: '쉬고 싶은 마음', 비우기: '생각 비우기', 풀기: '답답함 풀기', 몰입: '뭔가 해내기', 즐기기: '새로운 재미', 연결: '함께하고 싶은 마음' };
+/** 점수 이유(why) → 근거 칩. 감점·"가까움"은 빼고, 걸어서 몇 분은 늘 붙인다 (많아도 4개) */
+export function evidenceOf(why: string[], walkMinutes: number): string[] {
+  const out: string[] = [];
+  for (const w of why) {
+    let m: RegExpMatchArray | null;
+    if ((m = w.match(/^(.+?)에 맞음\((.+)\) \+\d+$/))) out.push(`${m[2].split(', ').join('·')} → ${NEED_LABEL[m[1]] ?? m[1]}에 맞음`);
+    else if ((m = w.match(/^원하는 것\((.+)\) \+\d+$/))) out.push(`말한 대로 ${m[1].split(', ').join('·')}`);
+    else if (w.startsWith('지금 기운으로 할 만함')) out.push('지금 기운으로 할 만함');
+    else if (w.startsWith('전에 해 보고 기분이 올랐음')) out.push('전에 다녀와서 기분이 올랐던 곳');
+    else if (w.startsWith('비슷한 체험 뒤 기분이 올랐음')) out.push('비슷한 곳 다녀와서 기분이 올랐음');
+  }
+  return [...out.slice(0, 3), `걸어서 ${walkMinutes}분`];
+}
+/** 왜 기분 전환이 되나: 필요별로 확인한 연구 한 줄 (AI가 쓰지 않는다). 출처는 docs/추천근거_연구.md */
+export const NEED_SCIENCE: Partial<Record<string, { text: string; source: string; url: string }>> = {};
+
 /** AI가 없거나 스킬을 놓쳤을 때 말에서 바로 고르기 */
 export function ruleSkill(m: string): { skill: '없음' | '놀이' | '기록'; game: 'tarot' | 'fortune' | 'words' | 'balance' } {
   const game = /타로/.test(m) ? 'tarot' : /운세|사주/.test(m) ? 'fortune' : /끝말/.test(m) ? 'words' : 'balance';
@@ -340,7 +358,9 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
       reply,
       assumptions, // 화면에 "한 시간 안쪽, 걸어서 20분 이내, 지난번처럼 2만원 안쪽으로 찾아봤어"처럼 보여 주고 고칠 수 있게
       prefs: { need: prefs.need, energy: prefs.energy, want: prefs.want, avoid: prefs.avoid },
-      items: items.map(({ why, fit, ...i }) => i), // 점수 근거(why)는 서버 로그·이유 작성용
+      // 점수 근거(why)는 사람이 읽는 근거 칩(evidence)으로 바꿔 함께 보낸다 → 카드의 "왜 여기?"
+      items: items.map(({ why, fit, ...i }) => ({ ...i, evidence: evidenceOf(why, i.walkMinutes) })),
+      science: (prefs.need && NEED_SCIENCE[prefs.need]) || null,
       quickReplies: AFTER_RECOMMEND,
       ...support(s.prefs),
       ...(out && !fallback ? {} : { fallback: true }),
