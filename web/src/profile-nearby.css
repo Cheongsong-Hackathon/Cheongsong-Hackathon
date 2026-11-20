@@ -28,3 +28,29 @@
 .account-card .account-check, .account-card .account-toggle { flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; }
 .account-card input[type="checkbox"] { width:auto; flex:none; padding:0; margin:3px 0 0; border:0; background:none; }
 .mumu-login .account-card { width:100%; box-sizing:border-box; }
+.trip-explore .trip-explore-categories { gap: 4px; }
+#root .trip-explore-categories > button {
+  min-height: 65px;
+  padding: 5px 1px 4px;
+  gap: 4px;
+  font: var(--type-c1) !important;
+  line-height: 1.16 !important;
+}
+.trip-explore .trip-explore-categories > button[aria-pressed=true] { border-color: #a684df; background: #eee6fa; color: #51367a; }
+.trip-explore-categories .explore-category-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  color: #7542b8;
+  background: #eee5ff;
+}
+.explore-category-icon svg { width: 20px; height: 20px; display: block; }
+.trip-explore-categories .explore-category-icon--pink { color: #994e83; background: #f9e4f2; }
+.trip-explore-categories .explore-category-icon--blue { color: #4c63a5; background: #e7edff; }
+.trip-explore-categories .explore-category-icon--peach { color: #93593e; background: #fbe9dc; }
+.trip-explore-categories .explore-category-icon--green { color: #4d7760; background: #e0f1e6; }
+.trip-explore-categories .explore-category-icon--lilac { color: #7648ae; background: #f2e4fc; }
+#root .trip-explore-categories .explore-category-label { text-align: center; font: inherit !important; }

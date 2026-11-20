@@ -72,11 +72,11 @@
 .tarot-choices > button:last-child { transform: rotate(10deg); }
 .tarot-cards-stage { position: relative; width: min(100%, 365px); margin: 3px auto 0; }
 .tarot-cards-motion { display: none; }
-.tarot-cards-stage.has-motion { aspect-ratio: 365 / 133; }
+.tarot-cards-stage.has-motion { aspect-ratio: 312 / 133; }
 /* The source is a full screen recording; only the card artwork belongs here. */
 .tarot-cards-stage.has-motion .tarot-cards-motion { display: block; position: absolute; inset: 0; overflow: hidden; border-radius: 12px; }
-.tarot-cards-motion > img { position: absolute; display: block; width: 115.6164%; max-width: none; height: auto; left: -7.9452%; top: 0; transform: translateY(-42.8%); }
-.tarot-cards-stage.has-motion .tarot-choices { position: absolute; inset: 0 14%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0; background: none; }
+.tarot-cards-motion > img { position: absolute; display: block; width: 135.2564%; max-width: none; height: auto; left: -17.6282%; top: 0; transform: translateY(-42.8%); }
+.tarot-cards-stage.has-motion .tarot-choices { position: absolute; inset: 0 7%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0; background: none; }
 .tarot-cards-stage.has-motion .tarot-choices > button { width: 100%; height: 100%; transform: none; border-radius: 10px; }
 .tarot-cards-stage.has-motion .tarot-choices .tarot-card { visibility: hidden; }
 .tarot-choices > button:focus-visible { outline: 2px solid #8252c0; outline-offset: -3px; }
@@ -131,7 +131,6 @@
   .tarot-entry-content--intro { flex: 1; min-height: 0; overflow: auto; scrollbar-width: none; gap: 5px; }
   .tarot-entry-content--intro > * { flex-shrink: 0; }
   .tarot-entry-content--intro .tarot-pick { padding: 6px 8px; }
-  .tarot-entry-content--intro .tarot-cards-stage { max-width: 250px; }
   .game-tarot .tarot-guide > div { padding: 4px 5px; }
   .game-tarot .tarot-guide small { line-height: 1.25; }
   .game-tarot .game-copy { padding: 4px 8px; }
@@ -384,12 +383,25 @@
   background: linear-gradient(#fffaff,#f7effc);
   box-shadow: 0 6px 11px #9867bf27;
 }
-.balance-question .balance-option-art { width: 76px; max-width: 100%; height: 65px; margin: 0; border-radius: 14px; }
-.balance-option-art--0, .balance-option-art--1 { position: relative; overflow: hidden; }
-.balance-option-art > img { position: absolute; top: -196px; left: -255px; width: 460px; max-width: none; height: auto; }
-.balance-option-art--1 > img { top: -195px; left: -356px; }
 .balance-question button:active { background: #eddbfa; }
 .balance-question button > strong { word-break: keep-all; text-wrap: balance; }
+.game-tarot .tarot-entry-content { gap: 8px; }
+.game-tarot .tarot-pick { border-radius: 24px; padding: 10px 5px 5px; }
+.game-tarot .game-scene--tarot { background: linear-gradient(#ede2ff, #f1e2fb 55%, #edc5e8); }
+.game-tarot .game-scene--tarot .game-scene-art::before,
+.game-tarot .game-scene--tarot .scene-clouds { display: none; }
+.tarot-room-window, .tarot-room-shelf {
+  position: absolute;
+  bottom: 0;
+  width: 25%;
+  aspect-ratio: 68 / 125;
+  background: url('./assets/mumu/tarot-entry-reference.webp') no-repeat;
+  mask-image: linear-gradient(#000 85%, transparent);
+}
+.tarot-room-window { left: 0; background-size: 444.12% auto; background-position: 7.3% 13.2%; border-radius: 36px 25px 0 0; }
+.tarot-room-shelf { right: 0; aspect-ratio: 77 / 131; background-size: 392.2% auto; background-position: 93.8% 11.9%; border-radius: 24px 30px 0 0; }
+.tarot-room-table { position: absolute; inset: auto 18% -2% 18%; height: 24%; border-radius: 50%; background: linear-gradient(#e6cfff,#b989e7); box-shadow: inset 0 3px 4px #fbf2ff, 0 3px 5px #a770c750; }
+.game-tarot .game-hero .game-host { transform: scale(1.1); transform-origin: center bottom; }
 .word-settings > div { display: grid; grid-template-columns: 72px 1fr; gap: 3px; align-items: center; margin: 8px 0; }
 .word-settings > div > strong { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 .word-settings strong > i { color: #986acb; font-style: normal; }
@@ -408,6 +420,10 @@
 
 @media (max-height: 700px) {
   .game-scene--center > .game-host { height: 119px; }
+  .game-tarot .game-scene--center > .game-host { height: 97px; }
+  .game-tarot .tarot-entry-content { gap: 5px; }
+  .game-tarot .tarot-pick { padding-top: 7px; }
+  .game-tarot .tarot-cards-stage.has-motion { aspect-ratio: 312 / 119; }
   .game-scene-bubble { padding-block: 6px; }
   .balance-question { padding-bottom: 16px; }
   .balance-question button { min-height: 106px; }

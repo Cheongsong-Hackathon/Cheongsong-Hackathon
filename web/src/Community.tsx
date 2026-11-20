@@ -1,19 +1,133 @@
+import { useEffect, useRef, useState } from 'react';
+import type { Item, LatLng } from './api';
 import MumuArtwork from './MumuArtwork';
-import {useRef,useState} from 'react';
-import {TripHeader} from './TripUI';
+import { TripHeader } from './TripUI';
 import Art from './Art';
-type Post={id:string;tag:string;author:string;text:string;liked:boolean;likes:number;mine?:boolean;region?:string;period?:string;gallery?:string[];bookmarked?:boolean};
-const EXAMPLES:Post[]=[{id:'example-1',tag:'후기공유',author:'소소한 하루',text:'퇴근 후 야간 전시 다녀왔어요. 조용한 공간에서 잠깐 쉬니까 마음이 조금 가벼워지네요 🌙',liked:false,likes:72,region:'대구',period:'야간',gallery:['gallery','cafe']},{id:'example-2',tag:'후기공유',author:'몽글이',text:'야간 전시 다녀왔어요! 🌌\n피곤하고 답답했는데 조용하고 분위기 있어서 마음이 편안해졌어요. 밤 전시도 너무 추천해요!',liked:false,likes:38,region:'서울',period:'야간',gallery:['gallery','gallery']},{id:'example-3',tag:'일상잡담',author:'느긋한 하루',text:'오늘은 집 앞을 10분 걸어봤어요. 크지 않은 변화도 충분한 것 같아요 🌿',liked:false,likes:21,region:'부산',period:'주간'}];
-function read():Post[]{try{const v=JSON.parse(localStorage.getItem('mumu.community.preview')??'null');return Array.isArray(v)&&v.every(p=>p&&typeof p.id==='string'&&typeof p.text==='string'&&typeof p.tag==='string'&&typeof p.author==='string'&&typeof p.likes==='number'&&typeof p.liked==='boolean')?v.map(p=>({...p,tag:['후기공유','같이갈래요','일상잡담','질문'].includes(p.tag)?p.tag:'일상잡담'})):EXAMPLES;}catch{return EXAMPLES;}}
-export default function Community({onNotifications}:{onNotifications:()=>void}){
- const [posts,setPosts]=useState<Post[]>(read),[filter,setFilter]=useState('전체'),[text,setText]=useState(''),[tag,setTag]=useState('일상잡담'),[error,setError]=useState(''),[region,setRegion]=useState('전체 지역'),[period,setPeriod]=useState('전체 시간'),[sort,setSort]=useState('최신순'),[search,setSearch]=useState(''),[showSearch,setShowSearch]=useState(false),[writeRegion,setWriteRegion]=useState('서울'),[writePeriod,setWritePeriod]=useState('주간');const dialog=useRef<HTMLDialogElement>(null);
- function save(next:Post[]){try{localStorage.setItem('mumu.community.preview',JSON.stringify(next));setPosts(next);setError('');return true;}catch{setError('저장 공간을 확인해 주세요.');return false;}}
- let visible=posts.filter(p=>(filter==='전체'||p.tag===filter)&&(region==='전체 지역'||p.region===region)&&(period==='전체 시간'||p.period===period)&&`${p.author} ${p.text}`.includes(search));if(sort==='공감순')visible=[...visible].sort((a,b)=>b.likes-a.likes);
- return <div className="new-community trip-community"><TripHeader onNotice={onNotifications} onSearch={()=>setShowSearch(v=>!v)}/><section className="community-new-hero"><div><h1>커뮤니티</h1><p>오늘도 무무와 함께,<br/>기분전환한 순간을 나눠요!</p></div><div className="character-space"><MumuArtwork kind="community"/></div></section>
- {showSearch&&<input className="trip-search" aria-label="커뮤니티 검색" value={search} onChange={e=>setSearch(e.target.value)} placeholder="이야기를 검색해 보세요"/>}
- <div className="community-filters">{['전체','후기공유','같이갈래요','일상잡담','질문'].map(t=><button key={t} aria-pressed={filter===t} onClick={()=>setFilter(t)}>{t}</button>)}</div>
- <div className="community-region-filters"><select aria-label="지역 필터" value={region} onChange={e=>setRegion(e.target.value)}>{['전체 지역','서울','대구','부산','인천','기타 지역'].map(v=><option key={v}>{v}</option>)}</select><select aria-label="시간 필터" value={period} onChange={e=>setPeriod(e.target.value)}><option>전체 시간</option><option value="주간">☀ 주간 (06:00~18:00)</option><option value="야간">☾ 야간 (18:00~24:00)</option></select><select aria-label="이야기 정렬" value={sort} onChange={e=>setSort(e.target.value)}><option>최신순</option><option>공감순</option></select></div>
- <p className="community-preview">미리보기 · 예시 이야기와 이 기기의 글만 표시돼요.</p><div className="community-posts">{visible.map(p=><article key={p.id}><header><span className="community-avatar" aria-hidden="true">☺</span><div><strong>{p.author}</strong><small>😌 {p.mine?'내 기록':'예시'} · {p.region??'지역 미선택'}</small></div><span className="community-tag">{p.period==='야간'?'☾ 야간':'☀ 주간'}</span></header><p>{p.text}</p>{!!p.gallery?.length&&<div className="community-gallery">{p.gallery.map((category,i)=><Art key={i} category={category} className="community-gallery-art"/>)}</div>}<footer><button aria-label={`${p.author} 글 공감`} aria-pressed={p.liked} onClick={()=>save(posts.map(v=>v.id===p.id?{...v,liked:!v.liked,likes:v.likes+(v.liked?-1:1)}:v))}>{p.liked?'♥':'♡'} {p.likes}</button><span>{p.tag}</span><div>{p.mine&&<button onClick={()=>save(posts.filter(v=>v.id!==p.id))}>삭제</button>}<button aria-label={`${p.author} 글 저장`} aria-pressed={!!p.bookmarked} onClick={()=>save(posts.map(v=>v.id===p.id?{...v,bookmarked:!v.bookmarked}:v))}>{p.bookmarked?'▣':'♧'}</button></div></footer></article>)}</div>{!visible.length&&<p className="trip-empty">이 조건에 맞는 이야기가 없어요.</p>}
- {error&&<p role="alert">{error}</p>}<button className="community-write" aria-label="이야기 남기기" onClick={()=>dialog.current?.showModal()}>✎</button>
- <dialog ref={dialog} className="community-dialog"><form onSubmit={e=>{e.preventDefault();if(!text.trim())return;if(save([{id:crypto.randomUUID(),tag,author:'나의 작은 하루',text:text.trim(),liked:false,likes:0,mine:true,region:writeRegion,period:writePeriod},...posts])){setText('');setFilter('전체');setRegion('전체 지역');setPeriod('전체 시간');dialog.current?.close();}}}><h2>오늘의 작은 이야기</h2><p>이 글은 현재 기기에만 저장돼요.</p><label>이야기 주제<select value={tag} onChange={e=>setTag(e.target.value)}>{['후기공유','같이갈래요','일상잡담','질문'].map(t=><option key={t}>{t}</option>)}</select></label><div className="row two"><label>지역<select value={writeRegion} onChange={e=>setWriteRegion(e.target.value)}>{['서울','대구','부산','인천','기타 지역'].map(v=><option key={v}>{v}</option>)}</select></label><label>시간<select value={writePeriod} onChange={e=>setWritePeriod(e.target.value)}><option>주간</option><option>야간</option></select></label></div><textarea value={text} onChange={e=>setText(e.target.value)} maxLength={500} placeholder="오늘의 마음을 편하게 남겨 주세요." aria-label="이야기 내용" required/><div className="row two"><button type="button" className="btn ghost" onClick={()=>dialog.current?.close()}>취소</button><button className="new-primary" disabled={!text.trim()}>내 기기에 저장</button></div>{error&&<p role="alert">{error}</p>}</form></dialog></div>;
+import CommunityComposer from './CommunityComposer';
+import { communityAuthor, communityId, communityPeriods, communityRegions, communityTopics, communityVisitPlace, readCommunityPosts, saveCommunityPosts, type CommunityPost } from './communityData';
+import './community-feed.css';
+
+function PostCard({ post, onUpdate, onDelete, onVisit }: {
+  post: CommunityPost;
+  onUpdate: (update: Partial<CommunityPost>) => boolean;
+  onDelete: () => void;
+  onVisit: (item: Item) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [comment, setComment] = useState('');
+  const comments = post.comments ?? [];
+  const commentInput = useRef<HTMLInputElement>(null);
+  const place = communityVisitPlace(post);
+  const shownComments = expanded ? comments : comments.slice(-2);
+  const time = post.sampleTime ?? (post.createdAt ? new Date(post.createdAt).toLocaleDateString('ko-KR') : '내 기록');
+  return <article className="feed-card">
+    {post.featured && <span className="feed-featured">✦ 추천 게시글</span>}
+    <header className="feed-card-header">
+      <span className="community-avatar" aria-hidden="true">{post.author.slice(0, 1)}</span>
+      <div className="feed-byline"><div><strong>{post.author}</strong>{post.mood && <span>{post.mood}</span>}</div><small>{time} · {post.region ?? '지역 미선택'}{post.visibility === 'private' && ' · 나만 보기'}</small></div>
+      {post.period && <span className="feed-period">{post.period === '야간' ? '☾ 야간' : '☀ 주간'}</span>}
+      {post.mine && <details className="feed-post-menu"><summary aria-label="글 메뉴">•••</summary><button type="button" onClick={() => { if (window.confirm('이 글을 삭제할까요?')) onDelete(); }}>글 삭제</button></details>}
+    </header>
+    {post.title && <h2>{post.title}</h2>}
+    <p className="feed-post-copy">{post.text}</p>
+    {!!post.photos?.length ? <div className="feed-gallery" aria-label="게시글 사진">{post.photos.map((src, index) => <img loading="lazy" key={index} src={src} alt={`게시글 사진 ${index + 1}`} />)}</div> :
+      !!post.gallery?.length && <div className="feed-gallery" aria-label="예시 장소 일러스트">{post.gallery.map((category, index) => <Art key={index} category={category} className="feed-gallery-art" />)}</div>}
+    <footer className="feed-actions">
+      <button type="button" aria-label={`좋아요 ${post.likes}개`} aria-pressed={post.liked} onClick={() => onUpdate({ liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) })}><span aria-hidden="true">{post.liked ? '♥' : '♡'}</span>{post.likes}</button>
+      <button type="button" aria-label={`댓글 ${comments.length}개`} aria-expanded={expanded} onClick={() => { setExpanded(value => !value); commentInput.current?.focus(); }}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 11a8 8 0 0 1-8 8H5l1.2-3.7A8 8 0 1 1 21 11Z" strokeLinejoin="round" /><path d="M9 11h.1m3.9 0h.1m3.9 0h.1" strokeLinecap="round" /></svg>{comments.length}
+      </button>
+      {place && <button type="button" className="feed-visit" onClick={() => onVisit(place)}>⌖ 나도 가보기</button>}
+      <button type="button" className="feed-bookmark" aria-label="게시글 저장" aria-pressed={!!post.bookmarked} onClick={() => onUpdate({ bookmarked: !post.bookmarked })}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill={post.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8"><path d="M6 4h12v16l-6-4-6 4z" strokeLinejoin="round" /></svg>
+      </button>
+    </footer>
+    <section className="feed-comments" aria-label="게시글 댓글">
+      <header><strong>댓글 {comments.length}개</strong>{comments.length > 2 && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? '접기' : '더보기 ›'}</button>}</header>
+      {shownComments.length > 0 && <ul>{shownComments.map(reply => <li key={reply.id}><span className="feed-comment-avatar" aria-hidden="true">{reply.author.slice(0, 1)}</span><strong>{reply.author}</strong><span>{reply.text}</span></li>)}</ul>}
+      {post.commentsAllowed !== false ? <form onSubmit={event => {
+        event.preventDefault();
+        if (comment.trim() && onUpdate({ comments: [...comments, { id: communityId(), author: communityAuthor(), text: comment.trim(), mine: true }] })) {
+          setComment('');
+          setExpanded(true);
+        }
+      }}>
+        <input ref={commentInput} aria-label="댓글 내용" maxLength={300} value={comment} onChange={event => setComment(event.target.value)} placeholder="댓글을 남겨보세요!" />
+        <button aria-label="댓글 등록" disabled={!comment.trim()}>➤</button>
+      </form> : <small>이 글은 댓글을 받지 않아요.</small>}
+    </section>
+  </article>;
+}
+
+export default function Community({ onNotifications, onVisit, position }: {
+  onNotifications: () => void;
+  onVisit: (item: Item) => void;
+  position: () => Promise<LatLng | null>;
+}) {
+  const [posts, setPosts] = useState(readCommunityPosts);
+  const [filter, setFilter] = useState('전체');
+  const [region, setRegion] = useState('');
+  const [period, setPeriod] = useState('');
+  const [sort, setSort] = useState('최신순');
+  const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const [error, setError] = useState('');
+  const root = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { root.current?.closest('main')?.scrollTo(0, 0); }, [writing]);
+
+  function save(next: CommunityPost[]) {
+    try {
+      saveCommunityPosts(next);
+      setPosts(next);
+      setError('');
+      return true;
+    } catch {
+      setError('변경을 저장하지 못했어요. 브라우저의 저장 공간을 확인해 주세요.');
+      return false;
+    }
+  }
+
+  const query = search.trim().toLowerCase();
+  const visible = posts.filter(post => (filter === '전체' || post.tag === filter) && (!region || post.region === region) &&
+    (!period || post.period === period) && `${post.author} ${post.title ?? ''} ${post.text}`.toLowerCase().includes(query));
+  if (sort === '좋아요순') visible.sort((a, b) => b.likes - a.likes);
+
+  return <div className="new-community trip-community community-v2" ref={root}>
+    {writing ? <CommunityComposer position={position} onBack={() => setWriting(false)} onPost={post => {
+      if (!save([post, ...posts])) return false;
+      setWriting(false);
+      setFilter('전체');
+      setRegion('');
+      setPeriod('');
+      setSearch('');
+      setSort('최신순');
+      return true;
+    }} /> : <>
+      <TripHeader onNotice={onNotifications} onSearch={() => { if (showSearch) setSearch(''); setShowSearch(value => !value); }} />
+      <section className="community-new-hero">
+        <div><h1>커뮤니티</h1><p>오늘도 무무와 함께,<br />기분전환한 순간을 나눠요!</p></div>
+        <div className="character-space"><MumuArtwork kind="community" /></div>
+      </section>
+      {showSearch && <input className="trip-search" aria-label="커뮤니티 검색" value={search} onChange={event => setSearch(event.target.value)} placeholder="이야기를 검색해 보세요" />}
+      <div className="community-topic-row" role="group" aria-label="게시글 주제">
+        {['전체', ...communityTopics].map(topic => <button key={topic} aria-pressed={filter === topic} onClick={() => setFilter(topic)}>{topic}</button>)}
+      </div>
+      <div className="community-meta-row feed-filters">
+        <select aria-label="지역 필터" value={region} onChange={event => setRegion(event.target.value)}><option value="">전체 지역</option>{communityRegions.map(value => <option key={value}>{value}</option>)}</select>
+        <select aria-label="시간 필터" value={period} onChange={event => setPeriod(event.target.value)}><option value="">◷ 전체 시간</option>{communityPeriods.map(value => <option key={value.value} value={value.value}>{value.label}</option>)}</select>
+        <select aria-label="이야기 정렬" value={sort} onChange={event => setSort(event.target.value)}><option>최신순</option><option>좋아요순</option></select>
+      </div>
+      <p className="community-local-note">예시 이야기와 이 브라우저에 저장한 글이 보여요.</p>
+      <div className="feed-stack">{visible.map(post => <PostCard key={post.id} post={post} onVisit={onVisit}
+        onUpdate={update => save(posts.map(value => value.id === post.id ? { ...value, ...update } : value))}
+        onDelete={() => save(posts.filter(value => value.id !== post.id))} />)}</div>
+      {!visible.length && <p className="trip-empty">이 조건에 맞는 이야기가 없어요.</p>}
+      {error && <p className="community-error" role="alert">{error}</p>}
+      <div className="feed-write-dock"><button type="button" aria-label="글쓰기" onClick={() => setWriting(true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><path d="m14.5 6 3.5 3.5M5 16l11-11a2.5 2.5 0 0 1 3.5 3.5L8.5 20 4 21z" strokeLinejoin="round" /></svg>
+      </button></div>
+    </>}
+  </div>;
 }

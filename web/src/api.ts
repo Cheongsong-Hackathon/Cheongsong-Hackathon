@@ -12,6 +12,7 @@ export type Item = {
   hasPhoto?: boolean; // 사진 있는 매장: 그림 대신 사진 자리를 비워 두고 기다림
   photo?: PlacePhoto | null; // 추천과 함께 온 실제 사진(구글). null이면 사진 없음 → 그림
   live?: boolean; // 실시간 검색(카카오)으로 찾은 가게: 시간대 없음, 기록할 때 가게 이름·좌표를 같이 보낸다
+  referenceOnly?: boolean; // 커뮤니티 예시 장소: 리뷰와 지도만 표시한다.
   lat?: number;
   lng?: number;
   placeName: string;

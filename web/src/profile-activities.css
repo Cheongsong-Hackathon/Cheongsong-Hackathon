@@ -1,0 +1,20 @@
+.profile-page .profile-stats { grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 10px; }
+.profile-page .profile-stats button { min-width: 0; min-height: 48px; justify-content: center; gap: 3px; color: #66577e; }
+.profile-page .profile-stats button[aria-pressed=true] { background: #eee5fb; }
+.profile-page .profile-stats span { white-space: nowrap; }
+.profile-page .profile-journals > button { min-height: 54px; }
+.profile-activity-panel h3 { margin: 3px 0; }
+.profile-review-link { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; border: 0; padding: 0; background: transparent; color: #594080; }
+.profile-review-link span { flex-shrink: 0; color: #71409d; }
+.place-review-panel { display: grid; gap: 9px; border: 1px solid #e6daf7; border-radius: 18px; background: #faf7ff; padding: 13px; }
+.place-review-panel > header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.place-review-panel h2, .place-review-panel p { margin: 0; }
+.place-review-panel > header span { color: #62418f; }
+.place-review-note { color: #6b617a; font: var(--type-c1); }
+.place-review-panel article { border-radius: 11px; background: #eee6fb; padding: 9px; }
+.place-review-panel article p { margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.place-review-panel form { display: grid; gap: 7px; }
+.place-review-panel textarea { display: block; width: 100%; min-height: 68px; margin-top: 4px; border: 1px solid #ddcef4; border-radius: 8px; padding: 7px; background: #fffc; font: inherit; resize: vertical; }
+.place-rating-picker { display: flex; gap: 4px; }
+.place-rating-picker button { min-width: 36px; min-height: 36px; padding: 0; border: 1px solid #e6daf7; border-radius: 8px; color: #7442ac; background: #fff; font-size: 20px; cursor: pointer; }
+.place-review-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
