@@ -4,6 +4,7 @@ import MumuArtwork from './MumuArtwork';
 import { TripHeader } from './TripUI';
 import Art from './Art';
 import CommunityComposer from './CommunityComposer';
+import GoogleReviews from './GoogleReviews';
 import heartsMotion from './assets/mumu/motion-hearts.webp';
 import { communityAuthor, communityId, communityPeriods, communityRegions, communityTopics, communityVisitPlace, readCommunityPosts, saveCommunityPosts, type CommunityPost } from './communityData';
 import './community-feed.css';
@@ -140,6 +141,7 @@ export default function Community({ onNotifications, onVisit, position, onBack }
         </>}
         <select aria-label="이야기 정렬" value={sort} onChange={event => setSort(event.target.value)}><option>최신순</option><option>좋아요순</option></select>
       </div>
+      {!personal && <GoogleReviews position={position} />}
       {!personal && <p className="community-local-note">예시 이야기와 이 브라우저에 저장한 글이 보여요.</p>}
       <div className="feed-stack">{visible.map(post => <PostCard key={post.id} post={post} onVisit={onVisit} personal={personal}
         onUpdate={update => save(posts.map(value => value.id === post.id ? { ...value, ...update } : value))}

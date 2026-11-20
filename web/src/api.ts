@@ -143,6 +143,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<Re
   }
 }
 
+// 커뮤니티의 "근처 장소 실제 리뷰": Google 리뷰를 출처와 함께 그대로 (우리 사용자 글이 아님)
+export type PlaceReview = { placeName: string; mapsUri: string | null; rating: number; text: string; author: string; authorUri: string | null; when: string; photo: PlacePhoto | null };
+
 export const api = {
   analyzeSaju: (input: SajuInput) => call<SajuRecord>('POST', '/saju/analyze', input),
   sajuHistory: () => call<{ history: SajuRecord[] }>('GET', '/saju/history'),
@@ -191,6 +194,7 @@ export const api = {
   memories: () => call<{ items?: Memory[] }>('GET', '/memories'),
   deleteMemory: (id: number) => call<{ deleted: boolean }>('DELETE', `/memories/${id}`),
   character: () => call<Character>('GET', '/character'),
+  placeReviews: (pos: LatLng | null) => call<{ items?: PlaceReview[] }>('GET', `/community/reviews${pos ? `?lat=${pos.lat}&lng=${pos.lng}` : ''}`),
   chat: (sessionId: number | null, message: string) => call<{ sessionId: number | null; reply: string; state: string }>('POST', '/chat', { sessionId, message }),
   resumeSafety: () => call<{ state: string }>('POST', '/safety/resume'),
 };

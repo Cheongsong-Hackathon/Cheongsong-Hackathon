@@ -69,7 +69,7 @@ async function photoOf(gid: string): Promise<PlacePhoto | null> {
   return photoUri ? { uri: photoUri, author: a?.displayName ?? 'Google 사용자', authorUri: a?.uri ?? null } : null;
 }
 
-const safe = async (f: () => Promise<PlacePhoto | null>) => {
+const safe = async <T,>(f: () => Promise<T | null>): Promise<T | null> => {
   try {
     return await f();
   } catch (e: any) {
@@ -104,3 +104,38 @@ export function photoFirst<T, P>(items: T[], photos: (P | null)[], n: number, on
 
 /** 사진을 받을 후보 수: 시연 위치 고정이면 넉넉히 받아 사진 있는 곳만 남긴다 */
 export const photoPool = (n: number) => (config.demoPin ? Math.max(n + 6, n * 2) : n);
+
+// ── 실제 Google 리뷰 (커뮤니티의 "근처 장소 실제 리뷰") ──
+// 우리 사용자 글처럼 꾸미지 않는다: 작성자·별점·시점·출처(Google 지도 링크)를 그대로 보여 준다. 저장하지 않고 볼 때마다 받는다.
+export type PlaceReview = { placeName: string; mapsUri: string | null; rating: number; text: string; author: string; authorUri: string | null; when: string; photo: PlacePhoto | null };
+
+/** 추천 후보 하나의 구글 장소 ID (사진과 같은 규칙: 사람이 확인한 ID, 아니면 위치·이름으로 맞춤) */
+async function googleIdFor(c: { id: string; placeId: string; live?: boolean; placeName: string; lat: number; lng: number }) {
+  if (!c.live && GOOGLE_PLACE_IDS[c.placeId]) return GOOGLE_PLACE_IDS[c.placeId];
+  return matchGooglePlace(c.live ? `kakao:${c.id.split(':')[2] ?? ''}` : `db:${c.placeId}`, c.placeName, { lat: c.lat, lng: c.lng });
+}
+
+/** 장소 하나의 대표 리뷰(글이 있는 첫 리뷰)와 사진 하나. 없으면 null */
+export function reviewForItem(c: { id: string; placeId: string; live?: boolean; placeName: string; lat: number; lng: number }): Promise<PlaceReview | null> {
+  if (!config.googlePlacesKey) return Promise.resolve(null);
+  return safe(async () => {
+    const gid = await googleIdFor(c);
+    if (!gid) return null;
+    const d = await fetch(`${BASE}/places/${gid}?languageCode=ko`, { headers: { ...headers(), 'X-Goog-FieldMask': 'reviews,googleMapsUri' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!d.ok) return (console.warn(`[google] reviews ${d.status}`), null);
+    const j = (await d.json()) as { reviews?: any[]; googleMapsUri?: string };
+    const r = (j.reviews ?? []).find((x) => (x.text?.text ?? '').trim().length >= 10);
+    if (!r) return null;
+    const photo = await photoOf(gid);
+    return {
+      placeName: c.placeName,
+      mapsUri: j.googleMapsUri ?? null,
+      rating: Number(r.rating) || 0,
+      text: String(r.text.text).trim().slice(0, 300),
+      author: r.authorAttribution?.displayName ?? 'Google 사용자',
+      authorUri: r.authorAttribution?.uri ?? null,
+      when: r.relativePublishTimeDescription ?? '',
+      photo,
+    };
+  });
+}

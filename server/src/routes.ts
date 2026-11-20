@@ -5,8 +5,10 @@ import { query, toId } from './db.js';
 import { searchPos, validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
-import { placePhoto } from './services/googlePhoto.js';
-import { browse, parseNeed } from './services/browse.js';
+import { placePhoto, reviewForItem } from './services/googlePhoto.js';
+import { allCandidates } from './services/livePlaces.js';
+import { rankForPrefs, spread } from './services/match.js';
+import { browse, browsePrefs, parseNeed } from './services/browse.js';
 import { parseGroups, parseMood, parseWith, picks, travelMinutes } from './services/picks.js';
 import { deleteSaved, listSaved, saveSpot, summary } from './services/saved.js';
 import { deleteMemory, listMemories } from './services/memory.js';
@@ -126,6 +128,14 @@ api.get('/picks', rateLimit('picks-ip', 30, byIp), async (req, res) => {
       limit,
     }),
   );
+});
+
+// 커뮤니티 "근처 장소 실제 리뷰": 둘러보기 후보 중 리뷰가 있는 곳 최대 4곳의 실제 Google 리뷰와 사진 (출처 표시, 저장 안 함)
+api.get('/community/reviews', rateLimit('reviews-ip', 20, byIp), async (req, res) => {
+  const pos = searchPos(validLatLng(Number(req.query.lat), Number(req.query.lng)));
+  const { items } = rankForPrefs(await allCandidates(pos), browsePrefs(null));
+  const reviews = (await Promise.all(spread(items).slice(0, 8).map(reviewForItem))).filter(Boolean).slice(0, 4);
+  res.json({ items: reviews });
 });
 
 // 무료 장소: 내 주변 카페·도서관·공원 (카카오 로컬). 예약 없음, 지도 링크만.
