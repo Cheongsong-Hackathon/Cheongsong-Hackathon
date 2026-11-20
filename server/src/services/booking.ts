@@ -2,7 +2,7 @@
 import { config } from '../config.js';
 import { query, toId, tx, type Q } from '../db.js';
 import { haversineM, validLatLng } from '../geo.js';
-import { GrowthService } from './growth.js';
+import { GrowthService, souvenirCheck, souvenirFor } from './growth.js';
 import { naverMapUrl } from './kakao.js';
 import { LIVE_KINDS, parseLiveBooking } from './livePlaces.js';
 import { nowHHMM } from './recommend.js';
@@ -92,12 +92,16 @@ export async function completeBooking(userId: number, id: number, body: any) {
   const result = await tx(async (q) => {
     const [b] = await q(
       `UPDATE bookings SET status = 'DONE', completed_at = now(), mood_after = $3, mood_before = COALESCE(mood_before, $4)
-       WHERE id = $1 AND user_id = $2 AND status = 'REQUESTED' RETURNING mood_before`,
+       WHERE id = $1 AND user_id = $2 AND status = 'REQUESTED'
+       RETURNING mood_before, arrived_at, completed_at, live_kind, (SELECT category FROM experiences e WHERE e.id = experience_id) AS category`,
       [id, userId, after, before],
     );
     if (!b) return null;
-    const g = await GrowthService.grant(q, userId, config.EXP_DONE);
-    return { done: true, moodBefore: b.mood_before as number | null, moodAfter: after, ...g };
+    // 외출 기념품: 그 종류의 장소에 "도착했어"로 확인되고 충분히 머물렀을 때만
+    const souvenir = souvenirFor(b.category ?? LIVE_KINDS[b.live_kind]?.art);
+    const check = souvenir ? souvenirCheck(b.arrived_at, b.completed_at, config.demoMode) : 'ok';
+    const g = await GrowthService.grant(q, userId, config.EXP_DONE, check === 'ok' ? souvenir : null);
+    return { done: true, moodBefore: b.mood_before as number | null, moodAfter: after, ...g, ...(souvenir && check !== 'ok' ? { souvenirMissed: { name: souvenir.name, why: check } } : {}) };
   });
   if (result) return { status: 200, body: result };
   const existing = await getBooking(userId, id);

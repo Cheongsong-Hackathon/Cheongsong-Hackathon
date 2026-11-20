@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { z } from 'zod';
-import { itemsUnlockedBetween, stageOf } from '../src/services/growth.js';
+import { souvenirCheck, souvenirFor, stageOf } from '../src/services/growth.js';
+import { LIVE_KINDS } from '../src/services/livePlaces.js';
+import { EXPERIENCES } from '../src/setup.js';
 import { callJson, extractJson, FallbackClient, type LLMClient } from '../src/services/llm.js';
 import type { Place } from '../src/services/places.js';
 import { parseCheckin } from '../src/services/checkin.js';
@@ -177,12 +179,27 @@ test('마음 확인 입력 정리', () => {
   assert.deepEqual(parseCheckin({ emotion: '화나', energy: '많이' }), { text: '', emotion: null, energy: 50, mood: 5 });
 });
 
-test('성장: 단계 경계와 아이템 해금', () => {
+test('성장: 단계 경계', () => {
   assert.deepEqual([0, 19, 20, 39, 40, 74, 75, 119, 120, 999].map(stageOf), [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]); // 화면의 무무 모습 5단계와 같게
-  assert.deepEqual(itemsUnlockedBetween(1, 5).map((i) => i.id), ['ribbon', 'scarf', 'beret']);
-  assert.deepEqual(itemsUnlockedBetween(1, 2).map((i) => i.id), ['ribbon']);
-  assert.deepEqual(itemsUnlockedBetween(1, 4).map((i) => i.id), ['ribbon', 'scarf', 'beret']);
-  assert.deepEqual(itemsUnlockedBetween(2, 2), []);
+});
+
+test('외출 기념품: 장소 종류마다 하나, 모든 체험·실시간 가게 종류에 기념품이 있음', () => {
+  assert.equal(souvenirFor('library')?.id, 'glasses');
+  assert.equal(souvenirFor('cafe')?.id, 'scarf');
+  assert.equal(souvenirFor('karaoke')?.id, 'vest');
+  assert.equal(souvenirFor('없는종류'), null);
+  const arts = [...new Set([...Object.values(LIVE_KINDS).map((k) => k.art), ...EXPERIENCES.map((e) => e[3])])];
+  for (const art of arts) assert.ok(souvenirFor(art), art);
+});
+
+test('외출 기념품: 도착 확인 + 10분 이상 머물러야 받음 (데모 모드는 머문 시간을 안 봄)', () => {
+  const at = new Date('2026-11-20T12:00:00Z');
+  const after = (min: number) => new Date(at.getTime() + min * 60_000);
+  assert.equal(souvenirCheck(null, after(30), false), 'arrive');
+  assert.equal(souvenirCheck(at, after(5), false), 'stay');
+  assert.equal(souvenirCheck(at, after(10), false), 'ok');
+  assert.equal(souvenirCheck(at, after(1), true), 'ok');
+  assert.equal(souvenirCheck(null, after(1), true), 'arrive'); // 데모여도 "도착했어"는 눌러야 함
 });
 
 test('카카오 결과 → 무료 장소: 키워드 검색에 섞인 주차장은 거르고, 도보 분과 네이버 지도 링크를 붙인다', () => {

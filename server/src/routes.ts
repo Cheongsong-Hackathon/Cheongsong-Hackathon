@@ -190,7 +190,7 @@ api.get('/character', async (_req, res) => {
     ...c,
     stageMinExp: config.STAGE_MIN_EXP[s - 1],
     nextStageExp: config.STAGE_MIN_EXP[s] ?? null,
-    allItems: ITEMS.map((i) => ({ ...i, unlocked: (c.items as string[]).includes(i.id) })),
+    allItems: ITEMS.map((i) => ({ id: i.id, name: i.name, from: i.from, unlocked: (c.items as string[]).includes(i.id) })),
     demoMode: config.demoMode,
   });
 });

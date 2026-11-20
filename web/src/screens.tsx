@@ -13,6 +13,7 @@ import AccessoryColorPicker from './AccessoryColorPicker';
 import { COLOR_ITEMS } from './AccessoryColors';
 import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
 import { useOutfit } from './Outfit';
+import { useMumuWardrobe, type ShopId } from './MumuWardrobe';
 
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
 export const DemoNote = () => <p className="notice">가격·영업시간·예약은 네이버에서 확인해 줘</p>;
@@ -337,10 +338,19 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
         )}
         {r.newItems.map((i) => (
           <p key={i.id} className="card soft">
-            <strong>새 아이템 · {i.name}</strong>
-            <span className="meta">무무에게 어울리는 아이템을 만나보세요.</span>
+            <strong>외출 기념품 · {i.name}</strong>
+            <span className="meta">다녀온 기념으로 무무가 {i.name}을(를) 받아 왔어! 옷방에서 입혀 봐.</span>
           </p>
         ))}
+        {r.souvenirMissed && (
+          <p className="card soft">
+            <span className="meta">
+              {r.souvenirMissed.why === 'arrive'
+                ? `장소에서 '도착했어'를 누르면 ${r.souvenirMissed.name}을(를) 기념품으로 받을 수 있어.`
+                : `조금 더 머물렀다 오면 ${r.souvenirMissed.name}을(를) 기념품으로 받을 수 있어.`}
+            </span>
+          </p>
+        )}
         <button className="btn big" onClick={p.onClose}>
           좋아
         </button>
@@ -422,6 +432,10 @@ function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
 export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
   const { scarf } = useOutfit();
   const { expression, setExpression } = useCharacterExpression();
+  const wardrobe = useMumuWardrobe(); // 옷(조끼·케이프·안경)은 이 브라우저에 입힌다. 가졌는지는 서버(기념품)가 정한다
+  const isCloth = (id: string): id is ShopId => id === 'vest' || id === 'cape' || id === 'glasses';
+  const wearing = (id: string) => (isCloth(id) ? wardrobe.state.equipped === id : id === 'scarf' ? scarf : c?.equipped === id);
+  const wear = (id: string) => (isCloth(id) ? wardrobe.save({ ...wardrobe.state, equipped: wardrobe.state.equipped === id ? null : id }) : p.onEquip(id));
   const [askDelete, setAskDelete] = useState(false);
   const c = p.ch;
   const latest = p.data?.done[0];
@@ -466,21 +480,26 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
         </div>
       </div>
       <MemoryCard reloadKey={p.data} /></>}
-      {p.view === 'shop' && <>
+      {p.view !== 'records' && <>
       <div className="card">
         <span className="eyebrow">무무 꾸미기</span>
         <h2 className="label">표정 고르기</h2>
         <Chips label="무무 표정" options={EXPRESSIONS.map((value) => [value, value])} value={expression} onChange={setExpression} />
         <p className="small mute">표정은 이 브라우저에 저장돼요. 홈에서 감정을 누르면 그 감정의 표정으로 바뀌어요.</p>
-        <h2 className="label">아이템 입히기</h2>
-        <p className="small mute">목도리는 리본·베레모와 함께 입을 수 있어요. 리본과 베레모는 하나만 골라요. 다시 누르면 벗어요.</p>
+        <h2 className="label">외출 기념품 입히기</h2>
+        <p className="small mute">기념품은 그 장소에 직접 다녀와서 '도착했어'를 누르면 받아요 (살 수 없어요). 다시 누르면 벗어요.</p>
         <div className="items">
-          <button className={`item${(!c?.equipped || c.equipped === 'scarf') && !scarf ? ' on' : ''}`} aria-pressed={(!c?.equipped || c.equipped === 'scarf') && !scarf} disabled={p.equipBusy} onClick={() => p.onEquip(null)}>
-            없음
-          </button>
+          {(() => {
+            const bare = (!c?.equipped || c.equipped === 'scarf') && !scarf && !wardrobe.state.equipped;
+            return (
+              <button className={`item${bare ? ' on' : ''}`} aria-pressed={bare} disabled={p.equipBusy} onClick={() => { wardrobe.save({ ...wardrobe.state, equipped: null }); p.onEquip(null); }}>
+                없음
+              </button>
+            );
+          })()}
           {c?.allItems.map((i) => (
-            <button key={i.id} className={`item${(i.id === 'scarf' ? scarf : c.equipped === i.id) ? ' on' : ''}`} aria-pressed={i.id === 'scarf' ? scarf : c.equipped === i.id} disabled={!i.unlocked || p.equipBusy} onClick={() => p.onEquip(i.id)}>
-              {i.unlocked ? i.name : `🔒 ${i.stage}단계`}
+            <button key={i.id} className={`item${wearing(i.id) ? ' on' : ''}`} aria-pressed={wearing(i.id)} disabled={!i.unlocked || p.equipBusy} onClick={() => wear(i.id)} title={i.unlocked ? undefined : `${i.from}에 다녀오면 받아요`}>
+              {i.unlocked ? i.name : <>🔒 {i.name} <small>· {i.from}</small></>}
             </button>
           ))}
         </div>

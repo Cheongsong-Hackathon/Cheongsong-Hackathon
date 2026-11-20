@@ -64,10 +64,10 @@ export type Character = {
   safeMode: boolean;
   stageMinExp: number;
   nextStageExp: number | null;
-  allItems: { id: string; name: string; stage: number; unlocked: boolean }[];
+  allItems: { id: string; name: string; from: string; unlocked: boolean }[]; // 외출 기념품: from 종류의 장소에 다녀와야 열림
   demoMode: boolean;
 };
-export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems: { id: string; name: string }[] };
+export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems: { id: string; name: string; from?: string }[]; souvenirMissed?: { name: string; why: 'arrive' | 'stay' } };
 export type Checkin = { checkinId: number | null; reply: string; state: string; risk: string; suggestPostpone?: boolean };
 export type Records = {
   done: Booking[];
