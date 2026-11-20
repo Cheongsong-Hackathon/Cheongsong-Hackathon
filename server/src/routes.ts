@@ -7,6 +7,8 @@ import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
 import { placePhoto } from './services/googlePhoto.js';
 import { browse, parseNeed } from './services/browse.js';
+import { parseGroups, parseMood, parseWith, picks, travelMinutes } from './services/picks.js';
+import { deleteSaved, listSaved, saveSpot, summary } from './services/saved.js';
 import { deleteMemory, listMemories } from './services/memory.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
@@ -72,6 +74,24 @@ api.get('/browse', rateLimit('browse-ip', 30, byIp), async (req, res) => {
   res.json({ items: await browse(pos, parseNeed(req.query.need)) });
 });
 
+// 시안 흐름 추천: 기분 카드 → 조건 → 무무 AI 맞춤 추천. 홈(limit=3), 탐색·내 주변(sort=distance, limit 늘림)이 같이 쓴다.
+// ?mood=tired|low|stressed|bored|good|plain &types=cafe,exhibit,class,popup,nature,etc &with=solo|pair|group &travel=15|30|60
+// &sort=score|distance &limit=1~20 &lat&lng. 예산은 받지 않는다 (가게 가격을 모름)
+api.get('/picks', rateLimit('picks-ip', 30, byIp), async (req, res) => {
+  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
+  const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 3));
+  res.json(
+    await picks(pos, {
+      mood: parseMood(req.query.mood),
+      groups: parseGroups(req.query.types),
+      with: parseWith(req.query.with),
+      travel: travelMinutes(req.query.travel),
+      sort: req.query.sort === 'distance' ? 'distance' : 'score',
+      limit,
+    }),
+  );
+});
+
 // 무료 장소: 내 주변 카페·도서관·공원 (카카오 로컬). 예약 없음, 지도 링크만.
 api.get('/places/free', async (req, res) => {
   const pos = validLatLng(Number(req.query.lat), Number(req.query.lng)) ?? config.demoCenter;
@@ -94,6 +114,13 @@ api.get('/geocode', async (req, res) => {
   const r = await geocode(q);
   r ? res.json(r) : res.status(404).json({ error: '그 주소를 찾지 못했어. 조금 다르게 적어 줄래?' });
 });
+
+// 찜한 스팟 (마이). POST {itemId, placeName?, lat?, lng?}: 실시간 가게(live:...)는 이름·좌표도
+api.get('/saved', async (_req, res) => res.json({ items: await listSaved(uid(res)) }));
+api.post('/saved', async (req, res) => send(res, await saveSpot(uid(res), req.body)));
+api.delete('/saved/:id', async (req, res) => send(res, await deleteSaved(uid(res), toId(req.params.id))));
+// 마이 화면 숫자 (찜, 다녀온 곳, 무무가 기억하는 것)
+api.get('/summary', async (_req, res) => res.json(await summary(uid(res))));
 
 // 04 예약 요청
 api.post('/bookings', async (req, res) => send(res, await createBooking(uid(res), req.body)));

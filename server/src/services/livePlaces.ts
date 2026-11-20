@@ -71,10 +71,10 @@ export function toLiveCandidate(key: string, d: any): TaggedCandidate | null {
 }
 
 /** 내 주변 실시간 후보: 종류마다 가까운 몇 곳. 카카오 키가 없거나 실패하면 빈 배열 (체험 DB만으로 추천) */
-export async function liveCandidates(pos: LatLng, perKind = 2): Promise<TaggedCandidate[]> {
+export async function liveCandidates(pos: LatLng, perKind = 2, radius = config.SEARCH_RADIUS_M): Promise<TaggedCandidate[]> {
   const lists = await Promise.all(
     Object.entries(LIVE_KINDS).map(([key, k]) =>
-      searchKeyword(k.q, pos, config.SEARCH_RADIUS_M).then((docs) =>
+      searchKeyword(k.q, pos, radius).then((docs) =>
         (docs ?? []).map((d) => toLiveCandidate(key, d)).filter((c): c is TaggedCandidate => !!c).slice(0, perKind),
       ),
     ),
@@ -91,8 +91,8 @@ export function mergeCandidates(db: TaggedCandidate[], live: TaggedCandidate[]) 
 }
 
 /** 대화 추천과 둘러보기가 같이 쓰는 후보 전체 (위치가 없으면 기본 동네 기준) */
-export async function allCandidates(pos: LatLng | null) {
-  const [{ cands }, live] = await Promise.all([nearbyCandidates(pos), liveCandidates(pos ?? config.demoCenter)]);
+export async function allCandidates(pos: LatLng | null, radius?: number) {
+  const [{ cands }, live] = await Promise.all([nearbyCandidates(pos), liveCandidates(pos ?? config.demoCenter, 2, radius)]);
   return mergeCandidates(cands.map(withTags), live);
 }
 

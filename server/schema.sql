@@ -136,3 +136,17 @@ CREATE TABLE IF NOT EXISTS postpones (
   task text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- 찜한 스팟 (마이 화면). 예시 매장 체험은 체험 id, 실시간 가게는 live:종류:카카오id. 가게 이름·좌표는 공개 정보
+CREATE TABLE IF NOT EXISTS saved_spots (
+  id serial PRIMARY KEY,
+  user_id int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id text NOT NULL,
+  title text NOT NULL,
+  category text NOT NULL,
+  place_name text NOT NULL,
+  lat double precision NOT NULL,
+  lng double precision NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, item_id)
+);
