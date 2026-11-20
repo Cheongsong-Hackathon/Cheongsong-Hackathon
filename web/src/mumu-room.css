@@ -37,6 +37,7 @@
 .room-play-title { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
 .room-play-title img { width: 45px; height: 42px; object-fit: contain; }
 .room-play-title h1 { margin: 0; }
+.room-play-title .mumu-coin { margin-left: auto; }
 
 .room-scene {
   position: relative;
@@ -188,7 +189,7 @@
 .room-energy i { position: absolute; inset: auto 1px 1px; border-radius: 8px; background: #bf96ed; transition: height .2s; }
 .room-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 6px 0;
 }
@@ -202,6 +203,12 @@
   cursor: pointer;
 }
 .room-actions button span { display: block; color: #9b64df; font-size: 30px; line-height: 1; margin-bottom: 6px; }
+.room-wardrobe-link svg { display: block; width: 30px; height: 30px; margin: 0 auto 6px; color: #945bd5; }
+@media (max-width: 360px) {
+  #root .room-actions button { font-size: 12px !important; }
+  .room-play-title img { width: 34px; }
+  #root .room-play-title h1 { font-size: 19px !important; }
+}
 .tabs.mumu-room-tabs { grid-template-columns: repeat(5, 1fr); border-radius: 25px 25px 0 0; background: #f8f3fc; }
 
 .mumu-pet { align-items: center; }
@@ -266,7 +273,8 @@
 .mumu-chat .mumu-chat-header > button:last-child { padding: 0; font-size: 15px; }
 .room-switch {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex-shrink: 0;
   border: 1px solid #ddc9f2;
   border-radius: 99px;
   padding: 3px;
@@ -274,7 +282,20 @@
   background: #ffffff82;
   box-shadow: 0 2px 5px #7c50a529;
 }
-.room-switch > * { padding: 8px 2px; text-align: center; color: #5c3885; border: 0; border-radius: 99px; background: transparent; }
+#root .room-switch > :is(button, span) { font: var(--type-button) !important; }
+.room-switch > * {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 9px 4px;
+  text-align: center;
+  color: #5c3885;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+}
+.room-switch > button { cursor: pointer; }
+.room-switch > :only-child { grid-column: 1 / -1; }
 .room-switch > [aria-current] { background: linear-gradient(150deg,#aa76ed,#8949d4); color: white; }
 .mumu-chat .mumu-chat-hero { gap: 4px; margin: 6px -14px 0; padding: 0 13px; background: radial-gradient(ellipse at 0 100%,#ead9fd,transparent 60%); }
 .mumu-chat-hero > img { width: 43%; height: clamp(83px, 15vh, 126px); object-fit: contain; }

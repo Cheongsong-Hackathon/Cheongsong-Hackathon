@@ -15,7 +15,6 @@ import Journal from './Journal';
 import PlaceExplore from './PlaceExplore';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import useAppViewport from './useAppViewport';
-import { OutfitContext, nextOutfit, scarfStorageKey } from './Outfit';
 import {
   ActiveExperience,
   CompleteSheet,
@@ -37,9 +36,10 @@ import {
 } from './screens';
 
 import MumuPlay from './MumuPlay';
+import MumuCloset from './MumuCloset';
 import MumuGames, { type MumuGame } from './MumuGames';
 
-type Tab = 'community' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'game';
+type Tab = 'community' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'game' | 'wardrobe';
 const TABS: { id: Tab; label: string; icon: string }[] = [
  {id:'home',label:'홈',icon:'M4 11l8-7 8 7v9h-5v-6H9v6H4z'},
  {id:'browse',label:'탐색',icon:'M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14M15 15l6 6'},
@@ -105,45 +105,12 @@ export default function App() {
   const voiceNext = useRef(false);
   useEffect(() => { if (tab === 'talk') voiceNext.current = false; }, [tab]);
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
-  const isMumuRoom = tab === 'play' || tab === 'talk' || tab === 'game';
+  const isMumuRoom = ['play', 'talk', 'game', 'wardrobe'].includes(tab);
   const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab, profileSaved, profilePosts]);
   const [ch, setCh] = useState<Character | null>(null);
-  const [scarfPreference, setScarfPreference] = useState<boolean | null>(() => {
-    try { const saved = localStorage.getItem(scarfStorageKey()); return saved === 'true' ? true : saved === 'false' ? false : null; }
-    catch { return null; }
-  });
-  const [equipBusy, setEquipBusy] = useState(false);
-  const equipping = useRef(false);
-  const scarf = !!ch?.allItems.some((i) => i.id === 'scarf' && i.unlocked) && (scarfPreference ?? ch?.equipped === 'scarf');
-
-  function saveScarf(value: boolean) {
-    setScarfPreference(value);
-    try { localStorage.setItem(scarfStorageKey(), String(value)); } catch {}
-  }
-
-  async function equipItem(id: string | null) {
-    if (equipping.current || !ch) return false;
-    if (id && !ch.allItems.some((i) => i.id === id && i.unlocked)) return false;
-    equipping.current = true;
-    setEquipBusy(true);
-    try {
-      const { head: nextHead, scarf: nextScarf } = nextOutfit(ch.equipped, scarf, id);
-      // 서버의 단일 착용 슬롯은 머리 아이템에 사용하고, 목도리는 브라우저에 별도로 저장한다.
-      if (ch.equipped !== nextHead) {
-        const r = await api.equip(nextHead);
-        if (r.code !== 200) { notify(r.error ?? '아이템을 바꾸지 못했어. 다시 해 줄래?'); return false; }
-        setCh((previous) => previous ? { ...previous, equipped: nextHead } : previous);
-      }
-      saveScarf(nextScarf);
-      return true;
-    } finally {
-      equipping.current = false;
-      setEquipBusy(false);
-    }
-  }
   const [active, setActive] = useState<Booking | null>(null);
   const [records, setRecords] = useState<RecordsData | null>(null);
   const [explore, setExplore] = useState<Item[] | null>(null);
@@ -277,7 +244,12 @@ export default function App() {
     if (r.blocked) return enterSafety();
     if (!r.done) return notify(r.error ?? '기록하지 못했어. 다시 해 줄래?');
     setSheet(null);
-    setParty(r);
+    const verified = b.arrivedAt || (active?.id === b.id && active.arrivedAt);
+    const karaoke = b.category.toLowerCase() === 'karaoke' || /노래방|노래연습장/.test(`${b.category} ${b.title}`);
+    const visitGift = verified && !r.already && !ch?.demoMode
+      ? karaoke ? 'microphone' : 'souvenir'
+      : undefined;
+    setParty({ ...r, visitGift });
     refresh();
   }
 
@@ -343,12 +315,12 @@ export default function App() {
   };
   const homeScreen = <>
    <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showNotifications} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}} onVoice={canListen?()=>{voiceNext.current=true;setChatReturn('home');setTab('talk');}:undefined}/></div>
-   {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
+   {requested?<Requested booking={requested} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
   </>;
 
 
   return (
-    <OutfitContext.Provider value={{ scarf }}><div className="stage">
+    <div className="stage">
       <div className="phone" style={{ transform: `scale(${fit})` }}>
         <div className="frame">
 
@@ -399,10 +371,7 @@ export default function App() {
                       <LoadState loading={recordsLoading} message={recordsError || '마음 기록을 불러오는 중이야…'} onRetry={loadRecords} />
                     </div>
                   ) : <Records
-                    ch={ch}
                     data={records}
-                    equipBusy={equipBusy}
-                    onEquip={equipItem}
                     onDelete={async () => {
                       const r = await api.deleteRecords();
                       if (r.code !== 200) return notify(r.error ?? '기록을 지우지 못했어. 다시 해 줄래?');
@@ -418,8 +387,8 @@ export default function App() {
                   <MumuPlay
                     hearts={playHearts}
                     onHeart={earnPlayHeart}
+                    onWardrobe={() => setTab('wardrobe')}
                     onGame={(game) => { setMumuGame(game); setTab('game'); }}
-                    onChat={() => { setChatReturn('play'); setTab('talk'); }}
                     onVoice={canListen ? () => {
                       voiceNext.current = true;
                       setChatReturn('play');
@@ -427,6 +396,7 @@ export default function App() {
                     } : undefined}
                   />
                 )}
+                {tab === 'wardrobe' && <MumuCloset hearts={playHearts} onBack={() => setTab('play')} />}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
                 {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} onGame={(game) => { setMumuGame(game); setTab('game'); }} onPick={placePick} />}
               </main>
@@ -462,7 +432,7 @@ export default function App() {
               )}
               {sheet?.kind === 'postpone' && <PostponeSheet busy={busy} onSubmit={postpone} onClose={() => setSheet(null)} />}
               {sheet?.kind === 'complete' && <CompleteSheet booking={sheet.booking} busy={busy} onDone={(m) => complete(sheet.booking, m)} onClose={() => setSheet(null)} />}
-              {party && <Party result={party} ch={ch} onClose={() => setParty(null)} />}
+              {party && <Party result={party} onClose={() => setParty(null)} />}
               {toast && (
                 <div className="toast" role="status">
                   {toast}
@@ -472,6 +442,6 @@ export default function App() {
           )}
         </div>
       </div>
-    </div></OutfitContext.Provider>
+    </div>
   );
 }

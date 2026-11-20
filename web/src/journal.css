@@ -211,9 +211,6 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 @keyframes mumu-soft-breathe { 50% { transform: translateY(-3px) scale(1.012, .99); } }
 @keyframes mumu-bounce { 50% { transform: translateY(-5px) rotate(-1deg); } }
 @media (prefers-reduced-motion: reduce) { .mumu-breathe, .mumu-eyes { animation: none; } }
-.accessory-color-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 44px; border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; font-weight: 700; text-align: left; gap: 4px; }
-.accessory-color-toggle:disabled { color: #a59aaf; cursor: not-allowed; }
-.mumu-clothing-icon { display: block; width: 78px; height: 68px; margin: 0 auto; }
 
 /* Explicit motions stay local to the character being played. */
 /* Body, paw and hearts are posed by requestAnimationFrame on SVG attributes. */
@@ -268,30 +265,7 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 .mumu-alert-entry time { color:#706279; font-size:.75rem; }
 .journal-saved-canvas { display:block; width:100%; height:auto; aspect-ratio:4/5; border-radius:6px; background:#f3eafa; }
 .mumu-booking-details > summary { cursor:pointer; padding:12px; color:#9a7fb4; font-size:13px; }
-.mumu-shop-default-character { display:flex; flex-direction:column; align-items:center; padding:10px 0 22px; }
-.mumu-shop-default-character p { color:#a08b9e; font-size:12px; }
 @keyframes mumu-notice-enter { from { opacity:0; transform:translateY(-18px); } to { opacity:1; transform:translateY(0); } }
 
 /* A quiet pet-room treatment, keeping Mumu's own illustration and controls. */
 .mumu-action-idle .mumu-breathe { animation:none; }
-.mumu-simple-shop { background:#fffdf8; gap:16px; min-height:100%; }
-.mumu-shop-heading { text-align:center; }
-.mumu-shop-heading > span { font-size:9px; letter-spacing:2.5px; color:#b8a68f; }
-.mumu-shop-heading h1 { margin:8px 0 4px; font-size:23px; color:#7b695e; }
-.mumu-shop-heading p { margin:0; color:#b5a398; font-size:12px; }
-.mumu-simple-stage { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:270px; border-radius:32px; background:radial-gradient(ellipse at center,#f6eddf88,transparent 68%); }
-.mumu-simple-stage > span { color:#ad9e92; font-size:11px; }
-.mumu-body-lock { display:flex; align-items:center; gap:10px; border:1px solid #e6dbeb; border-radius:16px; background:#f5eff8; padding:14px; color:#9c83ad; cursor:pointer; }
-.mumu-body-lock strong { font-size:13px; }.mumu-body-lock small { margin-left:auto; font-size:10px; }
-.mumu-shop-doors { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.mumu-shop-doors > button { display:flex; flex-direction:column; align-items:center; gap:6px; border:1px solid #e6ddd0; border-radius:22px; background:#fff; padding:18px 10px; box-shadow:0 4px 0 #eee8dc; color:#8b7766; cursor:pointer; }
-.mumu-shop-doors > button > span { font-size:25px; color:#baa3c8; }.mumu-shop-doors strong { font-size:14px; }.mumu-shop-doors small { color:#b5a89b; font-size:10px; }
-.mumu-shop-doors > button.selected { background:#f5eefb; border-color:#cbb7dc; }
-.mumu-shop-drawer { border:1px solid #eae2d6; background:#fff; border-radius:24px; padding:16px; }
-.mumu-shop-drawer h2 { font-size:16px; color:#8b7766; margin:0; }
-.mumu-simple-items { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:12px; }
-.mumu-simple-items > button { border:1px solid #efe9df; border-radius:15px; background:#fffcf6; padding:10px 4px; display:flex; flex-direction:column; align-items:center; gap:5px; color:#8b7766; cursor:pointer; }
-.mumu-simple-items > button.selected { border-color:#b99acc; background:#f4edf9; }.mumu-simple-items .mumu-clothing-icon { width:62px; height:54px; }.mumu-simple-items strong { font-size:11px; }.mumu-simple-items small { font-size:9px; color:#b0a294; }
-.mumu-item-colors { margin-top:18px; border-top:1px solid #eee7de; padding-top:12px; }.mumu-item-colors h3 { font-size:13px; color:#8b7766; }
-.mumu-shop-swatches { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }.mumu-shop-swatches > button { width:30px; height:30px; border:2px solid #fff; outline:1px solid #e9e0d9; border-radius:50%; color:#fff; cursor:pointer; }.mumu-shop-swatches > button:disabled { opacity:.35; cursor:not-allowed; }.mumu-shop-swatches label { display:flex; gap:6px; align-items:center; font-size:10px; color:#9e8b7e; }.mumu-shop-swatches input { width:28px; height:28px; padding:0; border:0; }
-.mumu-shop-note { color:#ad9c90; text-align:center; font-size:11px; line-height:1.7; margin:0; }

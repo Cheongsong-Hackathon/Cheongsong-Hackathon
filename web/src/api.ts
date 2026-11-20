@@ -59,15 +59,13 @@ export type Character = {
   level: number;
   exp: number;
   stage: number;
-  items: string[];
-  equipped: string | null;
   safeMode: boolean;
   stageMinExp: number;
   nextStageExp: number | null;
-  allItems: { id: string; name: string; from: string; unlocked: boolean }[]; // 외출 기념품: from 종류의 장소에 다녀와야 열림
   demoMode: boolean;
 };
-export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems: { id: string; name: string; from?: string }[]; souvenirMissed?: { name: string; why: 'arrive' | 'stay' } };
+// newItems·souvenirMissed: 서버가 정한 외출 기념품 (도착 확인 + 머문 시간). 미루기 등에는 없다
+export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems?: { id: string; name: string; from?: string }[]; souvenirMissed?: { name: string; why: 'arrive' | 'stay' } };
 export type Checkin = { checkinId: number | null; reply: string; state: string; risk: string; suggestPostpone?: boolean };
 export type Records = {
   done: Booking[];
@@ -193,7 +191,6 @@ export const api = {
   memories: () => call<{ items?: Memory[] }>('GET', '/memories'),
   deleteMemory: (id: number) => call<{ deleted: boolean }>('DELETE', `/memories/${id}`),
   character: () => call<Character>('GET', '/character'),
-  equip: (item: string | null) => call<{ equipped: string | null }>('POST', '/character/equip', { item }),
   chat: (sessionId: number | null, message: string) => call<{ sessionId: number | null; reply: string; state: string }>('POST', '/chat', { sessionId, message }),
   resumeSafety: () => call<{ state: string }>('POST', '/safety/resume'),
 };

@@ -10,10 +10,10 @@ export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
 // 스킬 "놀이": 무무가 대화 중에 여는 게임 이름
 export const GAME_NAMES: Record<MumuGame, string> = { tarot: '오늘의 타로', words: '끝말잇기', balance: '밸런스 게임', fortune: '무무의 사주' };
 export const gameCards = [
-  { id: 'tarot', icon: '🃏', title: '오늘의 타로', subtitle: '타로 카드 뽑기' },
-  { id: 'words', icon: '💬', title: '끝말잇기', subtitle: '무무와 단어 대결' },
-  { id: 'balance', icon: '⚖️', title: '밸런스 게임', subtitle: '둘 중 하나 고르기' },
-  { id: 'fortune', icon: '🔮', title: '무무의 사주풀이', subtitle: '재미로 보는 오늘 운세' },
+  { id: 'tarot', icon: '🃏', title: '오늘의 타로' },
+  { id: 'words', icon: '💬', title: '끝말잇기' },
+  { id: 'balance', icon: '⚖️', title: '밸런스 게임' },
+  { id: 'fortune', icon: '🔮', title: '무무의 사주풀이' },
 ] as const;
 
 function GameHeader({ title, hearts, onBack }: { title: string; hearts?: number; onBack: () => void }) {
