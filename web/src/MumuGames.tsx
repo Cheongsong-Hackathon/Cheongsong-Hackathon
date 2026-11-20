@@ -5,7 +5,6 @@ import MumuFortune from './MumuFortune';
 import MumuGameHost, { GAME_HOST_MOTION_MS } from './MumuGameHost';
 import MumuGameScene from './MumuGameScene';
 import tarotCardsMotion from './assets/mumu/motion-tarot.webp';
-import balanceReference from './assets/mumu/balance-reference.webp';
 
 export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
 export const gameCards = [
@@ -127,7 +126,16 @@ function Tarot({ hearts, onBack }: { hearts: number; onBack: () => void }) {
 }
 
 const topics = [
-  { icon: '💗', name: '연애·관계', choices: [['연애할 때 더 중요한 건?', '항상 연락 잘 되는 사람', '가끔 연락해도 편한 사람'], ['친구를 만난다면?', '오랜 친구 한 명', '새로운 친구 여러 명'], ['서운한 일이 생기면?', '바로 이야기하기', '생각 정리하고 말하기']] },
+  { icon: '💗', name: '연애·관계', choices: [
+    ['애인이 이렇다면, 차라리?', '모든 사람들에게 과하게 친절함', '웨이팅 1시간 이상 걸리는 맛집만 가자 함'],
+    ['애인이 이렇다면, 차라리?', '반바지 입었는데 다리털 수북함', '뭐든지 과몰입'],
+    ['애인이 이렇다면, 차라리?', '연락두절', '나보다 친구랑 노는 걸 좋아함'],
+    ['애인이 이렇다면, 차라리?', '맞춤법 못지킴', '나한테 맨날 하소연함'],
+    ['애인이 이렇다면, 차라리?', '수저 지 것만 세팅함', '마마보이(걸)'],
+    ['애인이 이렇다면, 차라리?', '사소한 일에도 생색 오짐', '극한의 가성비 추구'],
+    ['애인이 이렇다면, 차라리?', '쿠션어 안씀', '10년 연애한 전 애인이 있음'],
+    ['애인이 이렇다면, 차라리?', '조금만 맘에 안 들어도 짜증냄', '내가 사줄 때만 비싼데 감'],
+  ] },
   { icon: '💼', name: '학교·진로', choices: [['일을 고른다면?', '좋아하는 일', '잘하는 일'], ['팀 프로젝트라면?', '아이디어 내기', '정리하고 발표하기'], ['공부할 때는?', '혼자 집중하기', '친구와 함께하기']] },
   { icon: '🌴', name: '여행·일상', choices: [['떠나고 싶은 여행은?', '푸른 바다가 보이는 곳', '조용한 산속 마을'], ['쉬는 날에는?', '이불 밖은 위험해', '아침부터 산책하기'], ['여행 계획은?', '미리 계획표 만들기', '가서 마음대로 정하기']] },
   { icon: '🍴', name: '음식·취향', choices: [['오늘의 간식은?', '달콤한 케이크', '바삭한 감자튀김'], ['점심에 더 당기는 건?', '따뜻한 국물', '시원한 냉면'], ['하나만 고른다면?', '평생 커피', '평생 차']] },
@@ -136,12 +144,7 @@ const topics = [
 ];
 
 const moreChoices = [
-  [
-    ['같이 보내는 저녁은?', '집에서 영화 보기', '밖에서 맛집 찾기'], ['어떤 선물이 좋아?', '직접 쓴 편지', '꼭 필요했던 물건'],
-    ['친해지는 계기는?', '취향이 비슷할 때', '함께 새로운 일을 할 때'], ['기념일에는?', '둘만의 작은 이벤트', '평소처럼 편한 데이트'],
-    ['위로받고 싶을 때는?', '조용히 들어주는 사람', '함께 해결책을 찾는 사람'], ['여행할 친구는?', '계획이 꼼꼼한 친구', '뭐든 즐기는 친구'],
-    ['더 기분 좋은 말은?', '네 편이야', '너라면 할 수 있어'],
-  ],
+  [], // 연애·관계는 직접 고른 8문항만
   [
     ['새로운 수업을 고른다면?', '익숙해서 편한 수업', '처음이라 설레는 수업'], ['일하는 공간은?', '조용한 자리', '사람들과 열린 공간'],
     ['프로젝트 마감은?', '일찍 끝내고 여유롭게', '마지막까지 다듬기'], ['편한 피드백은?', '한 번에 자세히 듣기', '조금씩 자주 듣기'],
@@ -173,7 +176,6 @@ function Balance() {
   const [rounds, setRounds] = useState<string[][]>([]);
   const [votes, setVotes] = useState<number[]>([]);
   const current = rounds[votes.length];
-  const usesHeartAndSofa = current === topics[0].choices[0];
   function start() {
     if (topic === topics.length - 1) {
       const pool = topics.flatMap(item => item.choices).concat(moreChoices.flat());
@@ -199,16 +201,14 @@ function Balance() {
         <small className="balance-theme">{topics[topic].icon} {topics[topic].name}</small>
         <h2>✨ {current[0]} ✨</h2>
         <div>{current.slice(1).map((choice, index) => <button type="button" key={choice} onClick={() => setVotes(previous => [...previous, index])}>
-          {usesHeartAndSofa
-            ? <span className={`balance-option-art balance-option-art--${index}`} aria-hidden="true"><img src={balanceReference} alt="" /></span>
-            : <span className="balance-option-art" aria-hidden="true">{index === 0 ? topics[topic].icon : '🌟'}</span>}
+          <span className="balance-option-art" aria-hidden="true">{index === 0 ? topics[topic].icon : '🌟'}</span>
           <strong>{choice}</strong>
         </button>)}</div>
       </section>
       <MumuGameScene theme="balance" layout="side">음~ 너라면<br />어느 쪽이야? 🤔</MumuGameScene>
     </> : <>
-      <MumuGameScene theme="balance" layout="side">열 가지 선택 완료! 💜</MumuGameScene>
-      <section className="game-panel balance-result"><h2>내 선택 돌아보기</h2><ol>{rounds.map(([question, left, right], index) => <li key={question}>{question} <strong>{votes[index] === 0 ? left : right}</strong></li>)}</ol></section>
+      <MumuGameScene theme="balance" layout="side">{rounds.length}가지 선택 완료! 💜</MumuGameScene>
+      <section className="game-panel balance-result"><h2>내 선택 돌아보기</h2><ol>{rounds.map(([question, left, right], index) => <li key={index}>{question} <strong>{votes[index] === 0 ? left : right}</strong></li>)}</ol></section>
       <button className="game-primary" onClick={() => { setRounds([]); setVotes([]); }}>다시 하기</button>
     </>}
   </>;
