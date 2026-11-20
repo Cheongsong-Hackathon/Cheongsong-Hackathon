@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item, LatLng } from './api';
 import MumuArtwork from './MumuArtwork';
 import { TripHeader } from './TripUI';
-import Art from './Art';
 import CommunityComposer from './CommunityComposer';
 import GoogleReviews from './GoogleReviews';
 import heartsMotion from './assets/mumu/motion-hearts.webp';
@@ -43,8 +42,8 @@ function PostCard({ post, onUpdate, onDelete, onVisit, personal }: {
     </header>
     {post.title && <h2>{post.title}</h2>}
     <p className="feed-post-copy">{post.text}</p>
-    {!!post.photos?.length ? <div className="feed-gallery" aria-label="게시글 사진">{post.photos.map((src, index) => <img loading="lazy" key={index} src={src} alt={`게시글 사진 ${index + 1}`} />)}</div> :
-      !!post.gallery?.length && <div className="feed-gallery" aria-label="예시 장소 일러스트">{post.gallery.map((category, index) => <Art key={index} category={category} className="feed-gallery-art" />)}</div>}
+    {/* 사진은 사용자가 올린 실제 사진만. 예시 글의 장소 그림(가짜 사진)은 보여 주지 않는다 */}
+    {!!post.photos?.length && <div className="feed-gallery" aria-label="게시글 사진">{post.photos.map((src, index) => <img loading="lazy" key={index} src={src} alt={`게시글 사진 ${index + 1}`} />)}</div>}
     <footer className="feed-actions">
       <button type="button" aria-label={`좋아요 ${post.likes}개`} aria-pressed={post.liked} onClick={() => onUpdate({ liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) })}><span aria-hidden="true">{post.liked ? '♥' : '♡'}</span>{post.likes}</button>
       <button type="button" aria-label={`댓글 ${comments.length}개`} aria-expanded={expanded} onClick={() => { setExpanded(value => !value); if (!personal) commentInput.current?.focus(); }}>
