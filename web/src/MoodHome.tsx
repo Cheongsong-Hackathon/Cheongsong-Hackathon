@@ -1,6 +1,7 @@
 import MumuArtwork, {MumuLoading} from './MumuArtwork';
 import { useState } from 'react';
 import { PhoneStatus } from './MumuWelcome';
+import MumuHomeCharacter, { moodPortraits } from './MumuHomeCharacter';
 // 홈: "기분만 말해, 갈 곳은 무무가 찾아줄게". 자기 말로 한 줄 쓰는 게 메인이고(생성형 AI가 기분·위기·원하는 것을 읽음),
 // 카드 6개는 쓰기 어려울 때 누르면 입력칸을 채워 주는 보조
 export const MOODS=[
@@ -11,13 +12,21 @@ export const MOODS=[
  {emoji:'🥰',title:'기분 좋아',subtitle:'이 기분을 이어가고 싶어',text:'오늘 기분이 좋아. 이 기분을 이어가고 싶어.'},
  {emoji:'😌',title:'평범해',subtitle:'소소한 변화를 주고 싶어',text:'그냥 평범한 하루야. 소소한 변화를 주고 싶어.'},
 ];
+const portraits = [
+ moodPortraits.tired, moodPortraits.sad, moodPortraits.frustrated,
+ moodPortraits.bored, moodPortraits.happy, moodPortraits.neutral,
+];
 export default function MoodHome({busy,onRecommend,onNotifications}:{busy:boolean;onRecommend:(message:string,mood:number|null)=>void;onNotifications:()=>void}) {
  const [text,setText]=useState('');
  const [selected,setSelected]=useState<number|null>(null);
  const pick=(i:number)=>{if(busy)return;if(selected===i){setSelected(null);setText('');return;}setSelected(i);setText(MOODS[i].text);};
  const submit=()=>{const t=text.trim();if(t&&!busy)onRecommend(t,selected!==null&&text===MOODS[selected].text?selected:null);};
  return <div className="new-home" aria-busy={busy}>{busy&&<div className="mumu-loading-overlay"><MumuLoading message="무무가 마음에 맞는 장소를 찾고 있어요"/></div>}<PhoneStatus/><header className="new-brand"><MumuArtwork className="mumu-brand-logo"/><button aria-label="예약 알림 보기" onClick={onNotifications}><svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4ZM10 21h4"/><circle cx="19" cy="4" r="2" fill="#8a4ee8" stroke="none"/></svg></button></header>
- <section className="new-home-hero"><div className="new-clouds" aria-hidden="true"/><div className="new-home-mascot"><MumuArtwork kind="home" label="지도를 들고 웃는 무무"/></div><h1>오늘 하루는 어땠어?</h1><p>기분만 말해, 갈 곳은 무무가 찾아줄게.</p></section>
+ <section className="new-home-hero">
+  <div className="new-clouds" aria-hidden="true"/>
+  <MumuHomeCharacter key={selected ?? 'default'} portrait={selected === null ? undefined : portraits[selected]} label={selected === null ? undefined : `무무의 표정 · ${MOODS[selected].title}`}/>
+  <h1>오늘 하루는 어땠어?</h1><p>기분만 말해, 갈 곳은 무무가 찾아줄게.</p>
+ </section>
  <form className="mood-line" onSubmit={e=>{e.preventDefault();submit();}}>
   <textarea value={text} onChange={e=>{setText(e.target.value);if(selected!==null&&e.target.value!==MOODS[selected].text)setSelected(null);}} placeholder="아무 말이나 괜찮아. 예: 발표 망쳐서 아무것도 하기 싫어" maxLength={300} rows={2} aria-label="오늘 기분 한 줄" disabled={busy}
    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();submit();}}}/>
