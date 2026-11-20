@@ -3,6 +3,7 @@ import { base, fullLook, type WardrobeItem } from './mumuWardrobeItems';
 
 export type ClosetPreview = WardrobeItem | 'full' | null;
 const frame = { width: 1122, height: 1402 };
+const SRC = 1254; // 단품 원본 크기
 const neckline = 'M0 806H210C275 861 335 885 420 881C550 879 685 859 778 821C849 791 894 756 923 713H1122V1402H0Z';
 
 function ColorLayer({ id, alpha }: { id: string; alpha: string }) {
@@ -56,7 +57,13 @@ export default function MumuClosetModel({ preview }: { preview: ClosetPreview })
     </defs>
     <image href={preview === 'full' ? fullLook : base} x={preview === 'full' ? -3 : 0}
       y={preview === 'full' ? 5 : 0} {...frame} />
-    {item?.fit && !hoodie && <g clipPath={overalls ? clip('neckline') : undefined}>
+    {item?.fit && item.crop && <g transform={item.fit.transform}>
+      <clipPath id={`${id}-crop`}><polygon points={item.crop} /></clipPath>
+      <g transform={`translate(${item.fit.x} ${item.fit.y}) scale(${item.fit.width / SRC} ${item.fit.height / SRC})`}>
+        <image href={item.image} width={SRC} height={SRC} clipPath={clip('crop')} />
+      </g>
+    </g>}
+    {item?.fit && !item.crop && !hoodie && <g clipPath={overalls ? clip('neckline') : undefined}>
       <image href={item.image} {...item.fit} preserveAspectRatio="none" />
     </g>}
     {hoodie && item?.fit && <g clipPath={clip('neckline')}>

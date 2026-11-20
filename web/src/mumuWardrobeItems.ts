@@ -17,11 +17,15 @@ export type WardrobeItem = {
   price: number;
   // 단품 원본을 직접 입힐 때 사용하는 옷장 무무 캔버스(1122×1402)의 위치.
   fit?: { x: number; y: number; width: number; height: number; transform?: string };
+  // 단품 원본(1254×1254)에서 남길 부분 (다각형 점, 원본 좌표). 상품 사진에 보이는 안감처럼 쓴 모습에서는 안 보일 곳을 잘라 낸다
+  crop?: string;
 };
 
 export const wardrobeItems: readonly WardrobeItem[] = [
+  // 모자: 아래에서 본 상품 사진이라 챙 아래 안감을 잘라 내고, 머리 크기에 맞춰 눈썹 위까지 깊게 씌운다 (2026-11-21 착용샷으로 다시 맞춤)
   { id: 'star-cap', name: '별 모자', category: '모자', slot: 'hat', image: cap, price: 450,
-    fit: { x: 163, y: 72, width: 825, height: 515, transform: 'rotate(-11 560 350)' } },
+    fit: { x: 120, y: -5, width: 880, height: 760, transform: 'rotate(-5 560 375)' },
+    crop: '0,0 1254,0 1254,790 880,800 800,842 740,848 680,848 620,832 560,812 500,792 440,776 300,762 200,776 140,784 0,784' },
   { id: 'cloud-hoodie', name: '구름 후드티', category: '상의', slot: 'body', image: hoodie, price: 850,
     fit: { x: 115, y: 630, width: 925, height: 655, transform: 'rotate(-3 560 985)' } },
   { id: 'cloud-overalls', name: '구름 멜빵', category: '하의', slot: 'body', image: overalls, price: 950,
