@@ -6,6 +6,7 @@ import Community from './Community';
 import BookingNotification from './BookingNotification';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canListen } from './voice';
+import { PhoneStatus } from './MumuWelcome';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import { sendTalk } from './talkClient';
@@ -373,7 +374,7 @@ export default function App() {
                   ))}
                 {tab === 'records' && (
                   recordsLoading || recordsError ? (
-                    <div className="page">
+                    <div className="page"><PhoneStatus />
                       <LoadState loading={recordsLoading} message={recordsError || '마음 기록을 불러오는 중이야…'} onRetry={loadRecords} />
                     </div>
                   ) : <Records
