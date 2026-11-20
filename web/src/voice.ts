@@ -39,7 +39,7 @@ export async function speak(text: string): Promise<void> {
   if (!t) return;
   // 끝 알림이 안 오는 브라우저가 있어 글 길이만큼만 기다린다
   const cap = (done: () => void) => setTimeout(done, 3000 + t.length * 220);
-  if (serverVoice) {
+  if (serverVoice && !chosenName()) {
     try {
       const r = await fetch('/api/voice/tts', { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-key': USER_KEY }, body: JSON.stringify({ text: t }) });
       if (my !== turn) return;
@@ -80,7 +80,9 @@ export async function speak(text: string): Promise<void> {
 const PREFER = [/Natural|Online/i, /Google/i, /Yuna|유나/i];
 let koVoice: SpeechSynthesisVoice | null = null;
 function pickVoice(): SpeechSynthesisVoice | null {
-  const ko = speechSynthesis.getVoices().filter((x) => x.lang.replace('_', '-').toLowerCase().startsWith('ko'));
+  const ko = koreanVoices();
+  const chosen = ko.find((x) => x.name === chosenName());
+  if (chosen) return chosen;
   for (const re of PREFER) {
     const hit = ko.find((x) => re.test(x.name));
     if (hit) return hit;
@@ -89,6 +91,17 @@ function pickVoice(): SpeechSynthesisVoice | null {
 }
 // 목소리 목록은 늦게 채워지는 브라우저가 있어서(크롬), 채워지면 다시 고른다
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) speechSynthesis.addEventListener('voiceschanged', () => { koVoice = pickVoice(); });
+
+// 목소리 고르기: 기기에 있는 한국어 목소리 목록, 미리 듣기, 고른 것 기억 (이 브라우저에만)
+const VOICE_KEY = 'mumu.voice-name';
+const chosenName = () => { try { return localStorage.getItem(VOICE_KEY) ?? ''; } catch { return ''; } };
+export const koreanVoices = () =>
+  'speechSynthesis' in window ? speechSynthesis.getVoices().filter((x) => x.lang.replace('_', '-').toLowerCase().startsWith('ko')) : [];
+export const currentVoiceName = () => (koVoice ?? (koVoice = pickVoice()))?.name ?? '';
+export function chooseVoice(name: string) {
+  try { localStorage.setItem(VOICE_KEY, name); } catch {}
+  koVoice = pickVoice();
+}
 
 const KEY = 'mumu.voice';
 export const voicePref = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
