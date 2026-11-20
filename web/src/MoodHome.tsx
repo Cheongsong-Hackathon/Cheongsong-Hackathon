@@ -16,7 +16,7 @@ const portraits = [
  moodPortraits.tired, moodPortraits.sad, moodPortraits.frustrated,
  moodPortraits.bored, moodPortraits.happy, moodPortraits.neutral,
 ];
-export default function MoodHome({busy,onRecommend,onNotifications,onVoice}:{busy:boolean;onRecommend:(message:string,mood:number|null)=>void;onNotifications:()=>void;onVoice?:()=>void}) {
+export default function MoodHome({busy,onRecommend,onNotifications,onVoice,onOpenChat,hasHistory}:{busy:boolean;onOpenChat?:()=>void;hasHistory?:boolean;onRecommend:(message:string,mood:number|null)=>void;onNotifications:()=>void;onVoice?:()=>void}) {
  const [text,setText]=useState('');
  const [selected,setSelected]=useState<number|null>(null);
  const pick=(i:number)=>{if(busy)return;if(selected===i){setSelected(null);setText('');return;}setSelected(i);setText(MOODS[i].text);};
@@ -33,6 +33,8 @@ export default function MoodHome({busy,onRecommend,onNotifications,onVoice}:{bus
   {onVoice&&<button type="button" className="home-talk-icon mic" aria-label="음성으로 대화하기" disabled={busy} onClick={onVoice}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>}
   <button className="home-talk-icon send" aria-label="보내기" disabled={busy||!text.trim()}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 18-7-5 18-5-7-8-4Zm8 4 10-11"/></svg></button>
  </form>
+ {/* 말을 보내지 않고 대화창만 열기 (지난 대화가 있으면 이어 보기) */}
+ {onOpenChat&&<button type="button" className="home-open-chat" onClick={onOpenChat}>{hasHistory?'지난 대화 이어 보기':'대화창 열기'} ›</button>}
  <p className="mood-line-hint">말하기 어려우면 기분을 골라도 돼</p>
  <div className="new-mood-grid" role="radiogroup" aria-label="오늘의 기분 고르기">{MOODS.map((m,i)=><button key={m.title} type="button" role="radio" aria-checked={i===selected} className={selected===i?'selected':''} disabled={busy} onClick={()=>pick(i)}><span className="new-mood-emoji" aria-hidden="true">{m.emoji}</span><strong>{m.title}</strong>{selected===i&&<span className="mood-check" aria-hidden="true">✓</span>}</button>)}</div>
  <p className="new-home-footnote">작은 외출이 오늘을 바꿀지도 몰라 ♡</p></div>;

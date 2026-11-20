@@ -70,3 +70,6 @@
 /* 홈 대화창: 마이크와 보내기 사이를 조금 좁게 */
 .mood-line.home-talk { gap: 2px; }
 .home-talk .home-talk-icon { padding: 5px 4px; }
+
+/* 홈: 말을 보내지 않고 대화창만 열기 */
+.home-open-chat { display: block; margin: -4px auto 10px; border: 0; background: none; color: #7a45d6; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
