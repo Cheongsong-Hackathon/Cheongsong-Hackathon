@@ -62,3 +62,8 @@
 .home-talk-icon { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: linear-gradient(110deg, #9c5dec, #7944d3); color: #fff; font-size: 20px; cursor: pointer; display: grid; place-items: center; }
 .home-talk-icon.send { font-size: 17px; }
 .home-talk-icon:disabled { opacity: .45; cursor: default; }
+
+/* 홈 대화창 아이콘: 채팅 화면과 같게 마이크 + 보내기를 나란히 (같은 크기) */
+.home-talk .home-talk-icon { width: auto; height: auto; border-radius: 0; background: transparent; color: #9c5ce0; padding: 5px 7px; }
+.home-talk .home-talk-icon svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.home-talk .home-talk-icon:disabled { opacity: .5; }

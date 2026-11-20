@@ -30,9 +30,8 @@ export default function MoodHome({busy,onRecommend,onNotifications,onVoice}:{bus
  <form className="mood-line home-talk" onSubmit={e=>{e.preventDefault();submit();}}>
   <textarea value={text} onChange={e=>{setText(e.target.value);if(selected!==null&&e.target.value!==MOODS[selected].text)setSelected(null);}} placeholder="무무한테 아무 말이나 해 봐" maxLength={300} rows={1} aria-label="무무에게 할 말" disabled={busy}
    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();submit();}}}/>
-  {text.trim()||!onVoice
-   ?<button className="home-talk-icon send" aria-label="보내기" disabled={busy||!text.trim()}>➤</button>
-   :<button type="button" className="home-talk-icon" aria-label="음성으로 대화하기" disabled={busy} onClick={onVoice}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>}
+  {onVoice&&<button type="button" className="home-talk-icon mic" aria-label="음성으로 대화하기" disabled={busy} onClick={onVoice}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>}
+  <button className="home-talk-icon send" aria-label="보내기" disabled={busy||!text.trim()}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 18-7-5 18-5-7-8-4Zm8 4 10-11"/></svg></button>
  </form>
  <p className="mood-line-hint">말하기 어려우면 기분을 골라도 돼</p>
  <div className="new-mood-grid" role="radiogroup" aria-label="오늘의 기분 고르기">{MOODS.map((m,i)=><button key={m.title} type="button" role="radio" aria-checked={i===selected} className={selected===i?'selected':''} disabled={busy} onClick={()=>pick(i)}><span className="new-mood-emoji" aria-hidden="true">{m.emoji}</span><strong>{m.title}</strong>{selected===i&&<span className="mood-check" aria-hidden="true">✓</span>}</button>)}</div>
