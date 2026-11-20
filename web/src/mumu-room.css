@@ -304,3 +304,6 @@
 .voice-error { margin: 0; color: #c2416b; font-size: 13px; }
 .voice-mode .new-primary { max-width: 300px; }
 @media (prefers-reduced-motion: reduce) { .voice-mode .voice-mumu::after, .voice-mode .voice-mumu img { animation: none !important; } .voice-mode.listening .voice-mumu::after { opacity: .8; } }
+/* 무무 그림을 음성 대화 버튼으로 감싸도 원래 크기(.mumu-chat-hero > img)와 같게 */
+.mumu-chat-hero > .voice-open { width: 43%; flex: none; }
+.mumu-chat-hero > .voice-open img { width: 100%; height: clamp(83px, 15vh, 126px); object-fit: contain; }
