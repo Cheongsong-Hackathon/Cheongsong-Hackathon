@@ -2,17 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import type { Booking } from './api';
 import mumuFace from './assets/mumu/face.webp';
 
+const SEEN_KEY='mumu.notice-seen';
+
 export default function BookingNotification({ booking, error, enabled, hidden, onView, onRetry }: {
  booking: Booking | null; error: string; enabled: boolean; hidden: boolean; onView: () => void; onRetry: () => void;
 }) {
  const [visible,setVisible]=useState(false);
- const seen=useRef('');
+ // 같은 "가기로 한 곳"은 한 번만 띄운다. 본 것을 이 브라우저에 기억 (새로고침·화면 전환마다 다시 뜨던 문제)
+ const seen=useRef((()=>{try{return localStorage.getItem(SEEN_KEY)??'';}catch{return '';}})());
  const key=error ? `error:${error}` : booking ? `booking:${booking.id}:${booking.slotTime}` : '';
  useEffect(()=>{
-  if(!enabled) { seen.current=''; setVisible(false); return; }
-  if(!key) { seen.current=''; setVisible(false); return; }
+  if(!enabled||!key) { setVisible(false); return; }
   if(seen.current===key) return;
   seen.current=key; setVisible(true);
+  if(!error) try{localStorage.setItem(SEEN_KEY,key);}catch{}
   const timer=window.setTimeout(()=>setVisible(false),6000);
   return ()=>window.clearTimeout(timer);
  },[enabled,key]);
@@ -20,7 +23,7 @@ export default function BookingNotification({ booking, error, enabled, hidden, o
  return <aside className="mumu-booking-notification" role="status" aria-live="polite">
   <span className="mumu-notification-icon" aria-hidden="true">{error?'!':'♡'}</span>
   <button type="button" className="mumu-notification-body" onClick={()=>{setVisible(false);error?onRetry():onView();}}>
-   <span>{error?'연결 확인':'무무 · 예약 알림'}<small>지금</small></span>
+   <span>{error?'연결 확인':'무무 · 가기로 한 곳'}<small>지금</small></span>
    <strong>{error?'정보를 불러오지 못했어요':booking!.title}</strong>
    <span>{error?'눌러서 다시 시도해 주세요':booking!.placeName}</span>
   </button>
@@ -82,7 +85,7 @@ export function BookingAlerts({ booking, completed, loading, error, onRetry, onC
       </header>
       <div className="mumu-alert-content">
         {(booking || completed.length > 0) && <ul aria-label="최근 알림">
-          {booking && <BookingAlert booking={booking} label={booking.arrivedAt ? '도착 확인' : '진행 중인 예약'} timestamp={booking.arrivedAt ?? booking.slotTime} />}
+          {booking && <BookingAlert booking={booking} label={booking.arrivedAt ? '도착 확인' : '가기로 한 곳'} timestamp={booking.arrivedAt ?? booking.slotTime} />}
           {completed.slice(0, 4).map(item => <BookingAlert key={item.id} booking={item} label="체험 기록 완료" timestamp={item.completedAt} />)}
         </ul>}
         {loading ? <p role="status">알림을 불러오는 중이에요…</p> : error ? <div role="status">
