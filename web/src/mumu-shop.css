@@ -1,0 +1,358 @@
+.mumu-coin,
+.mumu-item-price {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.mumu-coin {
+  padding: 4px 8px;
+  background: #fffdfd;
+  border: 1px solid #fff;
+  border-radius: 99px;
+  color: #543f64;
+  box-shadow: 0 3px 9px #976cbf25;
+}
+
+.mumu-coin-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  border: 1px solid #ebad40;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff5a5, #f9c354);
+  box-shadow: inset 0 0 0 2px #ffdd75;
+  color: #93530f;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.mumu-dress {
+  min-height: 100%;
+  padding: 12px 15px 20px;
+  background: radial-gradient(ellipse at 32% 8%, #fff9ff 0, #f3eafb 59%, #f1e8fc 100%);
+  color: var(--text-primary);
+}
+
+.mumu-dress-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 52px;
+}
+
+.mumu-dress-header h1 { margin: 0; white-space: nowrap; }
+.mumu-dress-currency { margin-left: auto; display: flex; align-items: end; flex-wrap: wrap; justify-content: end; gap: 5px; }
+.mumu-dress-back {
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  color: #623b8a;
+  background: #fff9;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+#root .mumu-dress-back { font-size: 22px !important; }
+
+.mumu-dress-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 244px;
+  border: 1px solid #fff;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 48% 39%, #fff 10%, #f5ecff 70%, #ead8fb 100%);
+}
+
+.mumu-dress-stage::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: auto 12% 10% 12%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #d3b5f1 20%, #eadbfb 72%);
+  border: 2px solid #ffffff9c;
+}
+
+.mumu-dress-preview-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border-radius: 99px;
+  background: #fffc;
+  color: #644587;
+  padding: 4px 8px;
+}
+
+.mumu-dress-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.mumu-closet-card {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+  gap: 4px;
+  padding: 4px 5px 6px;
+  border: 1px solid #fff;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #fff9, #fbf6ff);
+  color: var(--text-primary);
+  box-shadow: 0 3px 7px #9b73b825;
+  text-align: center;
+}
+
+.mumu-closet-card[data-preview=true] { background: #efe1ff; border-color: #b385e5; }
+.mumu-closet-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 2px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mumu-clothing-icon { display: block; margin-inline: auto; object-fit: contain; }
+.mumu-closet-item .mumu-clothing-icon {
+  width: min(100%, 78px);
+  height: 66px;
+  filter: drop-shadow(0 5px 4px #a274bd34);
+}
+
+.mumu-item-price { gap: 3px; }
+.mumu-item-price .mumu-coin-icon { width: 15px; height: 15px; flex-basis: 15px; }
+.mumu-dress-primary {
+  width: 100%;
+  border: 0;
+  border-radius: 99px;
+  padding: 6px 4px;
+  background: linear-gradient(150deg, #9563d1, #7344b2);
+  color: #fff;
+  cursor: pointer;
+}
+
+#root .mumu-closet-card .mumu-dress-primary,
+#root .mumu-closet-card .mumu-item-price { font-size: 12px !important; }
+#root .mumu-closet-item strong { font-size: 12px !important; line-height: 17px !important; }
+.mumu-closet-dialog {
+  width: min(330px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  margin: auto;
+  padding: 15px;
+  border: 1px solid #fff;
+  border-radius: 23px;
+  background: #f7efff;
+  color: var(--text-primary);
+  text-align: center;
+}
+.mumu-closet-dialog::backdrop { background: #3120447a; }
+.mumu-closet-dialog h2 { margin: 0 0 8px; }
+.mumu-dress button:disabled { opacity: .55; cursor: not-allowed; }
+.mumu-dress button:focus-visible { outline: 2px solid #7244aa; outline-offset: 2px; }
+
+.mumu-closet { padding-inline: 10px; }
+.mumu-closet .mumu-dress-header { padding-inline: 4px; }
+.mumu-closet-hero {
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid #fff;
+  border-radius: 26px;
+  background: linear-gradient(#f1e4fa, #e5d4f9);
+  box-shadow: 0 5px 14px #ac8bca28;
+}
+.mumu-closet-scene {
+  display: grid;
+  min-height: 0;
+  height: clamp(218px, 66vw, 295px);
+  padding-inline: 5%;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse at 39% 38%, #fff4e2 0, #f7e9ff 34%, transparent 62%),
+    linear-gradient(#ebd9fa 74%, #e6d4f4 75%, #eee2fb 100%);
+}
+.mumu-closet-scene::before {
+  inset: auto 17% 4%;
+  height: 15%;
+  background: radial-gradient(ellipse, #d7bdf0 35%, #cfacf3 100%);
+  box-shadow: 0 3px 0 #c5a1e8, 0 7px 9px #a784cc35;
+}
+.mumu-closet .mumu-dress-preview-label {
+  z-index: 3;
+  top: 9px;
+  left: 9px;
+  padding: 5px 9px;
+  color: #66419d;
+  box-shadow: 0 3px 10px #946ab325;
+}
+.mumu-dress-preview-label span, .mumu-closet-list header h2 span { color: #b77c17; }
+.mumu-closet-model {
+  position: absolute;
+  z-index: 1;
+  bottom: 3%;
+  left: 50%;
+  width: min(65%, 270px);
+  height: 94%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.mumu-closet-model > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 5px 4px #70477d31);
+}
+.mumu-closet-lamp {
+  position: absolute;
+  top: 20px;
+  left: 25%;
+  width: 38px;
+  height: 21px;
+  border-radius: 70% 70% 16% 16%;
+  border-bottom: 5px solid #fff0b1;
+  background: radial-gradient(at 40% 20%, #e6cafd, #ad83db);
+  box-shadow: 0 12px 20px 5px #ffefbc88;
+}
+.mumu-closet-lamp::before {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 21px;
+  bottom: 100%;
+  left: 50%;
+  background: #bd93df;
+}
+.mumu-closet-rack {
+  position: absolute;
+  inset: auto auto 13% 3%;
+  display: flex;
+  width: 29%;
+  height: 44%;
+  align-items: flex-start;
+  padding: 8px 2px 0;
+  border: 4px solid #e6bd9c;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  box-shadow: inset 0 2px 1px #fff8, 1px 0 1px #ac83b85c;
+}
+.mumu-closet-mirror {
+  position: absolute;
+  right: 3%;
+  bottom: 11%;
+  width: 23%;
+  height: 63%;
+  transform: rotate(6deg);
+  border: 6px solid #f8d7af;
+  border-radius: 55% 55% 13% 13%;
+  background: linear-gradient(132deg, #d7cff6 20%, #e7e6ff 37%, #dad1f8 47%, #efe7ff 72%);
+  box-shadow: 1px 3px 6px #b495bf60, inset 0 0 4px #ceaeee;
+}
+.mumu-closet-mirror::before, .mumu-closet-mirror::after {
+  content: "";
+  position: absolute;
+  top: 23%;
+  left: -6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff8d8;
+  box-shadow: 0 18px #fff8d8, 0 36px #fff8d8, 0 54px #fff8d8, 0 72px #fff8d8;
+}
+.mumu-closet-mirror::after { left: auto; right: -6px; }
+.mumu-closet-gift {
+  position: absolute;
+  right: 3%;
+  bottom: 5%;
+  width: 27px;
+  height: 26px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent 41%, #d7a6ed 42% 60%, transparent 61%), linear-gradient(#f9eaff 24%, #dfc2f6 25%);
+  box-shadow: -5px 2px 0 #d5b4ef, 1px 2px 5px #ad8dc1a0;
+}
+.mumu-closet-slots { z-index: 2; display: grid; gap: 6px; justify-self: end; width: clamp(43px, 14%, 61px); }
+.mumu-closet-slots > span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: clamp(34px, 9vw, 46px);
+  padding: 4px;
+  border: 1px solid #fffc;
+  border-radius: 13px;
+  background: #fffc;
+  box-shadow: 0 3px 5px #936bb233;
+  color: #8458b2;
+}
+.mumu-closet-slots svg { width: 24px; height: 24px; opacity: .55; }
+.mumu-closet-slots .mumu-clothing-icon { width: 33px; height: 31px; max-height: 100%; }
+.mumu-closet-actions {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 9px 8% 12px;
+}
+.mumu-closet-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 3px;
+  border: 1px solid #fff;
+  border-radius: 99px;
+  background: linear-gradient(#fffdfd, #f6edff);
+  color: #623c98;
+  box-shadow: 0 4px 7px #896bae33;
+  cursor: pointer;
+}
+.mumu-closet-actions button[aria-pressed=true] { background: #f1ddff; border-color: #c59eea; }
+.mumu-closet-categories svg { width: 20px; height: 20px; }
+.mumu-closet-categories {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+}
+.mumu-closet-categories button {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 51px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 1px solid #fff;
+  border-radius: 14px;
+  background: #fff9;
+  color: #5c4180;
+  box-shadow: 0 4px 7px #9875bb29;
+  cursor: pointer;
+}
+#root .mumu-closet-categories button { font-size: clamp(9px, 2.5vw, 12px) !important; line-height: 1.3 !important; white-space: nowrap; }
+.mumu-closet-categories button[aria-pressed=true] {
+  border-color: #a375db;
+  background: linear-gradient(145deg, #af83ee, #8251cc);
+  color: #fff;
+}
+.mumu-closet-list { margin-top: 13px; }
+.mumu-closet-list > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 7px; }
+.mumu-closet-list > header h2 { margin: 0; }
+@media (min-width: 430px) {
+  .mumu-dress-items { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 360px) {
+  #root .mumu-dress-header h1 { font-size: 18px !important; }
+  .mumu-dress-currency .room-hearts { padding-inline: 5px; }
+}

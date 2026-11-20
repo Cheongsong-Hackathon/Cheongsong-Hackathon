@@ -59,15 +59,12 @@ export type Character = {
   level: number;
   exp: number;
   stage: number;
-  items: string[];
-  equipped: string | null;
   safeMode: boolean;
   stageMinExp: number;
   nextStageExp: number | null;
-  allItems: { id: string; name: string; stage: number; unlocked: boolean }[];
   demoMode: boolean;
 };
-export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number; newItems: { id: string; name: string }[] };
+export type Growth = { expGained: number; levelUp: boolean; stageUp: boolean; stage: number };
 export type Checkin = { checkinId: number | null; reply: string; state: string; risk: string; suggestPostpone?: boolean };
 export type Records = {
   done: Booking[];
@@ -193,7 +190,6 @@ export const api = {
   memories: () => call<{ items?: Memory[] }>('GET', '/memories'),
   deleteMemory: (id: number) => call<{ deleted: boolean }>('DELETE', `/memories/${id}`),
   character: () => call<Character>('GET', '/character'),
-  equip: (item: string | null) => call<{ equipped: string | null }>('POST', '/character/equip', { item }),
   chat: (sessionId: number | null, message: string) => call<{ sessionId: number | null; reply: string; state: string }>('POST', '/chat', { sessionId, message }),
   resumeSafety: () => call<{ state: string }>('POST', '/safety/resume'),
 };

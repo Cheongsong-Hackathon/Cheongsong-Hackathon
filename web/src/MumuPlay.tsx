@@ -7,13 +7,14 @@ import snack from './assets/mumu/motion-snack.webp';
 import celebrate from './assets/mumu/motion-hearts.webp';
 import spinMotion from './assets/mumu/motion-spin.webp';
 import { gameCards, type MumuGame } from './MumuGames';
+import MumuCoin from './MumuCoin';
 
 type Props = {
   hearts: number;
   onHeart: () => void;
-  onChat: () => void;
   onGame: (game: MumuGame) => void;
   onVoice?: () => void;
+  onWardrobe: () => void;
 };
 
 function Hearts({ value }: { value: number }) {
@@ -32,7 +33,7 @@ type Gesture = {
   centerX: number; centerY: number; mouthX: number; mouthY: number; mouthRadius: number;
 };
 
-export default function MumuPlay({ hearts, onHeart, onChat, onGame, onVoice }: Props) {
+export default function MumuPlay({ hearts, onHeart, onGame, onVoice, onWardrobe }: Props) {
   const [reaction, setReaction] = useState<{ kind: keyof typeof motions; replay: number; ready: boolean } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const gesture = useRef<Gesture | null>(null);
@@ -105,9 +106,8 @@ export default function MumuPlay({ hearts, onHeart, onChat, onGame, onVoice }: P
 
   return <div className="mumu-room">
     <PhoneStatus />
-    <header className="room-play-title"><img src={happy} alt="" /><h1>무무와 함께</h1></header>
+    <header className="room-play-title"><img src={happy} alt="" /><h1>무무와 함께</h1><MumuCoin /></header>
     <div className="room-switch" aria-label="무무 화면">
-      <button type="button" onClick={onChat}>💬 무무랑 채팅하기</button>
       <span aria-current="page">🎮 무무랑 놀기</span>
     </div>
     <header className="room-intro">
@@ -138,11 +138,15 @@ export default function MumuPlay({ hearts, onHeart, onChat, onGame, onVoice }: P
       <button type="button" onClick={() => play('pet')}><span aria-hidden="true">✋</span>쓰다듬기</button>
       <button type="button" onClick={() => play('spin')}><span aria-hidden="true">⟳</span>돌리기</button>
       <button type="button" onClick={() => play('snack')}><span aria-hidden="true">🍬</span>간식주기</button>
+      <button className="room-wardrobe-link" type="button" onClick={onWardrobe}>
+        <svg viewBox="0 0 36 36" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 10a4 4 0 1 1 6 3.5l-2 1.5v4l12 7.5a2 2 0 0 1-1 3.7H7a2 2 0 0 1-1-3.7L18 19m9-15v6m-3-3h6"/></svg>
+        무무 옷장
+      </button>
     </div>
     <section className={`room-game-menu${showAll ? ' is-expanded' : ''}`}>
       <header><h2>무무랑 같이 놀기</h2><button type="button" aria-expanded={showAll} onClick={() => setShowAll(value => !value)}>{showAll ? '접기 ⌃' : '전체보기 ›'}</button></header>
       <div>{gameCards.map(game => <button type="button" key={game.id} onClick={() => onGame(game.id)}>
-        <span aria-hidden="true">{game.icon}</span><div><strong>{game.title}</strong><small>{game.subtitle}</small></div>
+        <span aria-hidden="true">{game.icon}</span><strong>{game.title}</strong>
       </button>)}</div>
     </section>
   </div>;
