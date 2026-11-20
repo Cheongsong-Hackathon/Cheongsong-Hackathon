@@ -96,7 +96,15 @@ export function evidenceOf(why: string[], walkMinutes: number): string[] {
   return [...out.slice(0, 3), `걸어서 ${walkMinutes}분`];
 }
 /** 왜 기분 전환이 되나: 필요별로 확인한 연구 한 줄 (AI가 쓰지 않는다). 출처는 docs/추천근거_연구.md */
-export const NEED_SCIENCE: Partial<Record<string, { text: string; source: string; url: string }>> = {};
+// 상관 연구는 "관련 있었다"로만 쓴다. 장소 하나하나가 아니라 활동 유형에 대한 근거다
+export const NEED_SCIENCE: Partial<Record<string, { text: string; source: string; url: string }>> = {
+  쉬기: { text: '퇴근 후 일에서 마음을 떼고 쉬는 경험이 피로가 덜한 것과 관련 있었다는 메타분석', source: 'Bennett 외(2018), Journal of Organizational Behavior', url: 'https://doi.org/10.1002/job.2217' },
+  비우기: { text: '도시 대신 자연 속을 90분 걸은 사람들의 곱씹는 생각(반추)이 줄었다는 연구', source: 'Bratman 외(2015), PNAS', url: 'https://doi.org/10.1073/pnas.1510459112' },
+  풀기: { text: '한 번의 운동만으로도 그 순간의 불안이 조금 줄었다는 메타분석', source: 'Ensari 외(2015), Depression and Anxiety', url: 'https://doi.org/10.1002/da.22370' },
+  몰입: { text: '창작 활동을 평소보다 많이 한 다음 날 활기찬 기분과 웰빙이 더 높았다는 연구', source: 'Conner 외(2018), Journal of Positive Psychology', url: 'https://doi.org/10.1080/17439760.2016.1257049' },
+  즐기기: { text: '여러 다른 곳을 다닌 날일수록 긍정적인 기분이 더 컸다는 연구', source: 'Heller 외(2020), Nature Neuroscience', url: 'https://doi.org/10.1038/s41593-020-0636-4' },
+  연결: { text: '사람들과 더 자주, 더 깊게 대화한 순간에 행복감과 유대감이 높았다는 연구', source: 'Sun 외(2020), Journal of Personality and Social Psychology', url: 'https://doi.org/10.1037/pspp0000272' },
+};
 
 /** AI가 없거나 스킬을 놓쳤을 때 말에서 바로 고르기 */
 export function ruleSkill(m: string): { skill: '없음' | '놀이' | '기록'; game: 'tarot' | 'fortune' | 'words' | 'balance' } {
