@@ -12,7 +12,8 @@ export default function VoicePicker({ onClose }: { onClose: () => void }) {
     speechSynthesis.addEventListener('voiceschanged', update);
     return () => { speechSynthesis.removeEventListener('voiceschanged', update); stopSpeaking(); };
   }, []);
-  const short = (name: string) => name.replace(/^Microsofts+/, '').replace(/s*-s*Korean.*$/i, '');
+  // "Microsoft SunHi Online (Natural) - Korean (Korea)" → "SunHi Online (Natural)"
+  const short = (name: string) => name.replace(/^Microsoft\s+/, '').replace(/\s*-\s*Korean.*$/i, '');
   return <div className="voice-picker" role="dialog" aria-label="무무 목소리 고르기">
     <header><strong>무무 목소리</strong><button type="button" aria-label="닫기" onClick={onClose}>×</button></header>
     {voices.length ? <ul>
