@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import PlaceArt from './PlaceArt';
+import PlaceReviewPanel from './PlaceReviewPanel';
 import Bunny from './Bunny';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
@@ -208,7 +209,7 @@ export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy
 }
 
 // ---------- 04 예약 확인 ----------
-export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBook: (slot: string | null, moodBefore: number | null) => void }) {
+export function Confirm(p: { item: Item; busy: boolean; showReviews?: boolean; onBack: () => void; onBook: (slot: string | null, moodBefore: number | null) => void }) {
   // 가격·시간은 제휴 전이라 보여 주지 않는다. 서버가 "가기로 한 체험" 기록에 시간대를 요구해서 첫 시간대를 보이지 않게 보낸다
   const slot = (p.item.availableSlots.length ? p.item.availableSlots : p.item.slots)[0] ?? null;
   const [mood, setMood] = useState<number | null>(null); // 체험 전 기분: 다녀온 뒤 "전 → 후"와 기분 기록에 쓴다 (안 골라도 됨)
@@ -216,18 +217,22 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
     <div className="page">
       <TopBar onBack={p.onBack} />
       <h1 className="title">
-        여기 가 볼래?<span className="spark" aria-hidden="true">˚✧</span>
+        {p.showReviews ? '스팟 상세' : '여기 가 볼래?'}<span className="spark" aria-hidden="true">˚✧</span>
       </h1>
       <div className="card confirm">
         <PlaceArt placeId={p.item.placeId} hasPhoto={p.item.hasPhoto} photo={p.item.photo} category={p.item.category} className="hero-art" credit />
         <strong className="big-title">{p.item.title}</strong>
         <span className="meta">
-          {p.item.placeName} · 도보 {p.item.walkMinutes}분
+          {p.item.placeName}
+          {Number.isFinite(p.item.walkMinutes) && p.item.walkMinutes >= 0 && ` · 도보 ${p.item.walkMinutes}분`}
         </span>
         <p>{p.item.description}</p>
       </div>
-      <h2 className="label">지금 기분은 몇 점이야? <small className="mute">(다녀와서 비교해 줄게)</small></h2>
-      <Chips label="체험 전 기분" options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => [n, String(n)] as [number, string])} value={mood} onChange={setMood} />
+      {p.showReviews ? <PlaceReviewPanel item={p.item} /> : <>
+        <h2 className="label">지금 기분은 몇 점이야? <small className="mute">(다녀와서 비교해 줄게)</small></h2>
+        <Chips label="체험 전 기분" options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => [n, String(n)] as [number, string])} value={mood} onChange={setMood} />
+      </>}
+      {p.item.referenceOnly ? <button type="button" className="btn big" onClick={() => openNaver(p.item.mapUrl)}>네이버 지도에서 보기 ↗</button> : <>
       <button
         className="btn big"
         disabled={(!slot && !p.item.live) || p.busy}
@@ -239,6 +244,7 @@ export function Confirm(p: { item: Item; busy: boolean; onBack: () => void; onBo
         {p.busy ? '여는 중…' : '네이버에서 예약하기 ↗'}
       </button>
       <p className="small center mute">네이버 지도에서 매장을 열어 줄게. 네이버 예약이 있는 곳은 거기서 바로, 없는 곳은 전화로 예약해 줘. 실제 가격과 시간도 거기서 확인해 줘.</p>
+      </>}
     </div>
   );
 }

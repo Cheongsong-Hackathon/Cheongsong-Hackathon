@@ -4,14 +4,26 @@ import {placeCategory} from './placeCategories';
 import {useEffect,useState} from 'react';
 import {api,type Item,type LatLng} from './api';
 import {TripHeader,PlaceTile} from './TripUI';
-const CATEGORIES=[['전체','전체','♧'],['전시','전시','▧'],['미술관','미술','▧'],['카페','카페','☕'],['원데이클래스','클래스','♧'],['기타','기타','✧']];
+const CATEGORIES = [
+  { label: '전체', value: '전체', tone: 'orchid', icon: <><rect x="4" y="4" width="6" height="6" rx="1.2" /><rect x="14" y="4" width="6" height="6" rx="1.2" /><rect x="4" y="14" width="6" height="6" rx="1.2" /><rect x="14" y="14" width="6" height="6" rx="1.2" /></> },
+  { label: '전시', value: '전시', tone: 'pink', icon: <><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="9.5" r="1.25" /><path d="m4 16 4.5-4 3 2.5 4-4 4.5 4.5" /></> },
+  { label: '미술관', value: '미술', tone: 'blue', icon: <><path d="M2.5 9.5 12 4l9.5 5.5ZM4 20h16M5.5 10v7.5M10 10v7.5M14 10v7.5M18.5 10v7.5" /><path d="M3 20h18" /></> },
+  { label: '카페', value: '카페', tone: 'peach', icon: <><path d="M4.5 9.5h11v4a5.5 5.5 0 0 1-11 0zM15.5 10h2.25a2.25 2.25 0 0 1 0 4.5h-2.3M3 21h17M8 7V4m4 3V3" /></> },
+  { label: '원데이클래스', short: <>원데이<br />클래스</>, value: '클래스', tone: 'green', icon: <><path d="M8 5h8l-1.25 3 2.7 3.5a4.7 4.7 0 0 1-3.7 7.5h-3.5a4.7 4.7 0 0 1-3.7-7.5L9.25 8 8 5ZM9.25 8h5.5M7.5 13.5c1.5.9 3 1.2 4.5 1.2s3-.3 4.5-1.2M4 4v4M2 6h4" /></> },
+  { label: '기타', value: '기타', tone: 'lilac', icon: <><path d="M12 3.5 14.4 9l5.6.6-4.2 3.8 1.2 5.6-5-2.9-5 2.9 1.2-5.6L4 9.6l5.6-.6ZM20 14.5v4M18 16.5h4" /></> },
+] as const;
 export default function PlaceExplore({position,locationKey,locationLabel,onLocation,onPick,onNotifications,nearby=false}:{position:()=>Promise<LatLng|null>;locationKey:string;locationLabel:string;onLocation:()=>void;onPick:(item:Item)=>void;onNotifications:()=>void;nearby?:boolean}){
  const [items,setItems]=useState<Item[]|null>(null);const [error,setError]=useState('');const [category,setCategory]=useState('전체');const [minutes,setMinutes]=useState(60);const [sort,setSort]=useState(nearby?'거리순':'추천순');const [search,setSearch]=useState('');const [showSearch,setShowSearch]=useState(false);const [attempt,setAttempt]=useState(0);
  useEffect(()=>{let alive=true;setItems(null);setError('');position().then(pos=>api.browse(pos,null)).then(r=>{if(!alive)return;if(r.code===200)setItems(r.items??[]);else setError(r.error??'장소를 불러오지 못했어요.');}).catch(()=>{if(alive)setError('연결을 확인해 주세요.');});return()=>{alive=false;};},[locationKey,attempt]);
  let filtered=(items??[]).filter(i=>(!Number.isFinite(i.walkMinutes)||i.walkMinutes<=minutes)&&(category==='전체'||(category==='기타'?!/전시|미술|카페|클래스|공방/.test(placeCategory(i.category).label):`${placeCategory(i.category).label} ${i.title}`.includes(category)))&&`${i.placeName} ${i.title} ${placeCategory(i.category).label}`.includes(search));if(sort==='거리순')filtered=[...filtered].sort((a,b)=>a.distanceM-b.distanceM);
  return <div className="trip-explore"><TripHeader title={nearby?'내주변':'탐색'} onNotice={onNotifications} onSearch={()=>setShowSearch(v=>!v)}/><div className="trip-explore-intro"><p>{nearby?'가까운 곳에서 작은 기분전환을 시작해요.':'지금 떠날 수 있는\n기분전환 스팟을 둘러보세요!'}</p><div className="character-space"><MumuArtwork kind="explore"/></div></div>{showSearch&&<input className="trip-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="장소나 활동을 검색해 보세요" aria-label="장소 검색"/>}
  <div className="trip-explore-filters"><button onClick={onLocation}>⌖ {locationLabel}⌄</button><select aria-label="탐색 이동 시간" value={minutes} onChange={e=>setMinutes(Number(e.target.value))}>{[15,30,60].map(n=><option value={n} key={n}>{n===60?'1시간':`${n}분`} 이내</option>)}</select><select aria-label="장소 정렬" value={sort} onChange={e=>setSort(e.target.value)}><option>추천순</option><option>거리순</option></select></div>
- <div className="trip-explore-categories">{CATEGORIES.map(([title,value,icon])=><button key={title} aria-pressed={category===value} onClick={()=>setCategory(value)}><span aria-hidden="true">{icon}</span>{title}</button>)}</div>
+ <div className="trip-explore-categories" role="group" aria-label="탐색 분류">{CATEGORIES.map(option=><button key={option.value} type="button" aria-label={option.label} aria-pressed={category===option.value} onClick={()=>setCategory(option.value)}>
+   <span className={`explore-category-icon explore-category-icon--${option.tone}`} aria-hidden="true">
+     <svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{option.icon}</svg>
+   </span>
+   <span className="explore-category-label">{'short' in option ? option.short : option.label}</span>
+ </button>)}</div>
  {error?<div className="trip-empty" role="alert"><p>{error}</p><button onClick={()=>setAttempt(n=>n+1)}>다시 불러오기</button></div>:items===null?<MumuLoading message="주변 장소를 찾고 있어요"/>:<><h2 className="trip-section-title">지금, 이런 곳 어때요? <small>{filtered.length}곳</small></h2><div className="trip-explore-cards">{filtered.slice(0,3).map(i=><PlaceTile key={i.id} item={i} onPick={onPick}/>)}</div><div className="trip-explore-banner"><span>♡</span><div><strong>무무의 이달의 추천</strong><small>오늘의 기분에 맞는 새로운 경험을 만나보세요.</small></div></div><h2 className="trip-section-title">{nearby?'가까운 기분전환 스팟':'지금 만날 수 있는 스팟'} <span aria-hidden="true">✧</span></h2><div className="trip-explore-list">{filtered.map((i,n)=><PlaceTile key={i.id} item={i} rank={n+1} compact onPick={onPick}/>)}</div>{!filtered.length&&<p className="trip-empty">이 조건에 맞는 장소가 없어요. 조건을 바꿔 보세요.</p>}<p className="trip-source-note">운영시간·가격은 방문 전에 확인해 주세요. 순위는 현재 검색 결과 기준이에요.</p></>}
  </div>;
 }
