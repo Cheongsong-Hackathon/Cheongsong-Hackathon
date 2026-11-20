@@ -2,17 +2,13 @@ import {MumuLoading} from './MumuArtwork';
 export { default as Home } from './RecommendationHome';
 export { default as Landing } from './MumuWelcome';
 import { useEffect, useState, type ReactNode } from 'react';
-import { api, won, type Booking, type Character, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
+import { api, won, type Booking, type FreeRec, type Growth, type Item, type Memory, type Records as RecordsData } from './api';
 import Art from './Art';
 import PlaceArt from './PlaceArt';
 import PlaceReviewPanel from './PlaceReviewPanel';
 import Bunny from './Bunny';
 import { PhoneStatus } from './MumuWelcome';
 import Arrival from './Arrival';
-import AccessoryColorPicker from './AccessoryColorPicker';
-import { COLOR_ITEMS } from './AccessoryColors';
-import { EXPRESSIONS, useCharacterExpression, type Expression } from './CharacterExpression';
-import { useOutfit } from './Outfit';
 
 const DOW = ['', '월', '화', '수', '목', '금', '토', '일'];
 export const DemoNote = () => <p className="notice">가격·영업시간·예약은 네이버에서 확인해 줘</p>;
@@ -252,11 +248,11 @@ export function Confirm(p: { item: Item; busy: boolean; showReviews?: boolean; o
   );
 }
 
-export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Character | null; onHome: () => void }) {
+export function Requested({ booking, onHome }: { booking: Booking; onHome: () => void }) {
   return (
     <div className="page center-col">
       <PhoneStatus />
-      <Bunny size={170} happy layerScarf item={ch?.equipped ?? null} stage={ch?.stage ?? 1} />
+      <Bunny size={170} happy />
       <h1 className="title center">네이버에서 예약을 마무리해 줘!</h1>
       <div className="card soft">
         <strong>{booking.title}</strong>
@@ -301,10 +297,21 @@ export function CompleteSheet(p: { booking: Booking; busy: boolean; onDone: (moo
   );
 }
 
-export type PartyResult = Growth & { moodBefore?: number | null; moodAfter?: number; reply?: string };
+export type PartyResult = Growth & {
+  moodBefore?: number | null;
+  moodAfter?: number;
+  reply?: string;
+  visitGift?: 'microphone' | 'souvenir';
+};
 
-export function Party(p: { result: PartyResult; ch: Character | null; onClose: () => void }) {
+const VISIT_GIFTS = {
+  microphone: { name: '노래방 기념 마이크', icon: '🎤' },
+  souvenir: { name: '방문 기념 선물', icon: '🎁' },
+};
+
+export function Party(p: { result: PartyResult; onClose: () => void }) {
   const r = p.result;
+  const gift = r.visitGift && VISIT_GIFTS[r.visitGift];
   return (
     <div className="scrim party" onClick={p.onClose}>
       <section className="sheet center" role="dialog" aria-modal="true" aria-label="기록 완료" onClick={(e) => e.stopPropagation()}>
@@ -313,10 +320,14 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
             <i key={i} style={{ left: `${6 + i * 6.5}%`, animationDelay: `${(i % 5) * 0.12}s` }} />
           ))}
         </div>
-        <Bunny size={150} happy layerScarf item={p.ch?.equipped ?? r.newItems[0]?.id ?? null} stage={r.stage} />
+        <Bunny size={150} happy />
         {r.moodAfter != null ? (
           <>
-            <h2>오늘도 나를 위한 한 걸음 ♡</h2>
+            <h2>{gift ? '축하합니다!' : '오늘도 나를 위한 한 걸음 ♡'}</h2>
+            {gift && <section className="visit-gift-card" aria-label="방문 기념 사은품">
+              <span className="visit-gift-icon" aria-hidden="true">{gift.icon}</span>
+              <div><span>방문 기념 사은품</span><strong>{gift.name}</strong></div>
+            </section>}
             <div className="before-after">
               <span>
                 <small>체험 전</small>
@@ -335,14 +346,8 @@ export function Party(p: { result: PartyResult; ch: Character | null; onClose: (
             <p>{r.reply}</p>
           </>
         )}
-        {r.newItems.map((i) => (
-          <p key={i.id} className="card soft">
-            <strong>새 아이템 · {i.name}</strong>
-            <span className="meta">무무에게 어울리는 아이템을 만나보세요.</span>
-          </p>
-        ))}
         <button className="btn big" onClick={p.onClose}>
-          좋아
+          {gift ? '확인' : '좋아'}
         </button>
       </section>
     </div>
@@ -419,14 +424,9 @@ function MemoryCard({ reloadKey }: { reloadKey: unknown }) {
   );
 }
 
-export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; data: RecordsData | null; equipBusy: boolean; onEquip: (id: string | null) => void; onDelete: () => void }) {
-  const { scarf } = useOutfit();
-  const { expression, setExpression } = useCharacterExpression();
+export function Records(p: { data: RecordsData | null; onDelete: () => void }) {
   const [askDelete, setAskDelete] = useState(false);
-  const c = p.ch;
   const latest = p.data?.done[0];
-  const span = c?.nextStageExp ? c.nextStageExp - c.stageMinExp : 1;
-  const pct = c ? (c.nextStageExp ? Math.min(100, ((c.exp - c.stageMinExp) / span) * 100) : 100) : 0;
   return (
     <div className="page">
       <PhoneStatus />
@@ -436,9 +436,9 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
           오늘도 나를 위한
           <br />한 걸음 ♡
         </h1>
-        <Bunny size={120} layerScarf item={c?.equipped ?? null} stage={c?.stage ?? 1} />
+        <Bunny size={120} />
       </div>
-      {p.view !== 'shop' && <>{latest && (
+      {latest && (
         <div className="card">
           <span className="eyebrow">{latest.title}</span>
           <div className="before-after">
@@ -465,33 +465,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
           ))}
         </div>
       </div>
-      <MemoryCard reloadKey={p.data} /></>}
-      {p.view === 'shop' && <>
-      <div className="card">
-        <span className="eyebrow">무무 꾸미기</span>
-        <h2 className="label">표정 고르기</h2>
-        <Chips label="무무 표정" options={EXPRESSIONS.map((value) => [value, value])} value={expression} onChange={setExpression} />
-        <p className="small mute">표정은 이 브라우저에 저장돼요. 홈에서 감정을 누르면 그 감정의 표정으로 바뀌어요.</p>
-        <h2 className="label">아이템 입히기</h2>
-        <p className="small mute">목도리는 리본·베레모와 함께 입을 수 있어요. 리본과 베레모는 하나만 골라요. 다시 누르면 벗어요.</p>
-        <div className="items">
-          <button className={`item${(!c?.equipped || c.equipped === 'scarf') && !scarf ? ' on' : ''}`} aria-pressed={(!c?.equipped || c.equipped === 'scarf') && !scarf} disabled={p.equipBusy} onClick={() => p.onEquip(null)}>
-            없음
-          </button>
-          {c?.allItems.map((i) => (
-            <button key={i.id} className={`item${(i.id === 'scarf' ? scarf : c.equipped === i.id) ? ' on' : ''}`} aria-pressed={i.id === 'scarf' ? scarf : c.equipped === i.id} disabled={!i.unlocked || p.equipBusy} onClick={() => p.onEquip(i.id)}>
-              {i.unlocked ? i.name : `🔒 ${i.stage}단계`}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="card">
-        <span className="eyebrow">아이템 색 고르기</span>
-        {COLOR_ITEMS.map(({ id }) => <AccessoryColorPicker key={id} item={id} unlocked={!!c?.allItems.find((i) => i.id === id)?.unlocked} />)}
-        <p className="small mute">색상은 이 브라우저에 저장돼요.</p>
-      </div>
-      </>}
-      {p.view !== 'shop' && <>
+      <MemoryCard reloadKey={p.data} />
       <h2 className="label">다녀온 체험</h2>
       {!p.data?.done.length && <p className="empty">아직 기록이 없어. 없어도 괜찮아.</p>}
       {p.data?.done.map((b) => (
@@ -541,7 +515,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
         <button className="btn text" onClick={() => setAskDelete(true)}>
           내 기록 모두 지우기
         </button>
-      )}</>}
+      )}
     </div>
   );
 }

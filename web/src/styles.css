@@ -135,6 +135,31 @@ input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border-radius
 .confetti i:nth-child(3n) { background: var(--pink); }
 .confetti i:nth-child(3n + 1) { background: var(--hl); }
 .party .sheet { position: relative; }
+.visit-gift-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e0c8f4;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #fff8ec, #f2e4ff);
+  text-align: left;
+}
+.visit-gift-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 8px #8b64aa24;
+  font-size: 28px;
+}
+.visit-gift-card > div { display: grid; gap: 2px; color: #6b4798; }
+.visit-gift-card strong { color: var(--text-primary); }
 @keyframes fall { to { transform: translateY(560px) rotate(420deg); opacity: 0; } }
 @keyframes gain { from { transform: scale(.3); opacity: 0; } }
 
