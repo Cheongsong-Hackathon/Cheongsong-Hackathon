@@ -54,10 +54,26 @@ export async function speak(text: string) {
   if ('speechSynthesis' in window) {
     const u = new SpeechSynthesisUtterance(t.slice(0, 300));
     u.lang = 'ko-KR';
-    u.pitch = 1.3;
+    u.pitch = 1.15;
+    const v = koVoice ?? (koVoice = pickVoice());
+    if (v) u.voice = v;
     speechSynthesis.speak(u);
   }
 }
+
+// 무료 TTS: 기기 안의 한국어 목소리 중 자연스러운 것을 먼저 고른다 (엣지 "SunHi Online (Natural)", 크롬 "Google 한국의", 애플 "유나")
+const PREFER = [/Natural|Online/i, /Google/i, /Yuna|유나/i];
+let koVoice: SpeechSynthesisVoice | null = null;
+function pickVoice(): SpeechSynthesisVoice | null {
+  const ko = speechSynthesis.getVoices().filter((x) => x.lang.replace('_', '-').toLowerCase().startsWith('ko'));
+  for (const re of PREFER) {
+    const hit = ko.find((x) => re.test(x.name));
+    if (hit) return hit;
+  }
+  return ko[0] ?? null;
+}
+// 목소리 목록은 늦게 채워지는 브라우저가 있어서(크롬), 채워지면 다시 고른다
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) speechSynthesis.addEventListener('voiceschanged', () => { koVoice = pickVoice(); });
 
 const KEY = 'mumu.voice';
 export const voicePref = () => { try { return localStorage.getItem(KEY) === '1'; } catch { return false; } };
