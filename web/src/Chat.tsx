@@ -6,7 +6,7 @@ import type { Item } from './api';
 import type { Science, TalkOffer } from './talkClient';
 import { PlaceTile } from './TripUI';
 import portrait from './assets/mumu/mood-happy.webp';
-import { canListen, setVoicePref, speak, stopSpeaking, voicePref } from './voice';
+import { canListen, setVoicePref, speak, stopSpeaking, unlockSpeech, voicePref } from './voice';
 import VoiceMode from './VoiceMode';
 import { GAME_NAMES, type MumuGame } from './MumuGames';
 
@@ -58,7 +58,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
     spoken.current = p.msgs.length;
   }, [p.msgs.length, voiceOn]);
   useEffect(() => () => { stopSpeaking(); }, []);
-  const toggleVoice = () => { const on = !voiceOn; setVoiceOn(on); setVoicePref(on); if (!on) stopSpeaking(); };
+  const toggleVoice = () => { const on = !voiceOn; setVoiceOn(on); setVoicePref(on); if (on) unlockSpeech(); else stopSpeaking(); };
   useEffect(() => {
     if (log.current && (p.msgs.length > 1 || p.busy || p.retry)) {
       log.current.scrollTop = log.current.scrollHeight;
@@ -126,7 +126,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
       >
         <div className="room-message">
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 이야기해보세요…" maxLength={500} aria-label="메시지" />
-          {canListen && <button type="button" className="mic" aria-label="음성 대화" onClick={() => setVoiceMode(true)}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg></button>}
+          {canListen && <button type="button" className="mic" aria-label="음성 대화" onClick={() => { unlockSpeech(); setVoiceMode(true); }}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg></button>}
           <button type="submit" aria-label="보내기" disabled={p.busy || p.retry || !text.trim()}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 18-7-5 18-5-7-8-4Zm8 4 10-11" /></svg>
           </button>

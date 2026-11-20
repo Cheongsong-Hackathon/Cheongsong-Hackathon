@@ -5,7 +5,7 @@ import ProfilePage from './ProfilePage';
 import Community from './Community';
 import BookingNotification, { BookingAlerts } from './BookingNotification';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { canListen } from './voice';
+import { canListen, unlockSpeech } from './voice';
 import { PhoneStatus } from './MumuWelcome';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
@@ -315,7 +315,7 @@ export default function App() {
     refreshNotifications();
   };
   const homeScreen = <>
-   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showNotifications} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}} onOpenChat={()=>{setChatReturn('home');setTab('talk');}} hasHistory={msgs.length>1} onVoice={canListen?()=>{voiceNext.current=true;setChatReturn('home');setTab('talk');}:undefined}/></div>
+   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showNotifications} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}} onOpenChat={()=>{setChatReturn('home');setTab('talk');}} hasHistory={msgs.length>1} onVoice={canListen?()=>{unlockSpeech();voiceNext.current=true;setChatReturn('home');setTab('talk');}:undefined}/></div>
    {requested?<Requested booking={requested} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
   </>;
 
@@ -391,7 +391,7 @@ export default function App() {
                     onWardrobe={() => setTab('wardrobe')}
                     onGame={(game) => { setMumuGame(game); setTab('game'); }}
                     onVoice={canListen ? () => {
-                      voiceNext.current = true;
+                      unlockSpeech();voiceNext.current = true;
                       setChatReturn('play');
                       setTab('talk');
                     } : undefined}

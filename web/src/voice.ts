@@ -25,6 +25,17 @@ let utter: SpeechSynthesisUtterance | null = null; // 크롬은 참조가 없으
 let turn = 0; // 새로 말하거나 멈추면 이전 말하기(아직 받는 중인 것 포함)는 버린다
 // 무무 목소리는 기기의 구글 목소리로 고정 (2026-11-21). 서버 목소리(CLOVA)는 쓰지 않는다. 다시 쓰려면 true
 let serverVoice = false;
+/** 휴대폰 브라우저는 사용자가 직접 누른 순간에 한 번 소리를 내 둬야 이후(서버 답장 뒤) 읽기가 된다.
+ *  음성 버튼·소리 켜기를 누른 핸들러 안에서 부른다 (소리 없는 짧은 읽기로 잠금 해제) */
+let unlocked = false;
+export function unlockSpeech() {
+  if (unlocked || !('speechSynthesis' in window)) return;
+  unlocked = true;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  speechSynthesis.speak(u);
+}
+
 export function stopSpeaking() {
   turn++;
   audio?.pause();
@@ -71,6 +82,10 @@ export async function speak(text: string): Promise<void> {
   const v = koVoice ?? (koVoice = pickVoice());
   if (v) u.voice = v;
   utter = u;
+  // 안드로이드 크롬: 멈춘(cancel) 바로 뒤에 읽으면 소리 없이 끝나는 버그가 있어 잠깐 쉬고, 멈춰 있는 엔진을 깨운다
+  await new Promise((r) => setTimeout(r, 120));
+  if (my !== turn) return;
+  speechSynthesis.resume();
   await new Promise<void>((done) => {
     u.onend = u.onerror = () => done();
     cap(done);

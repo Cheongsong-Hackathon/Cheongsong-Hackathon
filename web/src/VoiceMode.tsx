@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { Msg } from './Chat';
 import { GAME_NAMES, type MumuGame } from './MumuGames';
-import { canListen, listen, speak, stopSpeaking } from './voice';
+import { canListen, listen, speak, stopSpeaking, unlockSpeech } from './voice';
 import { PlaceTile } from './TripUI';
 import face from './assets/mumu/mood-happy.webp';
 import talking from './assets/mumu/motion-cheer.webp';
@@ -75,6 +75,7 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
   }, []);
 
   const tap = () => {
+    unlockSpeech(); // 휴대폰: 누른 순간에 소리 잠금 해제
     if (phase === 'speaking' || phase === 'paused') { quiet.current = 0; void hear(); }
     else if (phase === 'listening') mic.current?.stop();
   };
