@@ -1,8 +1,9 @@
 /* MUMU typography system: change tokens here, not individual screens. */
-@font-face{font-family:Pretendard;src:url('./assets/fonts/Pretendard-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:Pretendard;src:url('./assets/fonts/Pretendard-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
-@font-face{font-family:Pretendard;src:url('./assets/fonts/Pretendard-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
-:root{--font-ui:Pretendard,sans-serif;--ink:#403A50;--mute:#777184;--text-primary:#403A50;--text-secondary:#777184;--type-h1:700 22px/30px var(--font-ui);--type-h2:700 20px/28px var(--font-ui);--type-t1:600 16px/24px var(--font-ui);--type-t2:600 14px/20px var(--font-ui);--type-b1:500 14px/22px var(--font-ui);--type-b2:500 12px/18px var(--font-ui);--type-c1:500 11px/16px var(--font-ui);--type-button:600 14px/20px var(--font-ui);}
+/* 글꼴: Pretendard(OFL)에서 자주 쓰는 글자만 남긴 수정본이라, 라이선스(예약 글꼴 이름)에 따라 MumuUI로 이름을 바꿈. 라이선스 전문: public/LICENSE-PRETENDARD.txt */
+@font-face{font-family:MumuUI;src:url('./assets/fonts/MumuUI-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:MumuUI;src:url('./assets/fonts/MumuUI-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:MumuUI;src:url('./assets/fonts/MumuUI-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+:root{--font-ui:MumuUI,sans-serif;--ink:#403A50;--mute:#777184;--text-primary:#403A50;--text-secondary:#777184;--type-h1:700 22px/30px var(--font-ui);--type-h2:700 20px/28px var(--font-ui);--type-t1:600 16px/24px var(--font-ui);--type-t2:600 14px/20px var(--font-ui);--type-b1:500 14px/22px var(--font-ui);--type-b2:500 12px/18px var(--font-ui);--type-c1:500 11px/16px var(--font-ui);--type-button:600 14px/20px var(--font-ui);}
 #root *,dialog *{font-family:var(--font-ui)!important;font-weight:500!important;letter-spacing:-.01em!important;font-synthesis:none}
 #root,.profile-dialog{font:var(--type-b2);color:var(--text-primary)}
 #root h1{font:var(--type-h1)!important;color:var(--text-primary)}

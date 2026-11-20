@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
-import defaultPortrait from './assets/mumu/home.png';
-import tiredPortrait from './assets/mumu/mood-tired.png';
-import sadPortrait from './assets/mumu/mood-sad.png';
-import frustratedPortrait from './assets/mumu/mood-frustrated.png';
-import boredPortrait from './assets/mumu/mood-bored.png';
-import happyPortrait from './assets/mumu/mood-happy.png';
-import neutralPortrait from './assets/mumu/mood-neutral.png';
-import cheerMotion from './assets/mumu/motion-cheer.gif';
-import teaMotion from './assets/mumu/motion-tea.gif';
-import heartsMotion from './assets/mumu/motion-hearts.gif';
-import frustratedMotion from './assets/mumu/motion-frustrated.gif';
-import sadMotion from './assets/mumu/motion-sad.gif';
-import restMotion from './assets/mumu/motion-rest.gif';
+import defaultPortrait from './assets/mumu/home.webp';
+import tiredPortrait from './assets/mumu/mood-tired.webp';
+import sadPortrait from './assets/mumu/mood-sad.webp';
+import frustratedPortrait from './assets/mumu/mood-frustrated.webp';
+import boredPortrait from './assets/mumu/mood-bored.webp';
+import happyPortrait from './assets/mumu/mood-happy.webp';
+import neutralPortrait from './assets/mumu/mood-neutral.webp';
+import cheerMotion from './assets/mumu/motion-cheer.webp';
+import teaMotion from './assets/mumu/motion-tea.webp';
+import heartsMotion from './assets/mumu/motion-hearts.webp';
+import frustratedMotion from './assets/mumu/motion-frustrated.webp';
+import sadMotion from './assets/mumu/motion-sad.webp';
+import restMotion from './assets/mumu/motion-rest.webp';
 
 export const moodPortraits = {
   tired: tiredPortrait,

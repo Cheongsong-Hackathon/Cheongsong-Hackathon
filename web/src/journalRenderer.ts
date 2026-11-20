@@ -1,4 +1,4 @@
-import mumuIcon from './assets/mumu-purple.png';
+import mumuIcon from './assets/mumu-purple.webp';
 import { paintSticker } from './journalStickers';
 export type JournalDecoration = { id: string; text: string; x: number; y: number; size: number; color: string; kind?: 'sticker' | 'text'; sticker?: string; font?: string; align?: CanvasTextAlign };
 export type JournalEntry = {

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { PhoneStatus } from './MumuWelcome';
-import happy from './assets/mumu/mood-happy.png';
-import homePortrait from './assets/mumu/home.png';
-import pet from './assets/mumu/motion-pet.gif';
-import snack from './assets/mumu/motion-snack.gif';
-import celebrate from './assets/mumu/motion-hearts.gif';
-import spinMotion from './assets/mumu/motion-spin.gif';
+import happy from './assets/mumu/mood-happy.webp';
+import homePortrait from './assets/mumu/home.webp';
+import pet from './assets/mumu/motion-pet.webp';
+import snack from './assets/mumu/motion-snack.webp';
+import celebrate from './assets/mumu/motion-hearts.webp';
+import spinMotion from './assets/mumu/motion-spin.webp';
 import { gameCards, type MumuGame } from './MumuGames';
 
 type Props = {

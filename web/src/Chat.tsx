@@ -4,7 +4,7 @@ import {PhoneStatus} from './MumuWelcome';
 import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { TalkOffer } from './talkClient';
-import portrait from './assets/mumu/mood-happy.png';
+import portrait from './assets/mumu/mood-happy.webp';
 import { canListen, setVoicePref, speak, stopSpeaking, voicePref } from './voice';
 import VoiceMode from './VoiceMode';
 

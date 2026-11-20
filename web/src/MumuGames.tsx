@@ -4,8 +4,8 @@ import { api } from './api';
 import MumuFortune from './MumuFortune';
 import MumuGameHost, { GAME_HOST_MOTION_MS } from './MumuGameHost';
 import MumuGameScene from './MumuGameScene';
-import tarotCardsMotion from './assets/mumu/motion-tarot.gif';
-import balanceReference from './assets/mumu/balance-reference.png';
+import tarotCardsMotion from './assets/mumu/motion-tarot.webp';
+import balanceReference from './assets/mumu/balance-reference.webp';
 
 export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
 export const gameCards = [

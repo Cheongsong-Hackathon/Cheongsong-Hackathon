@@ -1,4 +1,4 @@
-import mascot from './assets/mumu-purple.png';
+import mascot from './assets/mumu-purple.webp';
 import useMumuAnimation from './useMumuAnimation';
 import type { MumuMotion } from './useMumuAnimation';
 import { useMumuWardrobe, type Wardrobe } from './MumuWardrobe';

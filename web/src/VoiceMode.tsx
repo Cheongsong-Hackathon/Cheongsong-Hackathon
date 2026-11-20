@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { Msg } from './Chat';
 import { canListen, listen, speak, stopSpeaking } from './voice';
-import face from './assets/mumu/mood-happy.png';
-import talking from './assets/mumu/motion-cheer.gif';
-import thinking from './assets/mumu/motion-tea.gif';
+import face from './assets/mumu/mood-happy.webp';
+import talking from './assets/mumu/motion-cheer.webp';
+import thinking from './assets/mumu/motion-tea.webp';
 
 // ChatGPT 음성 모드처럼: 듣기 → (말이 멈추면) 보내기 → 무무가 소리 내어 답하기 → 다시 듣기, ✕를 누를 때까지.
 // 무무를 누르면: 말하는 중엔 끊고 바로 듣기, 듣는 중엔 지금까지 한 말로 끝내기, 쉬는 중엔 다시 듣기.

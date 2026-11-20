@@ -1,7 +1,7 @@
-import logo from './assets/mumu/logo.png';
-import home from './assets/mumu/home.png';
-import explore from './assets/mumu/explore.png';
-import community from './assets/mumu/community.png';
+import logo from './assets/mumu/logo.webp';
+import home from './assets/mumu/home.webp';
+import explore from './assets/mumu/explore.webp';
+import community from './assets/mumu/community.webp';
 const art={logo,home,explore,community};
 // Render the complete original PNG, including its transparent margins.
 export default function MumuArtwork({kind='logo',className='',label='무무'}:{kind?:keyof typeof art;className?:string;label?:string}){return <img className={`mumu-artwork ${className}`} src={art[kind]} alt={label} draggable={false}/>;}

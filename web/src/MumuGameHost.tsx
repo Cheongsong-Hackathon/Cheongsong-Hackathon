@@ -1,4 +1,4 @@
-import motion from './assets/mumu/motion-game-host.gif';
+import motion from './assets/mumu/motion-game-host.webp';
 
 export const GAME_HOST_MOTION_MS = 1260;
 

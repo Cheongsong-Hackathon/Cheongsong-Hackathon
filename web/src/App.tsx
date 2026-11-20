@@ -1,5 +1,5 @@
 import MumuOnboarding from './MumuOnboarding';
-import mumuFace from './assets/mumu/face.png';
+import mumuFace from './assets/mumu/face.webp';
 import MumuLogin from './MumuLogin';
 import ProfilePage from './ProfilePage';
 import Community from './Community';
