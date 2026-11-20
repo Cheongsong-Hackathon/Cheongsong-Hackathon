@@ -1,0 +1,162 @@
+.room-game-menu {
+  margin: 4px -12px 0;
+  padding: 10px;
+  background: #ffffff75;
+  border: 1px solid #ffffff85;
+  border-radius: 22px;
+}
+.room-game-menu header { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 7px; }
+.room-game-menu h2 { margin: 0; }
+#root .room-game-menu h2 { font: var(--type-t1) !important; }
+.room-game-menu header button { border: 0; background: transparent; color: #7841b8; white-space: nowrap; }
+.room-game-menu > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.room-game-menu.is-expanded > div { grid-template-columns: minmax(0, 1fr); }
+.room-game-menu > div > button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 51px;
+  padding: 5px 7px;
+  text-align: left;
+  border: 1px solid white;
+  border-radius: 15px;
+  background: #fdfaff;
+  box-shadow: 0 3px 6px #845ab316;
+  color: #403a50;
+}
+.room-game-menu > div > button > span { flex: 0 0 32px; text-align: center; font-size: 22px; }
+.room-game-menu button small { display: block; color: #777184; }
+
+.mumu-game { gap: 9px; padding-bottom: 14px; }
+.game-header { display: flex; align-items: center; min-height: 37px; gap: 5px; }
+.game-header h1 { flex: 1; margin: 0; }
+#root .game-header h1 { font: var(--type-t1) !important; }
+.game-header > img { width: 34px; height: 34px; object-fit: contain; }
+.game-header > button { padding: 0 7px; border: 0; background: transparent; font-size: 27px; color: #4c3762; }
+.game-intro {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  padding: 2px 4px 4px;
+  background: radial-gradient(ellipse at 50% 80%, #e0cafab0, transparent 72%);
+  border-radius: 24px;
+}
+.game-intro > p {
+  z-index: 1;
+  margin: 0 0 1px;
+  padding: 9px 16px;
+  border-radius: 45%;
+  background: #ffffffc9;
+  text-align: center;
+  box-shadow: 0 4px 10px #8056aa20;
+}
+.game-intro > img { width: 100%; height: clamp(85px, 15vh, 137px); object-fit: contain; }
+.game-intro > span { position: absolute; bottom: 17px; color: #9c67db; font-size: 24px; pointer-events: none; }
+.game-balance .game-intro > span { bottom: 55px; word-spacing: min(80px, 15vw); }
+.game-words .game-intro > span { bottom: 0; padding: 2px 12px; background: #f7ecffce; border-radius: 9px; }
+.game-panel {
+  padding: 10px;
+  border: 1px solid #ffffffcb;
+  border-radius: 20px;
+  background: #fbf6ffba;
+  box-shadow: 0 4px 9px #9a70bf17;
+}
+.game-panel h2, .game-guide-title { margin: 0 0 5px; }
+#root .game-panel h2, #root .game-guide-title { font: var(--type-t2) !important; }
+.game-panel p { margin: 0; }
+.game-primary {
+  width: 100%;
+  min-height: 42px;
+  margin-top: auto;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #ae7ae8, #8c54d4);
+  color: #fff;
+  box-shadow: 0 4px 8px #8c54d42b;
+}
+.tarot-intro {
+  background:
+    radial-gradient(ellipse at 18% 76%, #c7b0ebaa, transparent 32%),
+    radial-gradient(ellipse at 82% 65%, #ffe3ed, transparent 37%),
+    radial-gradient(ellipse at 50% 90%, #e0c5fa, transparent 75%);
+}
+.tarot-pick, .tarot-result { text-align: center; }
+.tarot-pick > p, .tarot-result > small { color: #777184; }
+.tarot-choices { display: flex; justify-content: center; align-items: end; gap: 8px; padding: 8px 0 3px; }
+.tarot-choices > button { width: min(24%, 77px); border: 0; padding: 0; background: transparent; }
+.tarot-choices > button:first-child { transform: rotate(-10deg); }
+.tarot-choices > button:last-child { transform: rotate(10deg); }
+.tarot-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  aspect-ratio: .72;
+  padding: 4px 6px;
+  border: 3px solid #ffefdc;
+  outline: 1px solid #e3bef6;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 50%,#b68ceb,#9f75d8);
+  color: #fff0a6;
+  box-shadow: inset 0 0 0 2px #e8d4fa9e, 0 4px 6px #61408b27;
+}
+.tarot-card > span:first-child { align-self: start; }
+.tarot-card > span:last-child { align-self: end; }
+.tarot-card > b { font-size: 32px; line-height: 1; }
+.tarot-reveal { width: 104px; margin: 0 auto; }
+.tarot-card.revealed { animation: tarot-reveal .45s ease-out; }
+@keyframes tarot-reveal { from { opacity: .4; transform: rotateY(90deg); } }
+.tarot-guide { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.tarot-guide > div { min-width: 0; border-radius: 12px; padding: 6px; background: #ffffff9d; }
+.tarot-guide strong, .tarot-guide small { display: block; }
+.tarot-guide small { color: #777184; }
+.tarot-result > small { display: inline-block; padding: 4px 8px; margin-bottom: 8px; border-radius: 30px; background: #eee0fa; }
+.tarot-result aside { margin-top: 8px; padding: 8px; text-align: left; border-radius: 12px; background: #eee0fa; }
+.game-copy { padding: 7px 10px; }
+.game-copy p { color: #777184; }
+.balance-topics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.balance-topics > button, .balance-question button {
+  min-width: 0;
+  padding: 7px 3px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: #fffaff;
+  color: #49335e;
+  box-shadow: 0 3px 6px #8455a61a;
+}
+.balance-topics > button > span, .balance-question button > span { display: block; font-size: 22px; margin-bottom: 3px; }
+.balance-topics > button[aria-pressed="true"] { border-color: #a477df; background: #efdefb; }
+.balance-progress { display: flex; gap: 8px; align-items: center; }
+.balance-progress strong { white-space: nowrap; padding: 5px 10px; border-radius: 99px; background: #fbf6ff; }
+.balance-progress progress { flex: 1; min-width: 0; height: 8px; border: 0; border-radius: 99px; overflow: hidden; background: #e5d7f1; }
+.balance-progress progress::-webkit-progress-bar { background: #e5d7f1; }
+.balance-progress progress::-webkit-progress-value { background: linear-gradient(90deg,#bd93ed,#9863db); border-radius: 99px; }
+.balance-question { text-align: center; padding: 14px 9px; }
+.balance-theme { display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 99px; background: #eddeff; color: #6e418f; }
+.balance-question > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 9px; }
+.balance-question button { min-height: 98px; }
+.balance-question button > span { font-size: 36px; }
+.balance-result ol { margin: 4px 0 0; padding-left: 20px; }
+.balance-result li { margin-top: 4px; }
+.balance-result li strong { display: block; }
+.word-settings > div { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0; }
+.word-settings > div > strong { min-width: 55px; }
+.word-settings button { border: 0; padding: 4px 6px; border-radius: 99px; background: #fff; color: #584671; }
+.word-settings button[aria-pressed="true"] { background: #9562da; color: white; }
+.word-score { display: flex; align-items: center; justify-content: center; gap: 7px; text-align: center; }
+.word-score > span { flex: 1; padding: 5px; border-radius: 16px; background: #fff8; }
+.word-score > b { min-width: 46px; height: 46px; display: grid; place-items: center; border: 4px solid #b887ec; border-radius: 50%; color: #8251c3; }
+.word-log { flex: 1 1 120px; min-height: 85px; max-height: 245px; overflow: auto; display: flex; flex-direction: column; gap: 5px; padding: 4px; }
+.word-log > div { display: flex; align-items: center; gap: 4px; }
+.word-log img { width: 24px; height: 24px; object-fit: contain; }
+.word-log span { padding: 5px 10px; border-radius: 15px; background: #fff; box-shadow: 0 3px 6px #9a70bf16; }
+.word-log .mine { align-self: end; }
+.word-log .mine span { background: #a679e0; color: #fff; }
+.word-notice { margin: 0; color: #6a487d; }
+.word-composer { display: flex; margin-top: auto; border: 1px solid #d9c9ed; border-radius: 99px; background: #fff8; }
+.word-composer input { flex: 1; min-width: 0; min-height: 39px; padding: 0 9px; border: 0; border-radius: 99px; background: transparent; }
+.word-composer button { border: 0; padding: 0 10px; background: transparent; color: #9562da; }
+.word-composer button:disabled { opacity: .5; }
+@media (prefers-reduced-motion: reduce) { .tarot-card.revealed { animation: none; } }

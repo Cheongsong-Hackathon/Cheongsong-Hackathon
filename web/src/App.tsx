@@ -35,11 +35,14 @@ import {
   type PartyResult,
 } from './screens';
 
-type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
+import MumuPlay, { MumuPet } from './MumuPlay';
+import MumuGames, { type MumuGame } from './MumuGames';
+
+type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'pet' | 'game';
 const TABS: { id: Tab; label: string; icon: string }[] = [
  {id:'home',label:'홈',icon:'M4 11l8-7 8 7v9h-5v-6H9v6H4z'},
  {id:'browse',label:'탐색',icon:'M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14M15 15l6 6'},
- {id:'talk',label:'무무',icon:'M12 22s8-8 8-13a8 8 0 0 0-16 0c0 5 8 13 8 13ZM12 6a3 3 0 1 0 0 6a3 3 0 1 0 0-6'},
+ {id:'play',label:'무무',icon:'M12 22s8-8 8-13a8 8 0 0 0-16 0c0 5 8 13 8 13ZM12 6a3 3 0 1 0 0 6a3 3 0 1 0 0-6'},
  {id:'community',label:'커뮤니티',icon:'M4 4h16v12H9l-5 4zM8 8h8M8 12h5'},
  {id:'profile',label:'마이',icon:'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-2a8 8 0 0 1 16 0v2'},
 ];
@@ -85,7 +88,12 @@ export default function App() {
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
-  const primaryTab = ['community','browse','talk'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
+  const [playHearts, setPlayHearts] = useState(1250);
+  const [mumuGame, setMumuGame] = useState<MumuGame>('tarot');
+  const [chatReturn, setChatReturn] = useState<'home' | 'play'>('home');
+  const earnPlayHeart = () => setPlayHearts(value => value + 1);
+  const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'game';
+  const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
@@ -307,7 +315,7 @@ export default function App() {
   const showLocation=()=>{setProfileLocation(true);setTab('profile');};
   const showReservations=()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
   const homeScreen = <>
-   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setTab('talk');send(message);}}/></div>
+   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}}/></div>
    {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
   </>;
 
@@ -332,7 +340,7 @@ export default function App() {
           ) : (
             <div className="app">
               <BookingNotification booking={active} error={refreshError} enabled={!safety && launched && landed && !!consent} onRetry={refresh} onView={()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');}} />
-              <main className="screen" ref={screenRef}>
+              <main className={`screen${isMumuRoom ? ' mumu-room-screen' : ''}`} ref={screenRef}>
 
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
                 {tab === 'community' && <Community onNotifications={showReservations}/>}
@@ -374,9 +382,12 @@ export default function App() {
                   />
                 )}
                 <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal key={journalKey} initialStep={journalStart} onExit={() => setTab('profile')} onFocusChange={setJournalFocus} /></div>
-                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab('home')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
+                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} />}
+                {tab === 'pet' && <MumuPet hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
+                {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
+                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
               </main>
-              {!(tab === 'journal' && journalFocus) && <nav className="tabs" aria-label="메뉴">
+              {!(tab === 'journal' && journalFocus) && <nav className={`tabs${isMumuRoom ? ' mumu-room-tabs' : ''}`} aria-label="메뉴">
                 {TABS.map((t) => (
                   <button
                     key={t.id}
@@ -387,7 +398,7 @@ export default function App() {
                       setTab(t.id);
                     }}
                   >
-                    <>{t.id==='talk'?<img className="mumu-tab-face" src={mumuFace} alt=""/>:<svg viewBox="0 0 24 24" aria-hidden="true"><path d={t.icon}/></svg>}</>
+                    <>{t.id==='play'?<img className="mumu-tab-face" src={mumuFace} alt=""/>:<svg viewBox="0 0 24 24" aria-hidden="true"><path d={t.icon}/></svg>}</>
                     {t.label}
                   </button>
                 ))}
