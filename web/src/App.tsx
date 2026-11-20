@@ -35,10 +35,10 @@ import {
   type PartyResult,
 } from './screens';
 
-import MumuPlay, { MumuPet } from './MumuPlay';
+import MumuPlay, { MumuPet, MumuSpin } from './MumuPlay';
 import MumuGames, { type MumuGame } from './MumuGames';
 
-type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'pet' | 'game';
+type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'pet' | 'spin' | 'game';
 const TABS: { id: Tab; label: string; icon: string }[] = [
  {id:'home',label:'홈',icon:'M4 11l8-7 8 7v9h-5v-6H9v6H4z'},
  {id:'browse',label:'탐색',icon:'M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14M15 15l6 6'},
@@ -92,7 +92,7 @@ export default function App() {
   const [mumuGame, setMumuGame] = useState<MumuGame>('tarot');
   const [chatReturn, setChatReturn] = useState<'home' | 'play'>('home');
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
-  const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'game';
+  const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'spin' || tab === 'game';
   const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
@@ -382,8 +382,9 @@ export default function App() {
                   />
                 )}
                 <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal key={journalKey} initialStep={journalStart} onExit={() => setTab('profile')} onFocusChange={setJournalFocus} /></div>
-                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} />}
+                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onSpin={() => setTab('spin')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} />}
                 {tab === 'pet' && <MumuPet hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
+                {tab === 'spin' && <MumuSpin hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
                 {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
               </main>

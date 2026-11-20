@@ -16,10 +16,9 @@ const solutions = [
 
 export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; onPlay: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
   const [text, setText] = useState('');
-  const [solutionsOverride, setSolutionsOverride] = useState<boolean | null>(null);
+  const [showSolutions, setShowSolutions] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
-  const showSolutions = solutionsOverride ?? (p.msgs.length > 2 && !p.busy && !p.retry);
-  const toggleSolutions = () => setSolutionsOverride(!showSolutions);
+  const toggleSolutions = () => setShowSolutions(open => !open);
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (log.current && (p.msgs.length > 1 || p.busy || p.retry)) {
@@ -83,7 +82,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         <h2>✦ 무무가 제안하는 오늘의 솔루션</h2>
         {solutions.map(solution => <button type="button" key={solution.title} disabled={p.busy || p.retry} onClick={() => {
           p.onSend(`${solution.title}: ${solution.detail}`);
-          setSolutionsOverride(false);
+          setShowSolutions(false);
         }}><span aria-hidden="true">{solution.icon}</span><span><strong>{solution.title}</strong><small>{solution.detail}</small></span><span aria-hidden="true">›</span></button>)}
       </section>}
       <form

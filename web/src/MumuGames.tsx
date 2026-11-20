@@ -1,79 +1,126 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PhoneStatus } from './MumuWelcome';
-import happy from './assets/mumu/mood-happy.png';
-import home from './assets/mumu/home.png';
+import MumuFortune from './MumuFortune';
+import MumuGameHost, { GAME_HOST_MOTION_MS } from './MumuGameHost';
+import MumuGameScene from './MumuGameScene';
+import tarotCardsMotion from './assets/mumu/motion-tarot.gif';
+import balanceReference from './assets/mumu/balance-reference.png';
 
 export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
 export const gameCards = [
   { id: 'tarot', icon: '🃏', title: '오늘의 타로', subtitle: '카드 한 장 뽑기' },
   { id: 'words', icon: '💬', title: '끝말잇기', subtitle: '무무와 단어 대결' },
   { id: 'balance', icon: '⚖️', title: '밸런스 게임', subtitle: '둘 중 하나 고르기' },
-  { id: 'fortune', icon: '🔮', title: '무무의 사주', subtitle: '재미로 보는 오늘 운세' },
+  { id: 'fortune', icon: '🔮', title: '무무의 사주풀이', subtitle: '재미로 보는 오늘 운세' },
 ] as const;
 
-function Intro({ children, symbol }: { children: ReactNode; symbol?: string }) {
-  return <div className="game-intro">
-    <p>{children}</p>
-    <img src={happy} alt="" />
-    {symbol && <span aria-hidden="true">{symbol}</span>}
-  </div>;
-}
-
-function TarotCard({ revealed = false }: { revealed?: boolean }) {
-  return <span className={`tarot-card${revealed ? ' revealed' : ''}`} aria-hidden="true">
-    <span>☾</span><b>✦</b><span>✧</span>
+function TarotCard({ name, symbol = '✦' }: { name?: string; symbol?: string }) {
+  return <span className={`tarot-card${name ? ' revealed' : ''}`} aria-hidden="true">
+    <span>☾</span><b>{symbol}</b><span>{name ?? '✧'}</span>
   </span>;
 }
 
+function TarotChoices({ onDraw }: { onDraw: (index: number) => void }) {
+  const [motionReady, setMotionReady] = useState(false);
+  return <div className={`tarot-cards-stage${motionReady ? ' has-motion' : ''}`}>
+    <span className="tarot-cards-motion" aria-hidden="true">
+      <img src={tarotCardsMotion} alt="" onLoad={() => setMotionReady(true)} onError={() => setMotionReady(false)} />
+    </span>
+    <div className="tarot-choices">
+      {[0, 1, 2].map(index => <button type="button" key={index} aria-label={`${index + 1}번 타로 카드`} onClick={() => onDraw(index)}><TarotCard /></button>)}
+    </div>
+  </div>;
+}
+
 const tarotDeck = [
-  { name: '별 (The Star)', tags: '희망 · 회복 · 새로운 시작', reading: '지금은 지친 마음에 조용히 빛이 들어오는 때예요. 작은 기대 하나부터 다시 키워봐요.', advice: '손에 닿는 따뜻한 차 한 잔으로 오늘을 쉬어가도 좋아요.' },
-  { name: '달 (The Moon)', tags: '직관 · 여유 · 돌아보기', reading: '답을 서두르기보다 마음에 떠오르는 생각을 가만히 살펴봐요.', advice: '한 줄 일기를 써 보면 오늘의 마음이 조금 더 선명해질 거예요.' },
-  { name: '태양 (The Sun)', tags: '기쁨 · 활력 · 자신감', reading: '작은 즐거움을 미루지 말고 지금 누려 보세요. 그 기분이 다음 한 걸음을 가볍게 해줄 거예요.', advice: '좋아하는 노래를 틀고 햇빛이 드는 곳까지 걸어봐요.' },
+  { name: '별 (The Star)', label: 'THE STAR', symbol: '✦', tags: '희망 · 회복 · 새로운 시작', reading: '지금은 지친 마음에 조용히 빛이 들어오는 때예요. 작은 기대 하나부터 다시 키워봐요.', advice: '손에 닿는 따뜻한 차 한 잔으로 오늘을 쉬어가도 좋아요.' },
+  { name: '달 (The Moon)', label: 'THE MOON', symbol: '☾', tags: '직관 · 여유 · 돌아보기', reading: '답을 서두르기보다 마음에 떠오르는 생각을 가만히 살펴봐요.', advice: '한 줄 일기를 써 보면 오늘의 마음이 조금 더 선명해질 거예요.' },
+  { name: '태양 (The Sun)', label: 'THE SUN', symbol: '☀', tags: '기쁨 · 활력 · 자신감', reading: '작은 즐거움을 미루지 말고 지금 누려 보세요. 그 기분이 다음 한 걸음을 가볍게 해줄 거예요.', advice: '좋아하는 노래를 틀고 햇빛이 드는 곳까지 걸어봐요.' },
 ];
 
-function Tarot() {
-  const [step, setStep] = useState<'intro' | 'pick' | 'result'>('intro');
+function GameHeader({ title, hearts, onBack }: { title: string; hearts?: number; onBack: () => void }) {
+  return <header className="game-header">
+    <button type="button" onClick={onBack} aria-label="놀이방으로 돌아가기">‹</button>
+    {hearts === undefined && <MumuGameHost />}
+    <h1>{title}</h1>
+    {hearts !== undefined && <span className="room-hearts">💗 {hearts.toLocaleString('ko-KR')}</span>}
+  </header>;
+}
+
+function Tarot({ hearts, onBack }: { hearts: number; onBack: () => void }) {
+  const [step, setStep] = useState<'intro' | 'pick' | 'drawing' | 'result'>('intro');
   const [card, setCard] = useState(0);
+  const [shareStatus, setShareStatus] = useState('');
   const [offset, setOffset] = useState(() => Math.floor(Math.random() * tarotDeck.length));
+  const header = <GameHeader title={step === 'intro' ? '오늘의 타로' : '무무와 타로'} hearts={step === 'intro' ? hearts : undefined} onBack={onBack} />;
+
+  useEffect(() => {
+    if (step !== 'drawing') return;
+    const timer = window.setTimeout(() => setStep('result'), GAME_HOST_MOTION_MS);
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
   function draw(index: number) {
     setCard((index + offset) % tarotDeck.length);
-    setStep('result');
+    setShareStatus('');
+    setStep(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'result' : 'drawing');
   }
+  if (step === 'drawing') return <>
+    {header}
+    <section className="tarot-drawing" role="status">
+      <MumuGameScene theme="tarot">무무가 오늘의 카드를 뽑고 있어요 ✨</MumuGameScene>
+      <div className="tarot-reveal"><TarotCard /></div>
+    </section>
+  </>;
   if (step === 'result') {
     const result = tarotDeck[card];
     return <>
-      <Intro>짜잔! 오늘의 카드는…✨</Intro>
-      <div className="tarot-reveal"><TarotCard revealed /></div>
+      {header}
+      <MumuGameScene theme="tarot" layout="side">짜잔!<br />오늘의 카드는 바로…✨</MumuGameScene>
+      <div className="tarot-reveal"><TarotCard name={result.label} symbol={result.symbol} /></div>
       <section className="game-panel tarot-result" aria-live="polite">
         <h2>{result.name}</h2><small>{result.tags}</small><p>{result.reading}</p>
-        <aside><strong>🌱 무무의 한마디</strong><p>{result.advice}</p></aside>
+        <aside className="tarot-advice"><div><strong>🌱 무무의 한마디</strong><p>{result.advice}</p></div><MumuGameHost /></aside>
       </section>
-      <button className="game-primary" onClick={() => {
-        setOffset(Math.floor(Math.random() * tarotDeck.length));
-        setStep('pick');
-      }}>⟳ 다시 뽑기</button>
+      <div className="tarot-result-actions">
+        <button className="game-primary" onClick={() => {
+          setOffset(Math.floor(Math.random() * tarotDeck.length));
+          setStep('pick');
+        }}>⟳ 다시 뽑기</button>
+        <button type="button" aria-label="타로 결과 공유하기" onClick={async () => {
+          const text = `무무와 타로 · ${result.name}\n${result.reading}`;
+          try {
+            if (navigator.share) await navigator.share({ title: '무무와 타로', text });
+            else { await navigator.clipboard.writeText(text); setShareStatus('결과를 복사했어요.'); }
+          } catch (error) {
+            if (!(error instanceof DOMException && error.name === 'AbortError')) setShareStatus('결과를 공유하지 못했어요.');
+          }
+        }}>↥</button>
+      </div>
+      {shareStatus && <small role="status">{shareStatus}</small>}
     </>;
   }
   return <>
-    {step === 'intro'
-      ? <div className="game-intro tarot-intro"><p>오늘의 메시지를 뽑아볼까?</p><img src={home} alt="" /></div>
-      : <Intro>오늘의 마음을 돌아볼까?<br />마음에 드는 카드를 골라줘! 💜</Intro>}
-    <section className="game-panel tarot-pick">
-      <h2>{step === 'intro' ? '카드 한 장을 골라봐!' : '카드 한 장을 골라줘!'}</h2>
-      <p>오늘의 기분과 잘 맞는 메시지를 전해줄게.</p>
-      <div className="tarot-choices">
-        {[0, 1, 2].map(index => <button type="button" key={index} aria-label={`${index + 1}번 타로 카드`} onClick={() => draw(index)}><TarotCard /></button>)}
-      </div>
-    </section>
-    {step === 'intro' && <>
-      <h2 className="game-guide-title">오늘의 타로 가이드</h2>
-      <div className="tarot-guide">
-        <div>💞<strong>연애</strong><small>마음과 관계를 살펴봐요</small></div>
-        <div>☁️<strong>기분</strong><small>오늘의 감정을 돌아봐요</small></div>
-        <div>🗓️<strong>하루 조언</strong><small>오늘의 작은 힌트를 얻어요</small></div>
-      </div>
-      <aside className="game-panel game-copy"><strong>무무의 한마디 ✨</strong><p>카드를 고르면 오늘의 작은 힌트를 들려줄게.</p></aside>
-    </>}
+    {header}
+    <div className={`tarot-entry-content tarot-entry-content--${step}`}>
+      <MumuGameScene theme="tarot">
+        {step === 'intro' ? <>오늘의 마음을 돌아볼까?<br />카드가 전하는 메시지를 만나봐! 💜</> : <>마음에 드는 카드를<br />한 장 골라봐! 💜</>}
+      </MumuGameScene>
+      <section className="game-panel tarot-pick">
+        <h2>{step === 'intro' ? '카드 한 장을 골라봐!' : '카드 한 장을 골라줘!'}</h2>
+        <p>오늘의 기분과 잘 맞는 메시지를 전해줄게.</p>
+        <TarotChoices onDraw={draw} />
+      </section>
+      {step === 'intro' && <>
+        <h2 className="game-guide-title">오늘의 타로 가이드</h2>
+        <div className="tarot-guide">
+          <div>💞<strong>연애</strong><small>마음과 관계의 흐름을 살펴봐요</small></div>
+          <div>☁️<strong>기분</strong><small>오늘의 감정과 컨디션을 확인해요</small></div>
+          <div>🗓️<strong>하루 조언</strong><small>오늘 하루를 보낼 힌트를 얻어요</small></div>
+        </div>
+        <aside className="game-panel game-copy tarot-advice"><MumuGameHost /><div><strong>무무의 한마디 ✨</strong><p>카드를 고르면 오늘의 작은 힌트를 들려줄게.</p></div></aside>
+      </>}
+    </div>
     <button className="game-primary" onClick={() => step === 'intro' ? setStep('pick') : draw(Math.floor(Math.random() * 3))}>{step === 'intro' ? '🃏 카드 뽑기' : '⤨ 랜덤으로 뽑기'}</button>
   </>;
 }
@@ -125,6 +172,7 @@ function Balance() {
   const [rounds, setRounds] = useState<string[][]>([]);
   const [votes, setVotes] = useState<number[]>([]);
   const current = rounds[votes.length];
+  const usesHeartAndSofa = current === topics[0].choices[0];
   function start() {
     if (topic === topics.length - 1) {
       const pool = topics.flatMap(item => item.choices).concat(moreChoices.flat());
@@ -136,8 +184,8 @@ function Balance() {
     setVotes([]);
   }
   if (!rounds.length) return <>
-    <Intro symbol="A?　 B?">무무랑<br />밸런스게임 해볼까?<br />둘 중 하나만 골라줘! 💜</Intro>
-    <section className="game-panel">
+    <MumuGameScene theme="balance">무무랑 밸런스게임 해볼까?<br />둘 중 하나만 골라줘! 💜</MumuGameScene>
+    <section className="game-panel balance-settings">
       <h2>🎮 테마 선택하기</h2>
       <div className="balance-topics">{topics.map((item, i) => <button key={item.name} type="button" aria-pressed={topic === i} onClick={() => setTopic(i)}><span aria-hidden="true">{item.icon}</span>{item.name}</button>)}</div>
     </section>
@@ -149,11 +197,16 @@ function Balance() {
       <section className="game-panel balance-question">
         <small className="balance-theme">{topics[topic].icon} {topics[topic].name}</small>
         <h2>✨ {current[0]} ✨</h2>
-        <div>{current.slice(1).map((choice, index) => <button type="button" key={choice} onClick={() => setVotes(previous => [...previous, index])}><span aria-hidden="true">{index === 0 ? '💗' : '🌟'}</span>{choice}</button>)}</div>
+        <div>{current.slice(1).map((choice, index) => <button type="button" key={choice} onClick={() => setVotes(previous => [...previous, index])}>
+          {usesHeartAndSofa
+            ? <span className={`balance-option-art balance-option-art--${index}`} aria-hidden="true"><img src={balanceReference} alt="" /></span>
+            : <span className="balance-option-art" aria-hidden="true">{index === 0 ? topics[topic].icon : '🌟'}</span>}
+          <strong>{choice}</strong>
+        </button>)}</div>
       </section>
-      <Intro>음~ 너라면<br />어느 쪽이야? 🤔</Intro>
+      <MumuGameScene theme="balance" layout="side">음~ 너라면<br />어느 쪽이야? 🤔</MumuGameScene>
     </> : <>
-      <Intro>열 가지 선택 완료! 💜</Intro>
+      <MumuGameScene theme="balance" layout="side">열 가지 선택 완료! 💜</MumuGameScene>
       <section className="game-panel balance-result"><h2>내 선택 돌아보기</h2><ol>{rounds.map(([question, left, right], index) => <li key={question}>{question} <strong>{votes[index] === 0 ? left : right}</strong></li>)}</ol></section>
       <button className="game-primary" onClick={() => { setRounds([]); setVotes([]); }}>다시 하기</button>
     </>}
@@ -219,45 +272,32 @@ function WordChain() {
     else { setNotice(''); resetTimer(); }
   }
   if (!turns.length) return <>
-    <Intro symbol="가　…　?">무무랑<br />끝말잇기 해볼까?<br />무무가 먼저 시작할게! 💜</Intro>
+    <MumuGameScene theme="words" tiles>무무랑 끝말잇기 해볼까?<br />무무가 먼저 시작할게! 💜</MumuGameScene>
     <section className="game-panel word-settings">
       <h2>🎮 게임 설정</h2>
-      <div><strong>게임 방식</strong>{['일반 모드', '스피드 모드'].map(value => <button key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{value}</button>)}</div>
-      <div><strong>제한 시간</strong>{[0, 10, 5].map(value => <button key={value} aria-pressed={limit === value} onClick={() => setLimit(value)}>{value ? `${value}초` : '제한 없음'}</button>)}</div>
-      <div><strong>난이도</strong>{['쉬움', '보통', '어려움'].map(value => <button key={value} aria-pressed={level === value} onClick={() => setLevel(value)}>{value}</button>)}</div>
+      <div><strong><i aria-hidden="true">☷</i>게임 방식</strong><div className="word-settings-options">{['일반 모드', '스피드 모드'].map(value => <button key={value} type="button" aria-pressed={mode === value} onClick={() => setMode(value)}>{value}</button>)}</div></div>
+      <div><strong><i aria-hidden="true">◷</i>제한 시간</strong><div className="word-settings-options">{[0, 10, 5].map(value => <button key={value} type="button" aria-pressed={limit === value} onClick={() => setLimit(value)}>{value ? `${value}초` : '제한 없음'}</button>)}</div></div>
+      <div><strong><i aria-hidden="true">▥</i>난이도</strong><div className="word-settings-options">{['쉬움', '보통', '어려움'].map(value => <button key={value} type="button" aria-pressed={level === value} onClick={() => setLevel(value)}>{value}</button>)}</div></div>
     </section>
     <button className="game-primary" onClick={() => { setTurns([level === '보통' ? '바다' : '사과']); resetTimer(); }}>▶ 게임 시작하기</button>
   </>;
   return <>
     <div className="word-score"><span>연속 성공<br /><strong>{streak}개 🔥</strong></span><b>{turnLimit ? remaining : '∞'}</b><span>최고 기록<br /><strong>{best}개 🏆</strong></span></div>
-    <Intro>그럼 무무가 먼저!<br /><strong>{turns[0]}!</strong></Intro>
-    <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <img src={happy} alt="" />}<span>{word}!</span></div>)}</div>
+    <MumuGameScene theme="words" layout="side">그럼 내가 먼저 할게!<br /><strong>{turns[0]}!</strong></MumuGameScene>
+    <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <MumuGameHost />}<span>{word}!</span></div>)}</div>
     {notice && <p className="word-notice" role="status">{notice}</p>}
     {finished ? <button className="game-primary" onClick={() => { setTurns([]); setFinished(false); setDeadline(0); setNotice(''); setText(''); }}>다시 시작하기</button>
       : <form className="word-composer" onSubmit={event => { event.preventDefault(); submit(); }}><input aria-label="다음 단어" placeholder="다음 단어를 입력해줘…" value={text} maxLength={20} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={!text.trim()}>➤</button></form>}
   </>;
 }
 
-function Fortune() {
-  const [revealed, setRevealed] = useState(false);
-  return <>
-    <Intro symbol="🔮">무무랑 오늘의<br />작은 행운을 찾아보자!</Intro>
-    <section className="game-panel tarot-result" aria-live="polite">
-      {revealed ? <><h2>오늘의 행운 ✨</h2><p>오늘은 평소와 다른 길로 걸어보는 날. 작고 새로운 풍경이 기분을 바꿔줄지도 몰라요.</p><small>행운의 색 · 연보라</small></> : <p>재미로 보는 오늘의 운세예요.</p>}
-    </section>
-    {!revealed && <button className="game-primary" onClick={() => setRevealed(true)}>오늘의 운세 보기</button>}
-  </>;
-}
-
 export default function MumuGames({ game, hearts, onBack }: { game: MumuGame; hearts: number; onBack: () => void }) {
-  const title = { tarot: '오늘의 타로', words: '무무와 끝말잇기', balance: '무무와 밸런스게임', fortune: '무무의 사주' }[game];
+  const title = { tarot: '오늘의 타로', words: '무무와 끝말잇기', balance: '무무와 밸런스게임', fortune: '무무의 사주풀이' }[game];
   return <div className={`mumu-room mumu-game game-${game}`}>
     <PhoneStatus />
-    <header className="game-header">
-      <button type="button" onClick={onBack} aria-label="놀이방으로 돌아가기">‹</button>
-      <img src={happy} alt="" /><h1>{title}</h1>
-      {game === 'tarot' && <span className="room-hearts">💗 {hearts.toLocaleString('ko-KR')}</span>}
-    </header>
-    {game === 'tarot' ? <Tarot /> : game === 'balance' ? <Balance /> : game === 'words' ? <WordChain /> : <Fortune />}
+    {game === 'tarot' ? <Tarot hearts={hearts} onBack={onBack} /> : <>
+      <GameHeader title={title} onBack={onBack} />
+      {game === 'balance' ? <Balance /> : game === 'words' ? <WordChain /> : <MumuFortune />}
+    </>}
   </div>;
 }
