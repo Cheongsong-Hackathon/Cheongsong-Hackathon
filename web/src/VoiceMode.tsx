@@ -4,7 +4,6 @@ import type { Msg } from './Chat';
 import { GAME_NAMES, type MumuGame } from './MumuGames';
 import { canListen, listen, speak, stopSpeaking } from './voice';
 import { PlaceTile } from './TripUI';
-import VoicePicker from './VoicePicker';
 import face from './assets/mumu/mood-happy.webp';
 import talking from './assets/mumu/motion-cheer.webp';
 import thinking from './assets/mumu/motion-tea.webp';
@@ -22,7 +21,6 @@ const STATUS: Record<Phase, string> = {
 export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: string) => void; onRetry: () => void; onExperiences: (items: Item[]) => void; onClose: () => void; onGame?: (game: MumuGame) => void; onPick?: (item: Item) => void }) {
   const [phase, setPhaseState] = useState<Phase>(canListen ? 'listening' : 'paused');
   const [caption, setCaption] = useState('');
-  const [picking, setPicking] = useState(false);
   const [error, setError] = useState(canListen ? '' : '이 브라우저는 음성 인식을 지원하지 않아요. 크롬이나 엣지에서 열어 주세요.');
   const phaseRef = useRef(phase);
   const setPhase = (v: Phase) => { phaseRef.current = v; setPhaseState(v); };
@@ -85,8 +83,6 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
   const hasPlaces = !!reply?.offer?.items.length && !!p.onPick;
   return <div className={`voice-mode ${phase}${hasPlaces ? ' has-places' : ''}`} role="dialog" aria-label="무무와 음성 대화">
     <button type="button" className="voice-end" aria-label="음성 대화 끝내기" onClick={p.onClose}>✕</button>
-    <button type="button" className="voice-choose" onClick={() => { mic.current?.stop(); stopSpeaking(); setPhase('paused'); setPicking(true); }}>🔈 목소리</button>
-    {picking && <VoicePicker onClose={() => setPicking(false)} />}
     <p className="voice-status" aria-live="polite">{p.retry ? '답장을 받지 못했어' : STATUS[phase]}</p>
     <button type="button" className="voice-mumu" aria-label={phase === 'speaking' ? '무무 말 끊고 말하기' : phase === 'listening' ? '다 말했어' : '다시 듣기'} onClick={tap} disabled={phase === 'thinking'}>
       <img src={phase === 'speaking' ? talking : phase === 'thinking' ? thinking : face} alt="" draggable={false} />

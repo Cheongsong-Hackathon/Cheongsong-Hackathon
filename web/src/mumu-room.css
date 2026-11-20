@@ -412,13 +412,3 @@
 #root .mumu-chat .mumu-quick-replies .chip { font-size: 13px !important; }
 #root .mumu-chat .mumu-quick-replies .chip { font-size: 12px !important; }
 
-/* 음성 모드: 무무 목소리 고르기 */
-.voice-choose { position: absolute; top: 44px; left: 18px; height: 40px; padding: 0 14px; border: 0; border-radius: 99px; background: #ffffffcc; color: #6f4bb8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-.voice-picker { position: absolute; z-index: 5; left: 16px; right: 16px; top: 92px; max-height: 60%; overflow-y: auto; background: #fff; border-radius: 18px; padding: 12px 14px; box-shadow: 0 10px 30px #5b3a9433; text-align: left; }
-.voice-picker header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.voice-picker header button { border: 0; background: none; font-size: 20px; cursor: pointer; color: #6f4bb8; }
-.voice-picker ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.voice-picker li button { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border: 1.5px solid #e3d6f7; border-radius: 12px; background: #fff; font: inherit; font-size: 13px; color: #322945; cursor: pointer; text-align: left; }
-.voice-picker li button[aria-pressed="true"] { border-color: #9c5dec; background: #f5eeff; }
-.voice-picker li small { color: #7a45d6; white-space: nowrap; }
-.voice-picker p { margin: 8px 0 0; font-size: 12px; color: #8a80a0; }
