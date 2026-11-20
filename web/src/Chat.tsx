@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { TalkOffer } from './talkClient';
 import portrait from './assets/mumu/mood-happy.png';
+import { canListen, listen, setVoicePref, speak, stopSpeaking, voicePref } from './voice';
 
 export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support'] };
 
@@ -21,6 +22,28 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
   const showSolutions = solutionsOverride ?? (p.msgs.length > 2 && !p.busy && !p.retry);
   const toggleSolutions = () => setSolutionsOverride(!showSolutions);
   const log = useRef<HTMLDivElement>(null);
+  // 음성 대화: 🎤로 말하면 바로 보내고, 🔊가 켜져 있으면 무무 답장을 소리로 읽는다 (말로 걸면 말로 답하도록 자동으로 켬)
+  const [voiceOn, setVoiceOn] = useState(voicePref);
+  const [mic, setMic] = useState<{ stop: () => void } | null>(null);
+  const [micError, setMicError] = useState('');
+  const spoken = useRef(p.msgs.length);
+  useEffect(() => {
+    const last = p.msgs[p.msgs.length - 1];
+    if (p.msgs.length > spoken.current && last?.who === 'bunny' && voiceOn) void speak(last.text);
+    spoken.current = p.msgs.length;
+  }, [p.msgs.length, voiceOn]);
+  useEffect(() => () => { stopSpeaking(); }, []);
+  const toggleVoice = () => { const on = !voiceOn; setVoiceOn(on); setVoicePref(on); if (!on) stopSpeaking(); };
+  async function talk() {
+    if (mic) return mic.stop();
+    stopSpeaking(); setMicError('');
+    const l = listen(setText);
+    setMic(l);
+    try {
+      const heard = await l.done;
+      if (heard && !p.busy && !p.retry) { setVoiceOn(true); setVoicePref(true); p.onSend(heard); setText(''); }
+    } catch (e) { setMicError((e as Error).message); } finally { setMic(null); }
+  }
   useEffect(() => {
     if (log.current && (p.msgs.length > 1 || p.busy || p.retry)) {
       log.current.scrollTop = log.current.scrollHeight;
@@ -33,6 +56,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
       <header className="mumu-chat-header">
         <button type="button" aria-label="뒤로 가기" onClick={p.onBack}>‹</button>
         <div><img src={portrait} alt="" /><strong>무무와 함께</strong></div>
+        <button type="button" className="voice-toggle" aria-label={voiceOn ? '무무 목소리 끄기' : '무무 목소리 켜기'} aria-pressed={voiceOn} onClick={toggleVoice}>{voiceOn ? '🔊' : '🔇'}</button>
         <button type="button" aria-label="채팅방 안내" aria-expanded={showInfo} onClick={() => setShowInfo(value => !value)}>•••</button>
       </header>
       {showInfo && <p className="notice">무무는 AI 캐릭터예요. 전문 상담을 대신하지 않아요.</p>}
@@ -86,6 +110,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
           setSolutionsOverride(false);
         }}><span aria-hidden="true">{solution.icon}</span><span><strong>{solution.title}</strong><small>{solution.detail}</small></span><span aria-hidden="true">›</span></button>)}
       </section>}
+      {micError && <p className="notice" role="alert">{micError}</p>}
       <form
         className="composer"
         onSubmit={(e) => {
@@ -97,7 +122,8 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
       >
         <button type="button" className="room-plus" aria-label="솔루션 열기" aria-expanded={showSolutions} onClick={toggleSolutions}>+</button>
         <div className="room-message">
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 이야기해보세요…" maxLength={500} aria-label="메시지" />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={mic ? '듣고 있어… 말해 줘' : '무무에게 이야기해보세요…'} maxLength={500} aria-label="메시지" />
+          {canListen && <button type="button" className={mic ? 'mic listening' : 'mic'} aria-label={mic ? '그만 듣기' : '말로 하기'} aria-pressed={!!mic} disabled={p.busy || p.retry} onClick={talk}>🎤</button>}
           <button type="submit" aria-label="보내기" disabled={p.busy || p.retry || !text.trim()}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 18-7-5 18-5-7-8-4Zm8 4 10-11" /></svg>
           </button>

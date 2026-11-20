@@ -271,3 +271,14 @@
   .room-character .spin { animation: none; }
   .room-energy i { transition: none; }
 }
+/* 무무와 음성 대화: 🎤(듣는 중엔 깜박임), 🔊 무무 목소리 켜고 끄기 */
+.room-message > button.mic { font-size: 16px; }
+.mic.listening, .mood-line-mic.listening { animation: mic-pulse 1s ease-in-out infinite; }
+@keyframes mic-pulse { 50% { opacity: .45; transform: scale(1.08); } }
+.mumu-chat-header > .voice-toggle { border: 0; background: transparent; font-size: 17px; padding: 0 4px; cursor: pointer; }
+.mood-line-mic { align-self: center; border: 1.5px solid #e3d6f7; border-radius: 99px; background: #fff; color: #6f4bb8; font: inherit; font-size: 13px; padding: 7px 14px; cursor: pointer; }
+.mood-line-mic:disabled { opacity: .5; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .mic.listening, .mood-line-mic.listening { animation: none; outline: 2px solid #9c5dec; } }
+/* 헤더에 🔊가 들어가 4칸: 뒤로 가기 칸을 오른쪽 두 칸(30+4+30)만큼 넓혀 제목을 가운데에 둔다 */
+.mumu-chat .mumu-chat-header { grid-template-columns: 64px minmax(0, 1fr) 30px 30px; }
+.mumu-chat .mumu-chat-header > button:first-child { justify-self: start; }

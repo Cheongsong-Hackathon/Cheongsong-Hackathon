@@ -78,7 +78,7 @@ type Res<T> = T &{ error?: string; code: number; blocked?: boolean }; // code = 
 
 // 로그인 없이 브라우저마다 따로 쓰도록, 처음 열 때 만든 무작위 키를 모든 요청에 실어 보낸다.
 // 저장이 막힌 환경(시크릿 일부 등)에서는 이번 방문 동안만 쓰는 키가 된다.
-const USER_KEY = (() => {
+export const USER_KEY = (() => {
   // randomUUID는 HTTPS·localhost에서만 있어서 http://IP로 열 때를 위한 대체 키
   const make = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   try {
