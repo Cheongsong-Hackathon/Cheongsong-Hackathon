@@ -10,6 +10,7 @@ import { browse, parseNeed } from './services/browse.js';
 import { parseGroups, parseMood, parseWith, picks, travelMinutes } from './services/picks.js';
 import { deleteSaved, listSaved, saveSpot, summary } from './services/saved.js';
 import { deleteMemory, listMemories } from './services/memory.js';
+import { deleteAccount, kakaoCallback, logout, me, sessionUser, startKakao, updateMe } from './services/account.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
 import { handleChat } from './services/chat.js';
@@ -41,17 +42,38 @@ export async function userIdFor(key: unknown): Promise<number> {
   if (typeof key !== 'string' || !/^[A-Za-z0-9-]{8,64}$/.test(key)) return config.USER_ID;
   const [u] = await query<{ id: number }>(
     `INSERT INTO users(nickname, client_key) VALUES ('손님', $1)
-     ON CONFLICT (client_key) DO UPDATE SET client_key = EXCLUDED.client_key RETURNING id`,
+     ON CONFLICT (client_key) DO UPDATE SET last_seen = now() RETURNING id`,
     [key],
   );
   await query(`INSERT INTO characters(user_id) VALUES ($1) ON CONFLICT DO NOTHING`, [u.id]);
   return u.id;
 }
+// 카카오 로그인 쿠키가 있으면 그 계정, 없으면 둘러보기(X-User-Key)
 api.use(async (req, res, next) => {
-  res.locals.userId = await userIdFor(req.get('x-user-key'));
+  const s = await sessionUser(req);
+  res.locals.loggedIn = s !== null;
+  res.locals.userId = s ?? (await userIdFor(req.get('x-user-key')));
   next();
 });
 const uid = (res: Response) => res.locals.userId as number;
+const loggedIn = (res: Response) => res.locals.loggedIn as boolean;
+
+// ---- 계정 · 개인정보 ----
+api.post('/auth/kakao/start', (req, res) => send(res, startKakao(req, res, uid(res))));
+api.get('/auth/kakao/callback', kakaoCallback);
+api.post('/auth/logout', (_req, res) => {
+  logout(res);
+  res.json({ ok: true });
+});
+api.get('/me', async (_req, res) => res.json(await me(uid(res), loggedIn(res))));
+api.patch('/me', async (req, res) => send(res, await updateMe(uid(res), loggedIn(res), req.body)));
+// 탈퇴 (로그인 사용자). 둘러보기 사용자는 "내 기록 모두 지우기"(DELETE /records)
+api.delete('/me', async (_req, res) => {
+  if (!loggedIn(res)) return res.status(401).json({ error: '로그인한 계정만 탈퇴할 수 있어.' });
+  await deleteAccount(uid(res));
+  logout(res);
+  res.json({ deleted: true });
+});
 
 // AI를 부르는 요청은 IP와 사용자 키 양쪽으로 횟수를 제한한다 (무료 LLM 사용량 보호)
 const aiLimit = [rateLimit('ai-ip', config.RATE_AI_PER_IP, byIp), rateLimit('ai-user', config.RATE_AI_PER_USER, byUserKey)];

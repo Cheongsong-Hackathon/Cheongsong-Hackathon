@@ -90,6 +90,9 @@ const EXTRACT_PROMPT = `너는 친구의 이야기를 기억해 두는 토끼야
 export async function learnFromTurn(userId: number, text: string, client: LLMClient | null = defaultClient) {
   try {
     if (!client || text.trim().length < 4 || SafetyGuard.check(text)) return;
+    // [선택 동의] "무무가 기억하기"를 켠 사용자만
+    const [u] = await query<{ remember: boolean }>(`SELECT remember FROM users WHERE id = $1`, [userId]);
+    if (!u?.remember) return;
     const current = await listMemories(userId);
     const out = await callJson(
       client,

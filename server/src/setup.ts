@@ -92,7 +92,7 @@ export const DEMO_USER_KEY = 'demo-moodpass';
 async function seedDemoUser(q: Q) {
   const daysAgo = (n: number) => `now() - interval '${n} days'`; // n은 아래에 쓴 숫자만 (사용자 입력 아님)
   const dayLabel = (n: number) => mmdd(new Date(Date.now() - n * 86_400_000));
-  const [{ id: uid }] = await q(`INSERT INTO users(nickname, client_key) VALUES ('시연', $1) RETURNING id`, [DEMO_USER_KEY]);
+  const [{ id: uid }] = await q(`INSERT INTO users(nickname, client_key, remember) VALUES ('시연', $1, true) RETURNING id`, [DEMO_USER_KEY]);
   // 체험 2번(+20씩) + 미루기 1번(+5) = 45 → 3단계, 리본·목도리
   await q(`INSERT INTO characters(user_id, level, exp, stage, items, equipped) VALUES ($1, 5, 45, 3, '["ribbon", "scarf"]', 'ribbon')`, [uid]);
 

@@ -10,6 +10,13 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ADD COLUMN IF NOT EXISTS safe_mode boolean NOT NULL DEFAULT false;
 -- 로그인 없이 브라우저마다 따로: 화면이 만든 무작위 키 (X-User-Key 헤더)
 ALTER TABLE users ADD COLUMN IF NOT EXISTS client_key text UNIQUE;
+-- 카카오 로그인: 회원번호만 저장 (카카오 토큰은 저장하지 않음)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS kakao_id text UNIQUE;
+-- [선택 동의] 대화 기록 30일 보관 · 무무가 기억하기. 끄면 대화 원문은 1일 뒤 지우고 기억은 저장하지 않는다
+ALTER TABLE users ADD COLUMN IF NOT EXISTS remember boolean NOT NULL DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS agreed_at timestamptz;
+-- 둘러보기 사용자를 90일 안 쓰면 지우기 위한 마지막 사용 시각
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen timestamptz NOT NULL DEFAULT now();
 
 CREATE TABLE IF NOT EXISTS characters (
   user_id int PRIMARY KEY REFERENCES users(id),

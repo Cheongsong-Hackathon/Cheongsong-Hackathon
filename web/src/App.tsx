@@ -63,12 +63,15 @@ const GREETING: Msg = {
   quickReplies: ['지쳐서 조용히 쉬고 싶어', '답답해서 기분 전환하고 싶어', '심심해, 재밌는 거 없을까', '그냥 추천해 줘'],
 };
 
+// 카카오 로그인 뒤 서버가 /?login=ok|fail 로 돌려보낸다 (결과 안내와 주소 정리는 AccountCard가)
+const LOGIN_RETURN = new URLSearchParams(location.search).has('login');
+
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 
 export default function App() {
   useEffect(() => { document.title = '무무'; }, []);
-  const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
-  const [landed, setLanded] = useState(false); // 앱을 열면 랜딩을 한 번 보여 준다
+  const [launched, setLaunched] = useState(LOGIN_RETURN); // false면 휴대폰 메인 화면 (카카오 로그인에서 돌아오면 바로 앱 안으로)
+  const [landed, setLanded] = useState(LOGIN_RETURN); // 앱을 열면 랜딩을 한 번 보여 준다
   const [consent, setConsent] = useState<string | null>(() => store.get('location')); // 'yes' | 'no' | null
   const [savedLocation, setSavedLocation] = useState<SavedLocation | null>(() => {
     try {
@@ -76,7 +79,7 @@ export default function App() {
       return v && typeof v.label === 'string' && v.label.trim() && Number.isFinite(v.lat) && Math.abs(v.lat) <= 90 && Number.isFinite(v.lng) && Math.abs(v.lng) <= 180 ? v : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>(LOGIN_RETURN ? 'profile' : 'home');
   const [profileLocation, setProfileLocation] = useState(false);
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');

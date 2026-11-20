@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import type {Records as RecordsData,Item} from './api';
 import {TripHeader,PlaceTile} from './TripUI';
+import AccountCard from './Account';
 import {savedPlaceIds,savedPlaceDetails} from './savedPlaces';
 type Profile={name:string;handle:string;bio:string};
 function profileKey(){try{return `mumu.profile.${localStorage.getItem('moodpass-user')??'guest'}`;}catch{return 'mumu.profile.guest';}}
@@ -17,6 +18,7 @@ export default function ProfilePage(p:{data:RecordsData|null;loading:boolean;err
  if(p.locationOpen)return <div className="profile-page"><TripHeader/><button className="profile-back" onClick={p.onBackFromLocation}>‹ 마이로 돌아가기</button><h1 className="trip-page-title">현재 내 장소</h1>{p.locationPicker}</div>;
  return <div className="profile-page"><TripHeader title="마이" onNotice={p.onNotifications} onSearch={p.onExplore}/>
  <section className="profile-identity"><button className="profile-avatar-edit" aria-label="프로필 수정" onClick={()=>open('profile')}><span className="profile-avatar-blank" aria-hidden="true"/><i>✎</i></button><div><h2>{profile.name}</h2><span>@{profile.handle}</span><p>{profile.bio}</p></div><div className="character-space" aria-hidden="true"/></section>
+ <AccountCard/>
  <div className="profile-stats"><button onClick={()=>setPanel(panel==='saved'?'':'saved')}><span>♧ 찜한 스팟</span><strong>{ids.length}</strong></button><button onClick={()=>setPanel(panel==='posts'?'':'posts')}><span>▧ 작성한 글</span><strong>{posts.length}</strong></button><button onClick={()=>setPanel(panel==='comments'?'':'comments')}><span>☏ 댓글 단 글</span><strong>0</strong></button></div>
  <button className="profile-plus" onClick={()=>open('plus')}><span>♛</span><strong>무무 플러스</strong><small>더 많은 기분전환을 만나봐요!</small><b>›</b></button>
  <div className="profile-menu-card"><button onClick={()=>open('profile')}><span>♙</span><strong>내 프로필 수정</strong><b>›</b></button><button onClick={()=>open('taste')}><span>♡</span><strong>내 취향 설정</strong><small>관심 장소 · 활동 · 분위기</small><b>›</b></button><button onClick={p.onRecords}><span>▦</span><strong>나의 활동 기록</strong><small>다녀온 곳 · 리포트</small><b>›</b></button></div>

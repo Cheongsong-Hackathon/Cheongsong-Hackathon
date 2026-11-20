@@ -73,7 +73,8 @@ export type Records = {
   postpones: { id: number; task: string; createdAt: string }[];
 };
 
-type Res<T> = T & { error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
+export type Me = { loggedIn: boolean; nickname: string | null; remember: boolean };
+type Res<T> = T &{ error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
 
 // 로그인 없이 브라우저마다 따로 쓰도록, 처음 열 때 만든 무작위 키를 모든 요청에 실어 보낸다.
 // 저장이 막힌 환경(시크릿 일부 등)에서는 이번 방문 동안만 쓰는 키가 된다.
@@ -129,6 +130,12 @@ export const api = {
   postpone: (task: string) => call<Growth & { reply: string }>('POST', '/postpone', { task }),
   records: () => call<Records>('GET', '/records'),
   deleteRecords: () => call<{ deleted: boolean }>('DELETE', '/records'),
+  // 계정: 카카오 로그인(쿠키) 또는 둘러보기(X-User-Key). remember = [선택 동의] 대화 기록·무무가 기억하기
+  me: () => call<Me>('GET', '/me'),
+  updateMe: (b: { nickname?: string; remember?: boolean }) => call<Me>('PATCH', '/me', b),
+  kakaoStart: (b: { age14: boolean; terms: boolean; privacy: boolean; remember: boolean }) => call<{ url: string }>('POST', '/auth/kakao/start', b),
+  logout: () => call<{ ok: boolean }>('POST', '/auth/logout'),
+  deleteMe: () => call<{ deleted: boolean }>('DELETE', '/me'),
   // 토끼가 기억하는 것 (AI가 대화·마음 확인에서 뽑아 둔 사실). 하나씩 지울 수 있다
   memories: () => call<{ items?: Memory[] }>('GET', '/memories'),
   deleteMemory: (id: number) => call<{ deleted: boolean }>('DELETE', `/memories/${id}`),

@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { query } from './db.js';
 import { defaultClient } from './services/llm.js';
 import { migrate, seed } from './setup.js';
+import { purgeExpired } from './services/account.js';
 
 // 시작할 때 스키마를 맞추고, 체험 DB가 비어 있으면 seed를 넣는다. DB가 없어도 서버는 뜬다.
 try {
@@ -11,6 +12,11 @@ try {
 } catch (e) {
   console.error('[db] 초기화 실패 — 기본 응답으로 동작합니다:', (e as Error).message);
 }
+
+// 보관 기간이 지난 대화·둘러보기 사용자 지우기: 켤 때 한 번, 그 뒤 6시간마다
+const purge = () => purgeExpired().catch((e) => console.warn('[privacy] 정리 실패:', (e as Error).message));
+void purge();
+setInterval(purge, 6 * 3_600_000).unref();
 
 app.listen(config.port, () => {
   console.log(
