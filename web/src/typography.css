@@ -30,3 +30,5 @@
 
 /* Longer reading passages use B1; ordinary descriptions use B2. */
 #root .community-posts article>p,#root .profile-activity-panel article>p,.profile-dialog p{font:var(--type-b1)!important}
+/* 상태 표시줄 시각: 아이콘(14px)과 균형 맞게 조금 크고 굵게 (실행기 화면 느낌) */
+#root .new-phone-status strong{font-size:14px!important;font-weight:600!important;line-height:1!important;letter-spacing:0!important}
