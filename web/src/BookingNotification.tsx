@@ -21,7 +21,7 @@ export default function BookingNotification({ booking, error, enabled, onView, o
   <button type="button" className="mumu-notification-body" onClick={()=>{setVisible(false);error?onRetry():onView();}}>
    <span>{error?'연결 확인':'무무 · 예약 알림'}<small>지금</small></span>
    <strong>{error?'정보를 불러오지 못했어요':booking!.title}</strong>
-   <span>{error?'눌러서 다시 시도해 주세요':`${booking!.slotTime} · ${booking!.placeName}`}</span>
+   <span>{error?'눌러서 다시 시도해 주세요':booking!.placeName}</span>
   </button>
   <button type="button" className="mumu-notification-close" aria-label="알림 닫기" onClick={()=>setVisible(false)}>×</button>
  </aside>;
