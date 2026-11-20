@@ -19,6 +19,7 @@ const SLOTS = [
   { key: 'body', label: '옷', icon: CATEGORIES[2][1] },
   { key: 'headset', label: '헤드셋', icon: CATEGORIES[4][1] },
   { key: 'scarf', label: '목도리', icon: 'M6 7h12v5H6zm8 5 3 8h4l-3-8' },
+  { key: 'hand', label: '손', icon: 'M8 13V6a1.5 1.5 0 0 1 3 0v5M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6a1.5 1.5 0 0 1 3 0v7a6 6 0 0 1-6 6h-1a5 5 0 0 1-4-2l-2.5-3.5a1.5 1.5 0 0 1 2.4-1.8L8 13' },
 ] as const;
 
 function LineIcon({ path }: { path: string }) {
