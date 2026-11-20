@@ -11,6 +11,7 @@ import { parseGroups, parseMood, parseWith, picks, travelMinutes } from './servi
 import { deleteSaved, listSaved, saveSpot, summary } from './services/saved.js';
 import { deleteMemory, listMemories } from './services/memory.js';
 import { synthesize, ttsText } from './services/voice.js';
+import { handleLift, liftAfter, liftStats } from './services/lift.js';
 import { deleteAccount, kakaoCallback, logout, me, sessionUser, startKakao, updateMe } from './services/account.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
@@ -78,6 +79,11 @@ api.delete('/me', async (_req, res) => {
 
 // AI를 부르는 요청은 IP와 사용자 키 양쪽으로 횟수를 제한한다 (무료 LLM 사용량 보호)
 const aiLimit = [rateLimit('ai-ip', config.RATE_AI_PER_IP, byIp), rateLimit('ai-user', config.RATE_AI_PER_USER, byUserKey)];
+
+// 즉시 기분 전환: 한 줄 → AI가 지금 할 방법 하나(웃기·토닥임·타로·게임·밖으로·대화)를 골라 바로. 끝나면 기분 점수 후
+api.post('/lift', ...aiLimit, async (req, res) => send(res, await handleLift(uid(res), req.body)));
+api.post('/lift/:id/after', async (req, res) => send(res, await liftAfter(uid(res), toId(req.params.id), req.body)));
+api.get('/lift/stats', async (_req, res) => res.json(await liftStats()));
 
 // 무무 목소리: 글자 → mp3. 키가 없으면 503(disabled)이고 화면은 브라우저 목소리로 읽는다
 api.post('/voice/tts', ...aiLimit, async (req, res) => {

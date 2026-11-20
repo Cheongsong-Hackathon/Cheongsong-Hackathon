@@ -17,28 +17,31 @@ const portraits = [
  moodPortraits.tired, moodPortraits.sad, moodPortraits.frustrated,
  moodPortraits.bored, moodPortraits.happy, moodPortraits.neutral,
 ];
-export default function MoodHome({busy,onRecommend,onNotifications}:{busy:boolean;onRecommend:(message:string,mood:number|null)=>void;onNotifications:()=>void}) {
+export default function MoodHome({busy,onRecommend,onNotifications}:{busy:boolean;onRecommend:(message:string,mood:number|null,before:number)=>void;onNotifications:()=>void}) {
  const [text,setText]=useState('');
+ // 시작 전 기분 점수(1~10): 끝난 뒤 점수와 비교해 "바로 바뀌었나"를 보여 준다
+ const [before,setBefore]=useState<number|null>(null);
  const [selected,setSelected]=useState<number|null>(null);
  const pick=(i:number)=>{if(busy)return;if(selected===i){setSelected(null);setText('');return;}setSelected(i);setText(MOODS[i].text);};
  // 🎤 말로 하기: 들은 말을 입력칸에 채운다 (잘못 들었으면 고쳐서 보내도록 바로 보내지 않음)
  const [mic,setMic]=useState<{stop:()=>void}|null>(null);const [micError,setMicError]=useState('');
  const talk=async()=>{if(mic)return mic.stop();setMicError('');setSelected(null);const l=listen(setText);setMic(l);try{await l.done;}catch(e){setMicError((e as Error).message);}finally{setMic(null);}};
- const submit=()=>{const t=text.trim();if(t&&!busy)onRecommend(t,selected!==null&&text===MOODS[selected].text?selected:null);};
- return <div className="new-home" aria-busy={busy}>{busy&&<div className="mumu-loading-overlay"><MumuLoading message="무무가 마음에 맞는 장소를 찾고 있어요"/></div>}<PhoneStatus/><header className="new-brand"><MumuArtwork className="mumu-brand-logo"/><button aria-label="예약 알림 보기" onClick={onNotifications}><svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4ZM10 21h4"/><circle cx="19" cy="4" r="2" fill="#8a4ee8" stroke="none"/></svg></button></header>
+ const submit=()=>{const t=text.trim();if(t&&before&&!busy)onRecommend(t,selected!==null&&text===MOODS[selected].text?selected:null,before);};
+ return <div className="new-home" aria-busy={busy}>{busy&&<div className="mumu-loading-overlay"><MumuLoading message="무무가 기분 전환을 고르고 있어요"/></div>}<PhoneStatus/><header className="new-brand"><MumuArtwork className="mumu-brand-logo"/><button aria-label="예약 알림 보기" onClick={onNotifications}><svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4ZM10 21h4"/><circle cx="19" cy="4" r="2" fill="#8a4ee8" stroke="none"/></svg></button></header>
  <section className="new-home-hero">
   <div className="new-clouds" aria-hidden="true"/>
   <MumuHomeCharacter key={selected ?? 'default'} portrait={selected === null ? undefined : portraits[selected]} label={selected === null ? undefined : `무무의 표정 · ${MOODS[selected].title}`}/>
-  <h1>오늘 하루는 어땠어?</h1><p>기분만 말해, 갈 곳은 무무가 찾아줄게.</p>
+  <h1>오늘 하루는 어땠어?</h1><p>기분만 말해, 3분 안에 무무가 바꿔 줄게.</p>
  </section>
  <form className="mood-line" onSubmit={e=>{e.preventDefault();submit();}}>
   <textarea value={text} onChange={e=>{setText(e.target.value);if(selected!==null&&e.target.value!==MOODS[selected].text)setSelected(null);}} placeholder="아무 말이나 괜찮아. 예: 발표 망쳐서 아무것도 하기 싫어" maxLength={300} rows={2} aria-label="오늘 기분 한 줄" disabled={busy}
    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();submit();}}}/>
   {canListen&&<button type="button" className={`mood-line-mic${mic?' listening':''}`} aria-label={mic?'그만 듣기':'말로 하기'} aria-pressed={!!mic} disabled={busy} onClick={talk}>🎤 {mic?'듣고 있어… 다 말했으면 눌러 줘':'말로 하기'}</button>}
   {micError&&<p className="mood-line-hint" role="alert">{micError}</p>}
-  <button className="new-primary" disabled={busy||!text.trim()}>{busy?'무무가 마음을 읽는 중…':'무무에게 말하기'} <span>→</span></button>
+  <fieldset className="mood-score" disabled={busy}><legend>지금 기분은 몇 점이야?</legend><div role="radiogroup" aria-label="지금 기분 점수 1점부터 10점">{Array.from({length:10},(_,i)=>i+1).map(n=><button key={n} type="button" role="radio" aria-checked={before===n} className={before===n?'selected':''} onClick={()=>setBefore(n)}>{n}</button>)}</div><small><span>😞 바닥</span><span>최고 😆</span></small></fieldset>
+  <button className="new-primary" disabled={busy||!text.trim()||!before}>{busy?'무무가 마음을 읽는 중…':!before&&text.trim()?'기분 점수를 골라 줘':'무무에게 말하기'} <span>→</span></button>
  </form>
  <p className="mood-line-hint">말하기 어려우면 골라도 돼</p>
  <div className="new-mood-grid" role="radiogroup" aria-label="오늘의 기분 고르기">{MOODS.map((m,i)=><button key={m.title} type="button" role="radio" aria-checked={i===selected} className={selected===i?'selected':''} disabled={busy} onClick={()=>pick(i)}><span className="new-mood-emoji" aria-hidden="true">{m.emoji}</span><strong>{m.title}</strong>{selected===i&&<span className="mood-check" aria-hidden="true">✓</span>}</button>)}</div>
- <p className="new-home-footnote">작은 외출이 오늘을 바꿀지도 몰라 ♡</p></div>;
+ <p className="new-home-footnote">3분이면 충분해 ♡</p></div>;
 }

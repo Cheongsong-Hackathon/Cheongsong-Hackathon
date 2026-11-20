@@ -1,4 +1,5 @@
-import ChatInvitation from './ChatInvitation';
+import LiftScreen from './LiftScreen';
+import {api,type Lift,type LiftMode} from './api';
 import { useEffect, useRef, useState } from 'react';
 import MoodHome, {MOODS} from './MoodHome';
 import {PlaceTile,TripHeader} from './TripUI';
@@ -6,7 +7,8 @@ import {COMFORT,MOOD_TITLES,recommendTrip} from './tripRecommendations';
 import type {Item,LatLng} from './api';
 // 홈: 한 줄(또는 카드) → 바로 AI 대화 추천. 조건 단계·예산 없음 (이동 시간은 서버 기본값, 가격은 네이버에서 확인)
 export default function RecommendationHome({position,locationKey,onPick,onExplore,onSafety,onNotifications,onChat}:{position:()=>Promise<LatLng|null>;locationLabel?:string;locationKey:string;onLocation?:()=>void;onPick:(item:Item)=>void;onExplore:()=>void;onSafety:()=>void;onNotifications:()=>void;onChat:(message:string)=>void}){
- const [invitation,setInvitation]=useState<{message:string;idx:number|null}|null>(null);
+ // 즉시 기분 전환: 한 줄 + 기분 점수 → AI가 고른 방법 하나를 바로 (talk는 대화로, outside는 아래 장소 추천으로)
+ const [lift,setLift]=useState<{data:Lift;message:string;idx:number|null;before:number}|null>(null);
  const page=useRef<HTMLDivElement>(null);
  const [step,setStep]=useState<'mood'|'main'>('mood');const [mood,setMood]=useState<number|null>(null);const [items,setItems]=useState<Item[]>([]);const [error,setError]=useState('');const [note,setNote]=useState('');const [reply,setReply]=useState('');const [analysis,setAnalysis]=useState<string[]>([]);const [busy,setBusy]=useState(false);const request=useRef(0);const lastLocation=useRef(locationKey);
  useEffect(()=>{page.current?.closest('.screen')?.scrollTo({top:0});},[step]);
@@ -14,8 +16,14 @@ export default function RecommendationHome({position,locationKey,onPick,onExplor
  if(lastLocation.current!==locationKey){lastLocation.current=locationKey;request.current++;if(step==='main')setStep('mood');if(items.length)setItems([]);if(busy)setBusy(false);}
  async function recommend(message:string,idx:number|null){if(busy)return;const key=++request.current;setBusy(true);setError('');setMood(idx);try{const result=await recommendTrip(message,idx,await position());if(key!==request.current)return;if(result.safety){onSafety();return;}setItems(result.items);setNote(result.note);setReply(result.reply);setAnalysis(result.analysis);setStep('main');}catch(e){if(key===request.current)setError(e instanceof Error?e.message:'다시 시도해 주세요.');}finally{if(key===request.current)setBusy(false);}}
  const back=()=>{request.current++;setBusy(false);setStep('mood');};
- if(invitation)return <ChatInvitation onBack={()=>setInvitation(null)} onChat={()=>{const message=invitation.message;setInvitation(null);onChat(message);}} onDecline={()=>{const {message,idx}=invitation;setInvitation(null);recommend(message,idx);}}/>;
- if(step==='mood')return <div ref={page}><MoodHome busy={busy} onNotifications={onNotifications} onRecommend={(message,idx)=>setInvitation({message,idx})}/>{error&&<p className="trip-error" role="alert">{error}</p>}</div>;
+ async function start(message:string,idx:number|null,before:number,avoid?:LiftMode){if(busy)return;const key=++request.current;setBusy(true);setError('');const r=await api.lift({text:message,before,avoid});if(key!==request.current)return;setBusy(false);
+  if(r.safety)return onSafety();
+  if(r.code!==200||!r.mode){setError(r.error??'잠깐 문제가 생겼어. 다시 해 줘.');return;}
+  if(r.mode==='talk'){setLift(null);return onChat(message);}
+  if(r.mode==='outside'){setLift(null);return recommend(message,idx);}
+  setLift({data:r,message,idx,before});}
+ if(lift)return <div ref={page}><LiftScreen lift={lift.data} busy={busy} onOther={()=>start(lift.message,lift.idx,lift.before,lift.data.mode)} onOutside={()=>{const {message,idx}=lift;setLift(null);recommend(message,idx);}} onHome={()=>{request.current++;setBusy(false);setLift(null);setStep('mood');}}/>{error&&<p className="trip-error" role="alert">{error}</p>}</div>;
+ if(step==='mood')return <div ref={page}><MoodHome busy={busy} onNotifications={onNotifications} onRecommend={(message,idx,before)=>start(message,idx,before)}/>{error&&<p className="trip-error" role="alert">{error}</p>}</div>;
  const chips=analysis.length?analysis:mood!=null?[`${MOODS[mood].emoji} ${MOODS[mood].title}`]:[];
  return <div ref={page} className="trip-main"><TripHeader onNotice={onNotifications} onSearch={onExplore}/><section className="trip-main-comfort"><div className="character-space" aria-hidden="true"/><p className="trip-comfort-bubble">{reply||(mood!=null?COMFORT[mood]:'네 마음에 맞는 곳을 찾아봤어.')}</p><h1>{mood!=null?MOOD_TITLES[mood]:'네 마음을 읽어 봤어'}</h1><p>무무 AI가 너한테 맞는 기분전환 장소를 찾아왔어!</p></section>
  <section className="trip-analysis"><header><strong>✦ AI 분석 결과</strong><button onClick={back}>다시 말하기 ⟳</button></header>{chips.length>0&&<div className="trip-summary-chips">{chips.map(c=><span key={c}>{c}</span>)}</div>}</section>
