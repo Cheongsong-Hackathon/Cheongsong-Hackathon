@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { PhoneStatus } from './MumuWelcome';
+import { api } from './api';
 import MumuFortune from './MumuFortune';
 import MumuGameHost, { GAME_HOST_MOTION_MS } from './MumuGameHost';
 import MumuGameScene from './MumuGameScene';
@@ -228,6 +229,8 @@ function WordChain() {
   const [deadline, setDeadline] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [best, setBest] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [next, setNext] = useState<string[]>([]); // 다음에 시작할 글자 (두음법칙 포함, AI 답일 때)
   const log = useRef<HTMLDivElement>(null);
   const streak = Math.floor(turns.length / 2);
   const turnLimit = mode === '스피드 모드' ? (limit || 10) : limit;
@@ -252,9 +255,23 @@ function WordChain() {
     setRemaining(turnLimit);
     setDeadline(turnLimit ? Date.now() + turnLimit * 1000 : 0);
   }
-  function submit() {
-    if (finished || (deadline && deadline <= Date.now())) return;
+  // AI가 단어를 확인하고 무무의 답을 고른다(두음법칙 포함). AI가 안 되면 아래 단어 목록(localTurn)으로 대신
+  async function submit() {
+    if (busy || finished || (deadline && deadline <= Date.now())) return;
     const word = text.trim();
+    const left = deadline ? deadline - Date.now() : 0; // 무무가 생각하는 동안은 시간이 흐르지 않게
+    setDeadline(0); setBusy(true); setNotice('무무가 생각하는 중…');
+    const r = await api.wordChain({ history: turns, word, level });
+    setBusy(false);
+    if (r.code === 0 || r.code >= 500) { if (left) setDeadline(Date.now() + left); return localTurn(word); }
+    if (!r.ok) { setNotice(r.reason ?? '다른 단어로 해 볼래?'); if (left) setDeadline(Date.now() + left); return; }
+    const used = [...turns, word];
+    setBest(value => Math.max(value, Math.floor(used.length / 2)));
+    setText('');
+    if (!r.reply) { setTurns(used); setFinished(true); setNotice(r.comment || '네가 이겼어!'); return; }
+    setTurns([...used, r.reply]); setNext(r.next ?? []); setNotice(r.comment ?? ''); resetTimer();
+  }
+  function localTurn(word: string) {
     const required = lastLetter(turns[turns.length - 1]);
     if (firstLetter(word) !== required) return setNotice(`‘${required}’로 시작하는 단어를 입력해줘!`);
     if (turns.includes(word)) return setNotice('이미 나온 단어야. 다른 단어를 떠올려봐!');
@@ -286,8 +303,8 @@ function WordChain() {
     <MumuGameScene theme="words" layout="side">그럼 내가 먼저 할게!<br /><strong>{turns[0]}!</strong></MumuGameScene>
     <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <MumuGameHost />}<span>{word}!</span></div>)}</div>
     {notice && <p className="word-notice" role="status">{notice}</p>}
-    {finished ? <button className="game-primary" onClick={() => { setTurns([]); setFinished(false); setDeadline(0); setNotice(''); setText(''); }}>다시 시작하기</button>
-      : <form className="word-composer" onSubmit={event => { event.preventDefault(); submit(); }}><input aria-label="다음 단어" placeholder="다음 단어를 입력해줘…" value={text} maxLength={20} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={!text.trim()}>➤</button></form>}
+    {finished ? <button className="game-primary" onClick={() => { setTurns([]); setFinished(false); setDeadline(0); setNotice(''); setText(''); setNext([]); }}>다시 시작하기</button>
+      : <form className="word-composer" onSubmit={event => { event.preventDefault(); void submit(); }}><input aria-label="다음 단어" placeholder={next.length ? `‘${next.join('’이나 ‘')}’로 시작하는 단어…` : '다음 단어를 입력해줘…'} value={text} maxLength={20} disabled={busy} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={busy || !text.trim()}>➤</button></form>}
   </>;
 }
 

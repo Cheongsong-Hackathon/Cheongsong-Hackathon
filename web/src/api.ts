@@ -131,6 +131,9 @@ export const api = {
   records: () => call<Records>('GET', '/records'),
   deleteRecords: () => call<{ deleted: boolean }>('DELETE', '/records'),
   // 계정: 카카오 로그인(쿠키) 또는 둘러보기(X-User-Key). remember = [선택 동의] 대화 기록·무무가 기억하기
+  // 끝말잇기: 단어 확인·무무의 답은 AI. code 0·5xx면 화면이 단어 목록으로 대신 이어 간다
+  wordChain: (b: { history: string[]; word: string; level: string }) =>
+    call<{ ok?: boolean; reason?: string; reply?: string | null; comment?: string; next?: string[] }>('POST', '/wordchain', b),
   me: () => call<Me>('GET', '/me'),
   updateMe: (b: { nickname?: string; remember?: boolean }) => call<Me>('PATCH', '/me', b),
   kakaoStart: (b: { age14: boolean; terms: boolean; privacy: boolean; remember: boolean }) => call<{ url: string }>('POST', '/auth/kakao/start', b),

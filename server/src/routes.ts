@@ -11,6 +11,7 @@ import { parseGroups, parseMood, parseWith, picks, travelMinutes } from './servi
 import { deleteSaved, listSaved, saveSpot, summary } from './services/saved.js';
 import { deleteMemory, listMemories } from './services/memory.js';
 import { synthesize, ttsText } from './services/voice.js';
+import { playWordChain } from './services/wordchain.js';
 import { deleteAccount, kakaoCallback, logout, me, sessionUser, startKakao, updateMe } from './services/account.js';
 import { handleTalk } from './services/talk.js';
 import { activeBooking, arriveBooking, cancelBooking, completeBooking, createBooking, deleteRecords, postpone, records } from './services/booking.js';
@@ -78,6 +79,9 @@ api.delete('/me', async (_req, res) => {
 
 // AI를 부르는 요청은 IP와 사용자 키 양쪽으로 횟수를 제한한다 (무료 LLM 사용량 보호)
 const aiLimit = [rateLimit('ai-ip', config.RATE_AI_PER_IP, byIp), rateLimit('ai-user', config.RATE_AI_PER_USER, byUserKey)];
+
+// 무무와 끝말잇기: 단어 확인·무무의 답은 AI, 규칙은 서버. AI가 안 되면 503(fallback) → 화면이 단어 목록으로
+api.post('/wordchain', ...aiLimit, async (req, res) => send(res, await playWordChain(req.body)));
 
 // 무무 목소리: 글자 → mp3. 키가 없으면 503(disabled)이고 화면은 브라우저 목소리로 읽는다
 api.post('/voice/tts', ...aiLimit, async (req, res) => {
