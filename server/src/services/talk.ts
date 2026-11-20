@@ -7,7 +7,8 @@ import { searchPos, validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
-import { photoForItem } from './googlePhoto.js';
+import { photoFirst, photoForItem } from './googlePhoto.js';
+export { photoFirst } from './googlePhoto.js';
 import { allCandidates } from './livePlaces.js';
 import { currentWeather, weatherAdvice, weatherLine } from './weather.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
@@ -89,14 +90,6 @@ export function nextOffer(p: Stored, talks: number): 'play' | 'place' | null {
 }
 const OFFER_LINE = { play: '기운이 없어 보이는데, 나가기 전에 나랑 가볍게 한 판 놀래?', place: '근처에 기분 전환할 만한 데 찾아 줄까?' };
 const OFFER_REPLIES = { play: ['응, 놀자', '근처 갈 곳 찾아 줘', '괜찮아'], place: ['응, 찾아 줘', '같이 놀자', '괜찮아'] };
-/** 사진 있는 곳을 먼저 n개 (점수 순서는 유지), 모자라면 사진 없는 곳으로 채운다. 시연 위치 고정(DEMO_PIN)에서 카드마다 실제 사진이 나오게 */
-export function photoFirst<T, P>(items: T[], photos: (P | null)[], n: number, onlyPhotos = false): (T & { photo: P | null })[] {
-  const all = items.map((c, i) => ({ ...c, photo: photos[i] ?? null }));
-  const withPhoto = all.filter((c) => c.photo);
-  // onlyPhotos: 사진 있는 곳만. 하나도 없으면(구글에 사진이 없는 동네) 그림으로라도 보여 준다
-  if (onlyPhotos && withPhoto.length) return withPhoto.slice(0, n);
-  return [...withPhoto, ...all.filter((c) => !c.photo)].slice(0, n);
-}
 /** 권하는 말을 붙일 때는 무무의 마지막 질문 문장을 뺀다 (질문이 두 개가 되지 않게). 질문뿐이면 전부 빠진다 */
 export const dropLastQuestion = (reply: string) => reply.trim().replace(/(^|[.!?~]\s+)[^.!?~]*\?\s*$/, '$1').trim();
 /** 권한 것에 대한 대답이 "응"인가 */

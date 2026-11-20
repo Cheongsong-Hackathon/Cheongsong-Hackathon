@@ -92,3 +92,15 @@ export function photoForItem(c: { id: string; placeId: string; live?: boolean; p
     return gid ? photoOf(gid) : null;
   });
 }
+
+/** onlyPhotos면 사진 있는 곳만 n개 (순서 유지, 하나도 없으면 그대로), 아니면 원래 순서 그대로 n개. 시연 위치 고정(DEMO_PIN)에서 목록마다 실제 사진이 나오게 */
+export function photoFirst<T, P>(items: T[], photos: (P | null)[], n: number, onlyPhotos = false): (T & { photo: P | null })[] {
+  const all = items.map((c, i) => ({ ...c, photo: photos[i] ?? null }));
+  const withPhoto = all.filter((c) => c.photo);
+  // onlyPhotos: 사진 있는 곳만. 하나도 없으면(구글에 사진이 없는 동네) 그림으로라도 보여 준다
+  if (onlyPhotos && withPhoto.length) return withPhoto.slice(0, n);
+  return all.slice(0, n); // 고정이 아니면 원래 순서 그대로
+}
+
+/** 사진을 받을 후보 수: 시연 위치 고정이면 넉넉히 받아 사진 있는 곳만 남긴다 */
+export const photoPool = (n: number) => (config.demoPin ? Math.max(n + 6, n * 2) : n);

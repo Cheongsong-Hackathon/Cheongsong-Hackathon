@@ -3,7 +3,7 @@
 // 예산은 받지 않는다: 실시간 가게의 가격을 모르기 때문 (가격은 네이버에서 확인).
 import { config } from '../config.js';
 import type { LatLng } from '../geo.js';
-import { photoForItem } from './googlePhoto.js';
+import { photoFirst, photoForItem, photoPool } from './googlePhoto.js';
 import { allCandidates } from './livePlaces.js';
 import { rankForPrefs, spread, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 
@@ -81,8 +81,11 @@ export async function picks(pos: LatLng | null, q: PicksQuery) {
   const cands = (await allCandidates(pos, radius)).filter((c) => !q.groups.length || q.groups.includes(groupOf(c)));
   const { items } = rankForPrefs(cands, picksPrefs(q.mood, q.with, q.travel));
   const ordered = q.sort === 'distance' ? [...items].sort((a, b) => a.distanceM - b.distanceM) : spread(items);
-  const top = ordered.slice(0, q.limit);
-  const photos = await Promise.all(top.map(photoForItem));
+  const pool = ordered.slice(0, photoPool(q.limit));
+  const poolPhotos = await Promise.all(pool.map(photoForItem));
+  // 시연 위치 고정이면 사진 있는 곳만 (순서는 유지)
+  const top = photoFirst(pool, poolPhotos, q.limit, config.demoPin);
+  const photos = top.map((c) => c.photo);
   const m = q.mood ? MOODS[q.mood] : null;
   return {
     mood: q.mood && m ? { key: q.mood, label: m.label } : null,

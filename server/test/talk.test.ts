@@ -133,13 +133,12 @@ test('권하는 말을 붙일 때 무무의 마지막 질문은 뺌 (질문 두 
   assert.equal(dropLastQuestion('지금 기분은 어때?'), '');
 });
 
-test('시연 위치 고정: 사진 있는 곳을 먼저, 점수 순서는 유지, 모자라면 사진 없는 곳으로 채움', () => {
+test('사진 붙이기: 위치 고정이 아니면 순서를 바꾸지 않음 (거리순 목록 보호)', () => {
   const items = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
   const photos = [null, { uri: 'b' }, null, { uri: 'd' }, null];
-  assert.deepEqual(photoFirst(items, photos, 3).map((i) => i.id), ['b', 'd', 'a']);
-  assert.deepEqual(photoFirst(items, photos, 2).map((i) => i.id), ['b', 'd']);
-  assert.equal(photoFirst(items, photos, 3)[0].photo?.uri, 'b');
-  assert.equal(photoFirst(items, photos, 3)[2].photo, null);
+  assert.deepEqual(photoFirst(items, photos, 3).map((i) => i.id), ['a', 'b', 'c']);
+  assert.equal(photoFirst(items, photos, 3)[1].photo?.uri, 'b');
+  assert.deepEqual(photoFirst(items, photos, 3, true).map((i) => i.id), ['b', 'd']);
 });
 
 test('시연 위치 고정: 사진 있는 곳만 (하나도 없으면 그대로)', () => {
