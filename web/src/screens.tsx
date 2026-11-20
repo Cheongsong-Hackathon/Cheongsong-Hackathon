@@ -1,3 +1,4 @@
+import {MumuLoading} from './MumuArtwork';
 export { default as Home } from './RecommendationHome';
 export { default as Landing } from './MumuWelcome';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -538,7 +539,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
 export function LoadState({ loading, message, onRetry }: { loading: boolean; message: string; onRetry?: () => void }) {
   return (
     <div className="card load-state" role="status" aria-live="polite" aria-busy={loading}>
-      {loading && <span className="loading-spinner" aria-hidden="true" />}
+      {loading && <MumuLoading message="불러오는 중이에요"/>}
       <p>{message}</p>
       {!loading && onRetry && <button className="btn ghost" onClick={onRetry}>다시 불러오기</button>}
     </div>

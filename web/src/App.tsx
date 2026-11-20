@@ -1,4 +1,6 @@
-import NearbyPage from './NearbyPage';
+import MumuOnboarding from './MumuOnboarding';
+import mumuFace from './assets/mumu/face.png';
+import MumuLogin from './MumuLogin';
 import ProfilePage from './ProfilePage';
 import Community from './Community';
 import BookingNotification from './BookingNotification';
@@ -33,11 +35,11 @@ import {
   type PartyResult,
 } from './screens';
 
-type Tab = 'nearby' | 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
+type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk';
 const TABS: { id: Tab; label: string; icon: string }[] = [
  {id:'home',label:'홈',icon:'M4 11l8-7 8 7v9h-5v-6H9v6H4z'},
  {id:'browse',label:'탐색',icon:'M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14M15 15l6 6'},
- {id:'nearby',label:'내주변',icon:'M12 22s8-8 8-13a8 8 0 0 0-16 0c0 5 8 13 8 13ZM12 6a3 3 0 1 0 0 6a3 3 0 1 0 0-6'},
+ {id:'talk',label:'무무',icon:'M12 22s8-8 8-13a8 8 0 0 0-16 0c0 5 8 13 8 13ZM12 6a3 3 0 1 0 0 6a3 3 0 1 0 0-6'},
  {id:'community',label:'커뮤니티',icon:'M4 4h16v12H9l-5 4zM8 8h8M8 12h5'},
  {id:'profile',label:'마이',icon:'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-2a8 8 0 0 1 16 0v2'},
 ];
@@ -68,6 +70,8 @@ type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete';
 export default function App() {
   useEffect(() => { document.title = '무무'; }, []);
   const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
+  const [onboarded,setOnboarded]=useState(false);
+  const [loginPassed,setLoginPassed]=useState(false);
   const [landed, setLanded] = useState(false); // 앱을 열면 랜딩을 한 번 보여 준다
   const [consent, setConsent] = useState<string | null>(() => store.get('location')); // 'yes' | 'no' | null
   const [savedLocation, setSavedLocation] = useState<SavedLocation | null>(() => {
@@ -81,7 +85,7 @@ export default function App() {
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
-  const primaryTab = ['community','browse','nearby'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
+  const primaryTab = ['community','browse','talk'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
@@ -303,7 +307,7 @@ export default function App() {
   const showLocation=()=>{setProfileLocation(true);setTab('profile');};
   const showReservations=()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
   const homeScreen = <>
-   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations}/></div>
+   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setTab('talk');send(message);}}/></div>
    {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
   </>;
 
@@ -319,6 +323,10 @@ export default function App() {
             <Launcher stage={ch?.stage ?? 1} onOpen={() => setLaunched(true)} />
           ) : !landed ? (
             <Landing onStart={() => setLanded(true)} />
+          ) : !onboarded ? (
+            <MumuOnboarding onComplete={()=>setOnboarded(true)}/>
+          ) : !loginPassed ? (
+            <MumuLogin onContinue={()=>setLoginPassed(true)} onBack={()=>setLanded(false)}/>
           ) : !consent ? (
             <LocationConsent onAnswer={answerConsent} location={locationPicker} />
           ) : (
@@ -329,7 +337,6 @@ export default function App() {
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
                 {tab === 'community' && <Community onNotifications={showReservations}/>}
                 {tab === 'shop' && <MumuShop ch={ch} onEquip={equipItem} equipBusy={equipBusy} onBack={() => setTab('profile')} />}
-                {tab === 'nearby' && <NearbyPage position={position} locationKey={JSON.stringify(savedLocation)+consent} locationLabel={locationLabel} onLocation={showLocation} onPick={placePick} onNotifications={showReservations}/>}
                 {tab === 'browse' &&
                   (confirm ? (
                     <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
@@ -380,9 +387,7 @@ export default function App() {
                       setTab(t.id);
                     }}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d={t.icon} />
-                    </svg>
+                    <>{t.id==='talk'?<img className="mumu-tab-face" src={mumuFace} alt=""/>:<svg viewBox="0 0 24 24" aria-hidden="true"><path d={t.icon}/></svg>}</>
                     {t.label}
                   </button>
                 ))}

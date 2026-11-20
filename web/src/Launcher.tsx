@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import Bunny from './Bunny';
+import MumuArtwork from './MumuArtwork';
 
 // 꾸밈용 가짜 앱 (눌러도 아무 일 없음). iOS 기본 앱 느낌으로 직접 그린 아이콘이다.
 // 무무는 이 뒤, 셋째 줄 셋째 칸에 놓인다.
@@ -202,7 +202,7 @@ export default function Launcher({ onOpen, stage = 1 }: { onOpen: () => void; st
         <button className="app-icon neuri" onClick={onOpen} aria-label="무무 앱 열기">
           <span className="glow" />
           <span className="tile">
-            <Bunny size={60} stage={stage} />
+            <MumuArtwork className="mumu-launcher-logo"/>
           </span>
           <svg viewBox="0 0 24 24" className="hand" aria-hidden="true">
             <path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V10l5.2 1.1c1 .2 1.8 1.1 1.8 2.2l-.8 5.5A2.5 2.5 0 0 1 15.7 21H11a3 3 0 0 1-2.3-1.1l-3.9-4.7.9-.9c.5-.5 1.2-.6 1.8-.3L9 15z" />
