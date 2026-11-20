@@ -82,3 +82,13 @@
 .voice-main span { font-size: 24px; }
 .voice-main:disabled { opacity: .55; cursor: default; }
 .voice-write { border: 0; background: none; color: #8a80a0; font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* 홈 대화창: 무무 바로 밑, 오른쪽에 음성 전환 아이콘 (글을 쓰면 보내기로 바뀜) */
+.new-home-hero h1 { margin-top: 0; }
+.new-home-hero p { margin-bottom: 6px; }
+.mood-line.home-talk { flex-direction: row; align-items: center; gap: 8px; margin: 0 0 12px; padding: 6px 6px 6px 16px; border: 1.5px solid #DDD1FA; border-radius: 28px; background: #EDE7FA; }
+.mood-line.home-talk:focus-within { border-color: #A68BE8; }
+.mood-line.home-talk textarea { flex: 1; min-width: 0; min-height: 0; height: 44px; padding: 11px 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.home-talk-icon { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: linear-gradient(110deg, #9c5dec, #7944d3); color: #fff; font-size: 20px; cursor: pointer; display: grid; place-items: center; }
+.home-talk-icon.send { font-size: 17px; }
+.home-talk-icon:disabled { opacity: .45; cursor: default; }
