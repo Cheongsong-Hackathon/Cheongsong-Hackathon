@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { evidenceOf, justPick, mergePrefs, ruleSkill, TalkOut } from '../src/services/talk.js';
+import { evidenceOf, justPick, mergePrefs, ruleSkill, TalkOut, wantsPlace } from '../src/services/talk.js';
 
 test('추천 근거 칩: 점수를 올린 사실만 사람 말로, 감점·가까움은 빼고 걸어서 몇 분은 늘', () => {
   assert.deepEqual(
@@ -80,6 +80,13 @@ test('"그냥 추천해 줘"·"아무거나"는 되묻지 않고 바로 추천 (
   for (const m of ['그냥 추천해 줘', '아무거나 골라 줘', '알아서 찾아 줘', '상관없어 아무거나'])
     assert.equal(justPick(m), true, m);
   for (const m of ['그냥 쉬고 싶어', '심심해', '그냥 그래']) assert.equal(justPick(m), false, m);
+});
+
+test('대화가 기본: 갈 곳을 찾는 말일 때만 추천으로 (2026-11-20 대화 중심 전환)', () => {
+  for (const m of ['근처 갈 곳 찾아 줘', '어디 갈까', '심심한데 뭐 하지', '추천해 줘', '바람 쐬러 나가고 싶어', '아무거나'])
+    assert.equal(wantsPlace(m), true, m);
+  for (const m of ['오늘 진짜 지쳤어', '팀장한테 혼났어', '심심해', '그냥 그래', '머리가 꽉 찼어'])
+    assert.equal(wantsPlace(m), false, m);
 });
 
 test('"그냥 추천해 줘"에서 AI가 지어낸 필요·피할 것은 받지 않음 (피할 것에 실내·바깥을 다 넣어 0건이 된 것 재현)', () => {

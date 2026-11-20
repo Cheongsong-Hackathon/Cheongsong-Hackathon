@@ -77,7 +77,7 @@ async function converse(sim: LLMClient, g: Golden, repeat: number, runId: string
       history.push(`나: ${message}`, `토끼: ${res.reply ?? res.error ?? ''}${res.items?.length ? ` [추천: ${res.items.map((i: any) => i.title).join(', ')}]` : ''}`);
       sessionId = res.sessionId ?? sessionId;
       await sleep(GAP_MS);
-      if (res.action === 'ask') message = await simulateUser(sim, g, history, res.quickReplies);
+      if (res.action === 'talk') message = await simulateUser(sim, g, history, res.quickReplies);
       else if (res.action === 'recommend' && g.followup !== '없음' && !followupSent) {
         const say = FOLLOWUP_SAY[g.followup];
         message = say[repeat % say.length];

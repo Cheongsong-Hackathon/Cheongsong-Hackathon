@@ -28,12 +28,12 @@ for (let run = 1; run <= RUNS; run++) {
   console.log(`\n── ${run}회차 ──`);
 
   // 1. 기분만 말한다 (조건 없음)
-  const said = '시험 끝났는데 머리가 꽉 찼어. 뭘 해야 할지 모르겠어';
+  const said = '시험 끝났는데 머리가 꽉 찼어. 근처에 갈 만한 데 찾아 줘';
   let r = await api('POST', '/talk', { message: said, ...YU });
   console.log(`  나: ${said}\n  토끼(${r.json.action}): ${r.json.reply}`);
   let turns = 1;
-  while (r.json.action === 'ask' && turns < 3) {
-    const pick = r.json.quickReplies?.[0] ?? '조용히 비우고 싶어';
+  while (r.json.action === 'talk' && turns < 3) {
+    const pick = '근처 갈 곳 찾아 줘';
     r = await api('POST', '/talk', { sessionId: r.json.sessionId, message: pick, ...YU });
     turns++;
     console.log(`  나: ${pick}\n  토끼(${r.json.action}): ${r.json.reply}`);

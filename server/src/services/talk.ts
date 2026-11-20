@@ -11,7 +11,6 @@ import { allCandidates } from './livePlaces.js';
 import { currentWeather, weatherAdvice, weatherLine } from './weather.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
 
-export const TALK_MAX_ASKS = 2; // 추천 전에 묻는 건 많아도 이만큼. 적게 묻고 먼저 묻는 방향은 Ma 외 2024, 숫자 2는 임시값 (docs/설계근거_점검.md)
 export const TALK_SHOW = 3; // 대화 안에 보여 주는 추천 수 (맞는 게 적으면 그만큼만)
 
 const FEEDBACK = ['없음', '멀어', '힘들어', '비싸', '별로', '다른거'] as const;
@@ -27,15 +26,16 @@ export const TalkOut = z.object({
   walk: z.number().catch(0),
   budget: z.number().catch(0),
   feedback: z.enum(FEEDBACK).catch('없음'),
-  action: z.enum(['ask', 'recommend']).catch('recommend'),
+  // 대화가 중심이고 추천은 부가 기능: 친구가 갈 곳을 원할 때만 recommend
+  action: z.enum(['talk', 'recommend']).catch('talk'),
   // 스킬: 대화 중에 실제 기능을 연다. 놀이(타로·운세·끝말잇기·밸런스), 기록(다녀온 곳 돌아보기). 날씨는 추천에 늘 반영
   skill: z.enum(['없음', '놀이', '기록']).catch('없음'),
   game: z.enum(['없음', 'tarot', 'fortune', 'words', 'balance']).catch('없음'),
 });
 
 export const TALK_FORMAT = `
-지금은 친구와 이야기하면서, 지금 당장 근처에서 할 수 있는 작은 기분 전환을 찾아 주는 중이야.
-친구의 말에서 아래를 읽어 내. 직접 말하지 않아도 말투와 사정에서 추론해. 정말 알 수 없을 때만 "모름" 또는 0.
+지금은 친구와 이야기하는 중이야. 이야기를 들어 주고 받아 주는 게 먼저고, 갈 곳 추천은 친구가 원할 때만 해.
+친구의 말에서 아래를 읽어 내 (나중에 추천을 원하면 쓰려고). 직접 말하지 않아도 말투와 사정에서 추론해. 정말 알 수 없을 때만 "모름" 또는 0.
 - need (지금 무엇이 필요한가. 겉말보다 속마음 기준):
   비우기(생각이 많아 머리를 끄고 싶음: "머리가 꽉 찼어") | 쉬기(지치거나 불안해서 긴장을 풀고 쉬고 싶음: "기빨렸어", "불안해") |
   풀기(화·답답함을 밖으로 털어내고 싶음: "개빡침", "땀 빼고 싶어") | 몰입(무언가를 해 보고 해내고 싶음: "뭐 하나 제대로 해 보고 싶어") |
@@ -45,15 +45,15 @@ export const TALK_FORMAT = `
 - want, avoid: 다음 중에서만 고른 배열: ${TAGS.join(', ')}. avoid는 싫다고 했거나 지금 상태로 싫어할 게 분명한 것만
 - minutes, walk(도보 분), budget(원): 친구가 그런 말을 했을 때만 숫자로 ("잠깐"=30, "가까운 데"=도보 10, "싸게"=10000). 아니면 0
 - feedback: 앞서 보여 준 추천에 대한 반응. 멀어 | 힘들어 | 비싸 | 별로 | 다른거 | 없음
-- action: need를 알 수 없으면 "ask", 알 수 있으면 "recommend"
-- reply: ask면 공감 한 문장 + 고르기 쉬운 질문 하나 (예: "오늘은 조용히 비우고 싶어, 아니면 털어내고 싶어?").
+- action: 친구가 갈 곳·할 거리를 찾아 달라고 하거나("추천해 줘", "어디 갈까", "뭐 하지", "나가고 싶어") 앞서 보여 준 추천에 반응하면 "recommend". 그 밖에는 모두 "talk"
+- reply: talk면 친구 말에 맞장구치고 이야기를 이어 가는 2~3문장. 궁금한 게 있으면 친구 이야기에 대한 질문 하나까지. 장소나 활동을 먼저 권하지 마.
   recommend면 공감 한 문장 + "가까운 데서 찾아봤어" 같은 한 문장. 체험 이름·가격·거리는 쓰지 마 (카드로 보여 줌)
   "지금 날씨"가 주어지고 비·눈이 오거나 아주 춥거나 더우면, recommend 답장에서 자연스럽게 짚어 (예: "비 오니까 실내로 찾아봤어")
 - skill: 친구가 놀자고 하거나 타로·운세·사주·끝말잇기·밸런스 게임을 하고 싶어 하면 "놀이", 지난번에 다녀온 곳·기록을 물으면 "기록", 그 밖에는 "없음"
   놀이면 reply는 질문 없이 바로 게임을 연다는 신나는 한 문장 (예: "좋아, 타로 한 장 뽑으러 가자!"). 화면에 게임 열기 버튼이 따로 나옴
 - game: skill이 놀이일 때 tarot(타로) | fortune(운세·사주) | words(끝말잇기) | balance(밸런스 게임). 딱 말하지 않았으면 balance. 놀이가 아니면 "없음"
 아래 JSON 하나만 출력해.
-{"reply":"","risk":"NONE","need":"모름","energy":"모름","want":[],"avoid":[],"minutes":0,"walk":0,"budget":0,"feedback":"없음","action":"ask","skill":"없음","game":"없음"}
+{"reply":"","risk":"NONE","need":"모름","energy":"모름","want":[],"avoid":[],"minutes":0,"walk":0,"budget":0,"feedback":"없음","action":"talk","skill":"없음","game":"없음"}
 ${RISK_RULE}`;
 
 const ReasonOut = z.object({ picks: z.array(z.object({ id: z.string(), reason: z.string().catch('') })).catch([]) });
@@ -132,13 +132,9 @@ async function recentVisits(userId: number): Promise<string> {
 /** "그냥 추천해 줘", "아무거나": 고르기 싫다는 뜻이라 되묻지 않고 기본값으로 바로 추천한다 */
 export const justPick = (m: string) => /아무거나|알아서/.test(m) || (/그냥|상관없/.test(m) && /추천|골라|찾아|보여/.test(m));
 
-export const NEED_CHOICES: { label: string; need: Need }[] = [
-  { label: '조용히 비우고 싶어', need: '비우기' },
-  { label: '털어내고 싶어', need: '풀기' },
-  { label: '그냥 쉬고 싶어', need: '쉬기' },
-  { label: '재밌는 거 하고 싶어', need: '즐기기' },
-  { label: '누구랑 같이 있고 싶어', need: '연결' },
-];
+/** 갈 곳을 직접 찾는 말: AI가 talk로 놓쳐도 추천으로 간다 */
+export const wantsPlace = (m: string) =>
+  justPick(m) || /추천|어디\s*(갈|가)|뭐\s*(하지|할까)|갈\s*(곳|데|만한)|할\s*만한|찾아\s*(줘|봐|줄)|나가고\s*싶/.test(m);
 const AFTER_RECOMMEND = ['좀 멀어', '너무 힘들 것 같아', '다른 거 보여 줘'];
 
 /** 추천에 대한 뻔한 반응은 AI가 놓쳐도 코드로 잡는다
@@ -309,13 +305,16 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     return { status: 200, body: { sessionId: s.id, action: 'none', reply, quickReplies: ['비슷한 곳 찾아 줘', '근처 갈 곳 찾아 줘'], ...support(s.prefs) } };
   }
 
-  // 묻기는 코드가 정한다: 필요를 모르고, 아직 덜 물었을 때만
-  if (!s.prefs.need && s.asks < TALK_MAX_ASKS && !justPick(message)) {
-    s.asks++;
-    const reply = out?.action === 'ask' && out.reply ? out.reply : '그랬구나. 오늘은 어떤 쪽이 끌려?';
+  // 기본은 대화. 추천은 친구가 원하거나(말·AI 판단) 앞서 본 추천에 반응할 때만
+  const reacted = !!s.prefs.lastTop && keywordFeedback(message) !== '없음';
+  if (out?.action !== 'recommend' && !wantsPlace(message) && !reacted) {
+    s.asks++; // 이 대화에서 이야기만 나눈 횟수
+    const reply = (out?.action === 'talk' && out.reply) || '그랬구나. 더 얘기해 줄래?';
     await say(s.id, 'assistant', reply);
     await save(s);
-    return { status: 200, body: { sessionId: s.id, action: 'ask', reply, quickReplies: NEED_CHOICES.map((c) => c.label), ...support(s.prefs), ...(out ? {} : { fallback: true }) } };
+    // 추천은 칩으로 살짝만: 두 번째 이야기부터
+    const quickReplies = s.asks >= 2 ? ['같이 놀자', '근처 갈 곳 찾아 줘'] : ['같이 놀자'];
+    return { status: 200, body: { sessionId: s.id, action: 'talk', reply, quickReplies, ...support(s.prefs), ...(out ? {} : { fallback: true }) } };
   }
 
   const { prefs, assumed } = await fillPrefs(s.prefs);
