@@ -75,11 +75,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         <button type="button" aria-label="채팅방 안내" aria-expanded={showInfo} onClick={() => setShowInfo(value => !value)}>•••</button>
       </header>
       {showInfo && <p className="notice">무무는 AI 캐릭터예요. 전문 상담을 대신하지 않아요.</p>}
-      <div className="room-switch" aria-label="무무 화면">
-        <span aria-current="page">💬 무무랑 채팅하기</span>
-        <button type="button" onClick={p.onPlay}>🎮 무무랑 놀기</button>
-      </div>
-      <div className="mumu-chat-hero">{canListen ? <button type="button" className="voice-open" aria-label="무무와 음성 대화" onClick={() => setVoiceMode(true)}><img src={portrait} alt="" /><span>🎙 눌러서 대화하기</span></button> : <img src={portrait} alt="" />}<p>오늘은 어떤 기분이야?<br />무무한테 편하게 말해줘! 💜</p></div>
+      <div className="mumu-chat-hero">{canListen ? <button type="button" className="voice-open" aria-label="무무와 음성 대화" onClick={() => setVoiceMode(true)}><img src={portrait} alt="" /></button> : <img src={portrait} alt="" />}</div>
       <div className="mumu-chat-modes">
         {STARTERS.map(([icon, label, say]) => <button key={label} type="button" disabled={p.busy || p.retry} onClick={() => p.onSend(say)}>{icon} {label}</button>)}
       </div>
