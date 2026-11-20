@@ -1,3 +1,4 @@
+import MumuArtwork from './MumuArtwork';
 import {useRef,useState} from 'react';
 import {TripHeader} from './TripUI';
 import Art from './Art';
@@ -8,7 +9,7 @@ export default function Community({onNotifications}:{onNotifications:()=>void}){
  const [posts,setPosts]=useState<Post[]>(read),[filter,setFilter]=useState('전체'),[text,setText]=useState(''),[tag,setTag]=useState('일상잡담'),[error,setError]=useState(''),[region,setRegion]=useState('전체 지역'),[period,setPeriod]=useState('전체 시간'),[sort,setSort]=useState('최신순'),[search,setSearch]=useState(''),[showSearch,setShowSearch]=useState(false),[writeRegion,setWriteRegion]=useState('서울'),[writePeriod,setWritePeriod]=useState('주간');const dialog=useRef<HTMLDialogElement>(null);
  function save(next:Post[]){try{localStorage.setItem('mumu.community.preview',JSON.stringify(next));setPosts(next);setError('');return true;}catch{setError('저장 공간을 확인해 주세요.');return false;}}
  let visible=posts.filter(p=>(filter==='전체'||p.tag===filter)&&(region==='전체 지역'||p.region===region)&&(period==='전체 시간'||p.period===period)&&`${p.author} ${p.text}`.includes(search));if(sort==='공감순')visible=[...visible].sort((a,b)=>b.likes-a.likes);
- return <div className="new-community trip-community"><TripHeader onNotice={onNotifications} onSearch={()=>setShowSearch(v=>!v)}/><section className="community-new-hero"><div><h1>커뮤니티</h1><p>오늘도 무무와 함께,<br/>기분전환한 순간을 나눠요!</p></div><div className="character-space" aria-hidden="true"/></section>
+ return <div className="new-community trip-community"><TripHeader onNotice={onNotifications} onSearch={()=>setShowSearch(v=>!v)}/><section className="community-new-hero"><div><h1>커뮤니티</h1><p>오늘도 무무와 함께,<br/>기분전환한 순간을 나눠요!</p></div><div className="character-space"><MumuArtwork kind="community"/></div></section>
  {showSearch&&<input className="trip-search" aria-label="커뮤니티 검색" value={search} onChange={e=>setSearch(e.target.value)} placeholder="이야기를 검색해 보세요"/>}
  <div className="community-filters">{['전체','후기공유','같이갈래요','일상잡담','질문'].map(t=><button key={t} aria-pressed={filter===t} onClick={()=>setFilter(t)}>{t}</button>)}</div>
  <div className="community-region-filters"><select aria-label="지역 필터" value={region} onChange={e=>setRegion(e.target.value)}>{['전체 지역','서울','대구','부산','인천','기타 지역'].map(v=><option key={v}>{v}</option>)}</select><select aria-label="시간 필터" value={period} onChange={e=>setPeriod(e.target.value)}><option>전체 시간</option><option value="주간">☀ 주간 (06:00~18:00)</option><option value="야간">☾ 야간 (18:00~24:00)</option></select><select aria-label="이야기 정렬" value={sort} onChange={e=>setSort(e.target.value)}><option>최신순</option><option>공감순</option></select></div>
