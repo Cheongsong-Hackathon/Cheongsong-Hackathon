@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { config } from '../config.js';
 import { query, toId } from '../db.js';
-import { validLatLng, walkMinutes, type LatLng } from '../geo.js';
+import { searchPos, validLatLng, walkMinutes, type LatLng } from '../geo.js';
 import { freePlaces, naverMapUrl, pickFree } from './kakao.js';
 import { hasPhoto } from './googlePhoto.js';
 import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
@@ -193,7 +193,7 @@ export async function recommend(userId: number, body: any, client = defaultClien
   };
   await query(`UPDATE checkins SET minutes = $2, walk_minutes = $3, budget = $4 WHERE id = $1`, [ck.id, cond.minutes, cond.walk, cond.budget]);
 
-  const { cands, center, source } = await nearbyCandidates(validLatLng(body?.lat, body?.lng));
+  const { cands, center, source } = await nearbyCandidates(searchPos(validLatLng(body?.lat, body?.lng)));
   const { items, widened } = filterExperiences(cands, cond);
   // 같은 위치 기준의 무료 장소 (카카오). 제휴 매장이 없는 동네에서는 이것만 추천된다.
   const freeP = freePlaces(center).then((f) => pickFree(f ?? [], cond.walk));

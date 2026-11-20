@@ -1,8 +1,9 @@
 // 대화로 추천받기: 사용자가 기분을 말하면 AI가 필요·조건을 읽고, 코드가 거르고 점수를 매겨 실제 주변 체험만 추천한다.
 // AI: 말에서 필요 읽기, 질문 문장, 추천 순서·이유 / 코드: 묻기·추천 결정, 조건 지키기, 후보 밖 금지, 채워 넣기 금지
 import { z } from 'zod';
+import { config } from '../config.js';
 import { query, toId } from '../db.js';
-import { validLatLng } from '../geo.js';
+import { searchPos, validLatLng } from '../geo.js';
 import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
@@ -88,6 +89,14 @@ export function nextOffer(p: Stored, talks: number): 'play' | 'place' | null {
 }
 const OFFER_LINE = { play: '기운이 없어 보이는데, 나가기 전에 나랑 가볍게 한 판 놀래?', place: '근처에 기분 전환할 만한 데 찾아 줄까?' };
 const OFFER_REPLIES = { play: ['응, 놀자', '근처 갈 곳 찾아 줘', '괜찮아'], place: ['응, 찾아 줘', '같이 놀자', '괜찮아'] };
+/** 사진 있는 곳을 먼저 n개 (점수 순서는 유지), 모자라면 사진 없는 곳으로 채운다. 시연 위치 고정(DEMO_PIN)에서 카드마다 실제 사진이 나오게 */
+export function photoFirst<T, P>(items: T[], photos: (P | null)[], n: number, onlyPhotos = false): (T & { photo: P | null })[] {
+  const all = items.map((c, i) => ({ ...c, photo: photos[i] ?? null }));
+  const withPhoto = all.filter((c) => c.photo);
+  // onlyPhotos: 사진 있는 곳만. 하나도 없으면(구글에 사진이 없는 동네) 그림으로라도 보여 준다
+  if (onlyPhotos && withPhoto.length) return withPhoto.slice(0, n);
+  return [...withPhoto, ...all.filter((c) => !c.photo)].slice(0, n);
+}
 /** 권하는 말을 붙일 때는 무무의 마지막 질문 문장을 뺀다 (질문이 두 개가 되지 않게). 질문뿐이면 전부 빠진다 */
 export const dropLastQuestion = (reply: string) => reply.trim().replace(/(^|[.!?~]\s+)[^.!?~]*\?\s*$/, '$1').trim();
 /** 권한 것에 대한 대답이 "응"인가 */
@@ -251,8 +260,8 @@ const say = (sessionId: number, role: string, text: string) =>
 const save = (s: Session) => query(`UPDATE chat_sessions SET prefs = $2, asks = $3, seen = $4 WHERE id = $1`, [s.id, JSON.stringify(s.prefs), s.asks, s.seen]);
 
 /** 점수 순서 상위 TALK_SHOW개에 AI가 이유를 붙인다. 순서는 바꾸지 않고, AI가 실패하거나 빠뜨린 것은 점수 근거로 이유를 만든다. */
-async function withReasons(userId: number, message: string, prefs: Prefs, items: Scored[], client = defaultClient) {
-  const top = items.slice(0, TALK_SHOW);
+async function withReasons(userId: number, message: string, prefs: Prefs, items: Scored[], client = defaultClient, show = TALK_SHOW) {
+  const top = items.slice(0, show);
   const out = await callJson(
     client,
     BUNNY_PROMPT + REASON_FORMAT,
@@ -281,7 +290,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   await say(s.id, 'user', message);
   if (SafetyGuard.check(message) || (await isSafeMode(userId))) return safetyReply(userId, s.id);
 
-  const pos = validLatLng(body?.lat, body?.lng);
+  const pos = searchPos(validLatLng(body?.lat, body?.lng));
   const [history, weather] = await Promise.all([
     query<{ role: string; text: string }>(
       `SELECT role, text FROM (SELECT * FROM messages WHERE session_id = $1 ORDER BY id DESC LIMIT 10) m ORDER BY id`,
@@ -364,12 +373,14 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     return { status: 200, body: { sessionId: s.id, action: 'none', reply, assumptions, items: [], quickReplies: cands.length ? ['조금 멀어도 괜찮아', '예산 조금 더 써도 돼'] : [], ...support(s.prefs) } };
   }
   // 실제 사진은 AI가 이유를 쓰는 동안 같이 받아서 카드와 함께 보낸다 (화면이 그림을 띄웠다가 사진으로 바꾸지 않게)
+  // 시연 위치 고정이면 후보를 넓게(8곳) 보고 사진 있는 곳을 먼저 고른다
+  const pool = config.demoPin ? 8 : TALK_SHOW;
   const [reasoned, photos] = await Promise.all([
-    withReasons(userId, message, prefs, ranked.items, client),
-    Promise.all(ranked.items.slice(0, TALK_SHOW).map(photoForItem)),
+    withReasons(userId, message, prefs, ranked.items, client, pool),
+    Promise.all(ranked.items.slice(0, pool).map(photoForItem)),
   ]);
   const { fallback } = reasoned;
-  const items = reasoned.items.map((c, i) => ({ ...c, photo: photos[i] }));
+  const items = photoFirst(reasoned.items, photos, TALK_SHOW, config.demoPin);
   s.seen = [...new Set([...s.seen, ...items.map((i) => i.id)])];
   s.prefs.lastTop = { walk: items[0].walkMinutes, price: items[0].price, energyNeed: items[0].energyNeed };
   const reply = ranked.repeat

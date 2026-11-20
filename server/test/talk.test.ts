@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dropLastQuestion, evidenceOf, justPick, mergePrefs, nextOffer, ruleSkill, saidYes, TalkOut, wantsPlace } from '../src/services/talk.js';
+import { dropLastQuestion, evidenceOf, photoFirst, justPick, mergePrefs, nextOffer, ruleSkill, saidYes, TalkOut, wantsPlace } from '../src/services/talk.js';
 
 test('추천 근거 칩: 점수를 올린 사실만 사람 말로, 감점·가까움은 빼고 걸어서 몇 분은 늘', () => {
   assert.deepEqual(
@@ -131,4 +131,19 @@ test('권하는 말을 붙일 때 무무의 마지막 질문은 뺌 (질문 두 
   assert.equal(dropLastQuestion('주말엔 더 적적하지. 어떤 재미를 찾고 싶어?'), '주말엔 더 적적하지.');
   assert.equal(dropLastQuestion('고생 많았어. 지금은 푹 쉬자.'), '고생 많았어. 지금은 푹 쉬자.');
   assert.equal(dropLastQuestion('지금 기분은 어때?'), '');
+});
+
+test('시연 위치 고정: 사진 있는 곳을 먼저, 점수 순서는 유지, 모자라면 사진 없는 곳으로 채움', () => {
+  const items = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
+  const photos = [null, { uri: 'b' }, null, { uri: 'd' }, null];
+  assert.deepEqual(photoFirst(items, photos, 3).map((i) => i.id), ['b', 'd', 'a']);
+  assert.deepEqual(photoFirst(items, photos, 2).map((i) => i.id), ['b', 'd']);
+  assert.equal(photoFirst(items, photos, 3)[0].photo?.uri, 'b');
+  assert.equal(photoFirst(items, photos, 3)[2].photo, null);
+});
+
+test('시연 위치 고정: 사진 있는 곳만 (하나도 없으면 그대로)', () => {
+  const items = ['a', 'b', 'c'].map((id) => ({ id }));
+  assert.deepEqual(photoFirst(items, [null, { uri: 'b' }, null], 3, true).map((i) => i.id), ['b']);
+  assert.deepEqual(photoFirst(items, [null, null, null], 3, true).map((i) => i.id), ['a', 'b', 'c']);
 });

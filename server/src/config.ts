@@ -31,6 +31,9 @@ export const config = {
   databaseUrl: env.DATABASE_URL ?? 'postgres://neuri:neuri@localhost:5433/neuri',
   // 실내 시연용: 위치가 없거나 주변에 매장이 없으면 DEMO_CENTER 기준으로, 영업시간·지난 시간대는 따지지 않는다
   demoMode: env.DEMO_MODE === 'true',
+  // 시연용 위치 고정: 켜지면 장소 찾기는 브라우저 위치 대신 DEMO_CENTER(영남대, 가게 실제 사진이 다 나오는 곳) 기준.
+  // 발표장(청송) 근처 가게는 구글 사진이 없거나 이름이 달라 그림만 나와서. 기본은 DEMO_MODE를 따르고, DEMO_PIN=false로 끈다
+  demoPin: (env.DEMO_PIN ?? env.DEMO_MODE) === 'true',
   // 위치 동의를 안 했을 때의 기본 동네: 영남대 경산캠퍼스
   demoCenter: { lat: num(env.DEMO_CENTER_LAT, 35.8318613), lng: num(env.DEMO_CENTER_LNG, 128.7585416) },
   llm: llm('LLM'),

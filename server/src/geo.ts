@@ -2,6 +2,9 @@ import { config } from './config.js';
 
 export type LatLng = { lat: number; lng: number };
 
+/** 장소를 찾을 기준 위치. 시연용 위치 고정(DEMO_PIN)이면 사용자 위치 대신 DEMO_CENTER */
+export const searchPos = (p: LatLng | null): LatLng | null => (config.demoPin ? config.demoCenter : p);
+
 /** 도보 분 = 직선거리 ÷ 분당 67m (올림, 최소 1분) */
 export const walkMinutes = (m: number) => Math.max(1, Math.ceil(m / config.WALK_M_PER_MIN));
 

@@ -2,7 +2,7 @@
 import { Router, type Response } from 'express';
 import { config } from './config.js';
 import { query, toId } from './db.js';
-import { validLatLng } from './geo.js';
+import { searchPos, validLatLng } from './geo.js';
 import { byIp, byUserKey, rateLimit, resetAllowed } from './limit.js';
 import { freePlaces, geocode } from './services/kakao.js';
 import { placePhoto } from './services/googlePhoto.js';
@@ -99,14 +99,14 @@ api.post('/recommend', ...aiLimit, async (req, res) => send(res, await recommend
 
 // 체험 탭: 제휴 매장의 전체 체험
 api.get('/experiences', async (req, res) => {
-  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
+  const pos = searchPos(validLatLng(Number(req.query.lat), Number(req.query.lng)));
   const { cands } = await nearbyCandidates(pos);
   res.json({ items: [...cands].sort((a, b) => a.walkMinutes - b.walkMinutes) });
 });
 
 // 둘러보기: 필요(쉬기·풀기 등)를 고르면 근처 실제 가게. 카카오·구글을 여러 번 불러서 IP당 분당 횟수를 막는다
 api.get('/browse', rateLimit('browse-ip', 30, byIp), async (req, res) => {
-  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
+  const pos = searchPos(validLatLng(Number(req.query.lat), Number(req.query.lng)));
   res.json({ items: await browse(pos, parseNeed(req.query.need)) });
 });
 
@@ -114,7 +114,7 @@ api.get('/browse', rateLimit('browse-ip', 30, byIp), async (req, res) => {
 // ?mood=tired|low|stressed|bored|good|plain &types=cafe,exhibit,class,popup,nature,etc &with=solo|pair|group &travel=15|30|60
 // &sort=score|distance &limit=1~20 &lat&lng. 예산은 받지 않는다 (가게 가격을 모름)
 api.get('/picks', rateLimit('picks-ip', 30, byIp), async (req, res) => {
-  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng));
+  const pos = searchPos(validLatLng(Number(req.query.lat), Number(req.query.lng)));
   const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 3));
   res.json(
     await picks(pos, {
@@ -130,7 +130,7 @@ api.get('/picks', rateLimit('picks-ip', 30, byIp), async (req, res) => {
 
 // 무료 장소: 내 주변 카페·도서관·공원 (카카오 로컬). 예약 없음, 지도 링크만.
 api.get('/places/free', async (req, res) => {
-  const pos = validLatLng(Number(req.query.lat), Number(req.query.lng)) ?? config.demoCenter;
+  const pos = searchPos(validLatLng(Number(req.query.lat), Number(req.query.lng))) ?? config.demoCenter;
   const items = await freePlaces(pos);
   res.json(items === null ? { items: [], disabled: true } : { items });
 });
