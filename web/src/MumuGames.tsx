@@ -7,6 +7,8 @@ import MumuGameScene from './MumuGameScene';
 import tarotCardsMotion from './assets/mumu/motion-tarot.webp';
 
 export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
+// 스킬 "놀이": 무무가 대화 중에 여는 게임 이름
+export const GAME_NAMES: Record<MumuGame, string> = { tarot: '오늘의 타로', words: '끝말잇기', balance: '밸런스 게임', fortune: '무무의 사주' };
 export const gameCards = [
   { id: 'tarot', icon: '🃏', title: '오늘의 타로', subtitle: '카드 한 장 뽑기' },
   { id: 'words', icon: '💬', title: '끝말잇기', subtitle: '무무와 단어 대결' },

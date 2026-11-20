@@ -7,8 +7,9 @@ import type { TalkOffer } from './talkClient';
 import portrait from './assets/mumu/mood-happy.webp';
 import { canListen, setVoicePref, speak, stopSpeaking, voicePref } from './voice';
 import VoiceMode from './VoiceMode';
+import { GAME_NAMES, type MumuGame } from './MumuGames';
 
-export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support'] };
+export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support']; play?: MumuGame };
 
 const solutions = [
   { icon: '☕', title: '잠깐 쉬어가기', detail: '10분 호흡 명상으로 머리 비우기' },
@@ -16,7 +17,7 @@ const solutions = [
   { icon: '📍', title: '가벼운 기분 전환', detail: '집 근처 산책 코스나 조용한 카페 추천' },
 ];
 
-export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; onPlay: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void; voiceStart?: boolean }) {
+export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; onPlay: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void; voiceStart?: boolean; onGame?: (game: MumuGame) => void }) {
   const [text, setText] = useState('');
   const [showSolutions, setShowSolutions] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -67,6 +68,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
               <div className="bubble bunny">{m.text}</div>
             </div>
             {!!m.offer?.items.length && <section className="card mumu-talk-offer"><span className="eyebrow">대화에서 찾은 작은 경험</span><strong>지금 너에게 어울릴 만한 체험 {m.offer.items.length}개를 찾았어</strong>{m.offer.assumptions && <p className="small mute">{m.offer.assumptions}</p>}<button className="btn" disabled={p.busy} onClick={() => p.onExperiences(m.offer!.items)}>무무가 찾은 체험 보기 ›</button></section>}
+            {m.play && p.onGame && <button type="button" className="card mumu-play-offer" onClick={() => p.onGame!(m.play!)}><span aria-hidden="true">🎮</span><strong>무무랑 {GAME_NAMES[m.play]} 하러 가기</strong><b aria-hidden="true">›</b></button>}
             {m.support && <aside className="card mumu-support"><p className="small">{m.support.text}</p>{m.support.lines.map(line => <a key={line.tel} href={`tel:${line.tel.replace(/[^+0-9]/g, '')}`}>{line.name} {line.tel}</a>)}</aside>}
             {i === p.msgs.length - 1 && !!m.quickReplies?.length && <div className="chips mumu-quick-replies" aria-label="대화 이어가기">{m.quickReplies.map(reply => <button className="chip" key={reply} disabled={p.busy || p.retry} onClick={() => p.onSend(reply)}>{reply}</button>)}</div>}
             </div>
@@ -99,7 +101,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
           setShowSolutions(false);
         }}><span aria-hidden="true">{solution.icon}</span><span><strong>{solution.title}</strong><small>{solution.detail}</small></span><span aria-hidden="true">›</span></button>)}
       </section>}
-      {voiceMode && <VoiceMode msgs={p.msgs} retry={p.retry} onSend={p.onSend} onRetry={p.onRetry} onExperiences={p.onExperiences} onClose={() => setVoiceMode(false)} />}
+      {voiceMode && <VoiceMode msgs={p.msgs} retry={p.retry} onSend={p.onSend} onRetry={p.onRetry} onExperiences={p.onExperiences} onGame={p.onGame} onClose={() => setVoiceMode(false)} />}
       <form
         className="composer"
         onSubmit={(e) => {

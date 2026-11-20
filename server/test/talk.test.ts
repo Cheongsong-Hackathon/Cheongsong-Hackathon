@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { justPick, mergePrefs, TalkOut } from '../src/services/talk.js';
+import { justPick, mergePrefs, ruleSkill, TalkOut } from '../src/services/talk.js';
+
+test('스킬: AI가 놓쳐도 말 속 단어로 놀이(게임 종류)·기록을 고른다', () => {
+  assert.deepEqual(ruleSkill('타로 봐 줘'), { skill: '놀이', game: 'tarot' });
+  assert.deepEqual(ruleSkill('오늘 운세 어때'), { skill: '놀이', game: 'fortune' });
+  assert.deepEqual(ruleSkill('끝말잇기 하자'), { skill: '놀이', game: 'words' });
+  assert.equal(ruleSkill('심심해 놀자').skill, '놀이');
+  assert.equal(ruleSkill('지난번에 갔던 데 어땠지?').skill, '기록');
+  assert.equal(ruleSkill('지쳐서 조용히 쉬고 싶어').skill, '없음');
+});
 
 const out = (o: Record<string, unknown> = {}) => TalkOut.parse({ reply: '', risk: 'NONE', ...o });
 

@@ -339,3 +339,7 @@
 /* 무무 그림을 음성 대화 버튼으로 감싸도 원래 크기(.mumu-chat-hero > img)와 같게 */
 .mumu-chat-hero > .voice-open { width: 43%; flex: none; }
 .mumu-chat-hero > .voice-open img { width: 100%; height: clamp(83px, 15vh, 126px); object-fit: contain; }
+/* 스킬 "놀이": 대화 안 게임 열기 카드 */
+.mumu-play-offer { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 6px; padding: 12px 14px; border: 1.5px solid #e3d6f7; border-radius: 16px; background: #fff; color: #4a3d63; font: inherit; text-align: left; cursor: pointer; }
+.mumu-play-offer strong { flex: 1; font-size: 14px; }
+.mumu-play-offer b { color: #9c5ce0; }

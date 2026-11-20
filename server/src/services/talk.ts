@@ -8,6 +8,7 @@ import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, type Energy, type Nee
 import { learnFromTurn, memoryContext } from './memory.js';
 import { photoForItem } from './googlePhoto.js';
 import { allCandidates } from './livePlaces.js';
+import { currentWeather, weatherAdvice, weatherLine } from './weather.js';
 import { isSafeMode, Risk, SAFETY_REPLY, SafetyGuard, setSafeMode, SUPPORT } from './safety.js';
 
 export const TALK_MAX_ASKS = 2; // 추천 전에 묻는 건 많아도 이만큼. 적게 묻고 먼저 묻는 방향은 Ma 외 2024, 숫자 2는 임시값 (docs/설계근거_점검.md)
@@ -27,6 +28,9 @@ export const TalkOut = z.object({
   budget: z.number().catch(0),
   feedback: z.enum(FEEDBACK).catch('없음'),
   action: z.enum(['ask', 'recommend']).catch('recommend'),
+  // 스킬: 대화 중에 실제 기능을 연다. 놀이(타로·운세·끝말잇기·밸런스), 기록(다녀온 곳 돌아보기). 날씨는 추천에 늘 반영
+  skill: z.enum(['없음', '놀이', '기록']).catch('없음'),
+  game: z.enum(['없음', 'tarot', 'fortune', 'words', 'balance']).catch('없음'),
 });
 
 export const TALK_FORMAT = `
@@ -44,8 +48,12 @@ export const TALK_FORMAT = `
 - action: need를 알 수 없으면 "ask", 알 수 있으면 "recommend"
 - reply: ask면 공감 한 문장 + 고르기 쉬운 질문 하나 (예: "오늘은 조용히 비우고 싶어, 아니면 털어내고 싶어?").
   recommend면 공감 한 문장 + "가까운 데서 찾아봤어" 같은 한 문장. 체험 이름·가격·거리는 쓰지 마 (카드로 보여 줌)
+  "지금 날씨"가 주어지고 비·눈이 오거나 아주 춥거나 더우면, recommend 답장에서 자연스럽게 짚어 (예: "비 오니까 실내로 찾아봤어")
+- skill: 친구가 놀자고 하거나 타로·운세·사주·끝말잇기·밸런스 게임을 하고 싶어 하면 "놀이", 지난번에 다녀온 곳·기록을 물으면 "기록", 그 밖에는 "없음"
+  놀이면 reply는 질문 없이 바로 게임을 연다는 신나는 한 문장 (예: "좋아, 타로 한 장 뽑으러 가자!"). 화면에 게임 열기 버튼이 따로 나옴
+- game: skill이 놀이일 때 tarot(타로) | fortune(운세·사주) | words(끝말잇기) | balance(밸런스 게임). 딱 말하지 않았으면 balance. 놀이가 아니면 "없음"
 아래 JSON 하나만 출력해.
-{"reply":"","risk":"NONE","need":"모름","energy":"모름","want":[],"avoid":[],"minutes":0,"walk":0,"budget":0,"feedback":"없음","action":"ask"}
+{"reply":"","risk":"NONE","need":"모름","energy":"모름","want":[],"avoid":[],"minutes":0,"walk":0,"budget":0,"feedback":"없음","action":"ask","skill":"없음","game":"없음"}
 ${RISK_RULE}`;
 
 const ReasonOut = z.object({ picks: z.array(z.object({ id: z.string(), reason: z.string().catch('') })).catch([]) });
@@ -71,6 +79,29 @@ type Stored = {
   watch?: boolean; // 위험도 WATCH가 한 번이라도 나오면 이 대화 동안 상담 번호를 함께 보여 줌
 };
 type Session = { id: number; prefs: Stored; asks: number; seen: string[] };
+
+/** AI가 없거나 스킬을 놓쳤을 때 말에서 바로 고르기 */
+export function ruleSkill(m: string): { skill: '없음' | '놀이' | '기록'; game: 'tarot' | 'fortune' | 'words' | 'balance' } {
+  const game = /타로/.test(m) ? 'tarot' : /운세|사주/.test(m) ? 'fortune' : /끝말/.test(m) ? 'words' : 'balance';
+  if (/타로|운세|사주|끝말|밸런스|게임\s*(하|할|해)|놀자|놀아\s*줘/.test(m)) return { skill: '놀이', game };
+  if (/다녀온|갔던|가\s*봤던|지난번에.*(간|갔)|방문\s*기록|기분\s*기록/.test(m)) return { skill: '기록', game };
+  return { skill: '없음', game };
+}
+
+/** 스킬 "기록": 최근 다녀온 곳과 기분 변화(전→후). 기분이 가장 많이 오른 곳을 짚는다 */
+async function recentVisits(userId: number): Promise<string> {
+  const rows = await query<{ name: string | null; before: number | null; after: number | null }>(
+    `SELECT COALESCE(p.name, b.live_place) AS name, b.mood_before AS before, b.mood_after AS after
+     FROM bookings b LEFT JOIN experiences e ON e.id = b.experience_id LEFT JOIN places p ON p.id = e.place_id
+     WHERE b.user_id = $1 AND b.status = 'DONE' ORDER BY b.completed_at DESC NULLS LAST, b.id DESC LIMIT 3`,
+    [userId],
+  );
+  const list = rows.filter((r) => r.name);
+  if (!list.length) return '아직 다녀온 곳 기록이 없어. 오늘 가까운 데 한 곳 같이 찾아볼까?';
+  const text = list.map((r) => (r.before != null && r.after != null ? `${r.name}(기분 ${r.before}→${r.after}점)` : r.name)).join(', ');
+  const best = list.filter((r) => r.before != null && r.after != null).sort((a, b) => b.after! - b.before! - (a.after! - a.before!))[0];
+  return `최근에 다녀온 곳은 ${text}이야.${best && best.after! > best.before! ? ` ${best.name} 다녀와서 기분이 제일 많이 올랐네!` : ''} 비슷한 곳 찾아 줄까?`;
+}
 
 /** "그냥 추천해 줘", "아무거나": 고르기 싫다는 뜻이라 되묻지 않고 기본값으로 바로 추천한다 */
 export const justPick = (m: string) => /아무거나|알아서/.test(m) || (/그냥|상관없/.test(m) && /추천|골라|찾아|보여/.test(m));
@@ -214,14 +245,18 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   await say(s.id, 'user', message);
   if (SafetyGuard.check(message) || (await isSafeMode(userId))) return safetyReply(userId, s.id);
 
-  const history = await query<{ role: string; text: string }>(
-    `SELECT role, text FROM (SELECT * FROM messages WHERE session_id = $1 ORDER BY id DESC LIMIT 10) m ORDER BY id`,
-    [s.id],
-  );
+  const pos = validLatLng(body?.lat, body?.lng);
+  const [history, weather] = await Promise.all([
+    query<{ role: string; text: string }>(
+      `SELECT role, text FROM (SELECT * FROM messages WHERE session_id = $1 ORDER BY id DESC LIMIT 10) m ORDER BY id`,
+      [s.id],
+    ),
+    currentWeather(pos), // 스킬 "날씨": 키가 없으면 null (10분 캐시)
+  ]);
   const out = await callJson(
     client,
     BUNNY_PROMPT + TALK_FORMAT,
-    `${await memoryContext(userId)}지금까지 질문한 횟수: ${s.asks}\n앞서 읽어 낸 것: ${JSON.stringify(s.prefs)}\n대화:\n${history
+    `${await memoryContext(userId)}${weatherLine(weather)}지금까지 질문한 횟수: ${s.asks}\n앞서 읽어 낸 것: ${JSON.stringify(s.prefs)}\n대화:\n${history
       .map((m) => `${m.role === 'user' ? '친구' : '토끼'}: ${m.text}`)
       .join('\n')}`,
     TalkOut,
@@ -230,6 +265,24 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   void learnFromTurn(userId, message, client); // 기억 갱신은 기다리지 않는다
 
   s.prefs = mergePrefs(s.prefs, out, message);
+
+  // 스킬: AI가 고른 것, 놓쳤으면 말 속 단어로
+  const rule = ruleSkill(message);
+  const skill = out && out.skill !== '없음' ? out.skill : rule.skill;
+  if (skill === '놀이') {
+    const game = out && out.game !== '없음' ? out.game : rule.game;
+    const reply = (out?.skill === '놀이' && out.reply) || '좋아, 같이 놀자!';
+    await say(s.id, 'assistant', reply);
+    await save(s);
+    return { status: 200, body: { sessionId: s.id, action: 'play', game, reply, quickReplies: ['근처 갈 곳도 찾아 줘'], ...support(s.prefs) } };
+  }
+  if (skill === '기록') {
+    const reply = await recentVisits(userId);
+    await say(s.id, 'assistant', reply);
+    await save(s);
+    return { status: 200, body: { sessionId: s.id, action: 'none', reply, quickReplies: ['비슷한 곳 찾아 줘', '근처 갈 곳 찾아 줘'], ...support(s.prefs) } };
+  }
+
   // 묻기는 코드가 정한다: 필요를 모르고, 아직 덜 물었을 때만
   if (!s.prefs.need && s.asks < TALK_MAX_ASKS && !justPick(message)) {
     s.asks++;
@@ -240,8 +293,14 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   }
 
   const { prefs, assumed } = await fillPrefs(s.prefs);
+  // 스킬 "날씨": 비·눈·한파·폭염이면 바깥 활동(공원·산책)을 빼고 실내 위주로 (본인이 바깥을 원하면 그대로)
+  const advice = weatherAdvice(weather);
+  if (advice && !prefs.want.includes('바깥')) {
+    prefs.avoid = [...new Set([...prefs.avoid, '바깥' as Tag])];
+    assumed.push(advice);
+  }
   // 체험 DB(영남대 근처 예시 매장) + 실시간으로 찾은 근처 가게(어느 동네에서든). 같은 가게면 체험 DB 쪽을 남긴다
-  const cands = await allCandidates(validLatLng(body?.lat, body?.lng));
+  const cands = await allCandidates(pos);
   const done = await query<{ id: string; tags: string[]; before: number | null; after: number }>(
     `SELECT e.id, e.tags, b.mood_before AS before, b.mood_after AS after FROM bookings b JOIN experiences e ON e.id = b.experience_id
      WHERE b.user_id = $1 AND b.status = 'DONE'`,
