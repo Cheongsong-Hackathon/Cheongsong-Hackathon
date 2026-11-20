@@ -232,6 +232,9 @@ function WordChain() {
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState<string[]>([]); // 다음에 시작할 글자 (두음법칙 포함, AI 답일 때)
   const log = useRef<HTMLDivElement>(null);
+  // 무무가 답한 뒤 입력칸을 다시 누르지 않아도 되게: 생각하는 동안은 readOnly(포커스·키보드 유지), 답이 오면 다시 포커스
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (turns.length && !busy && !finished) input.current?.focus({ preventScroll: true }); }, [turns.length, busy, finished]);
   const streak = Math.floor(turns.length / 2);
   const turnLimit = mode === '스피드 모드' ? (limit || 10) : limit;
 
@@ -304,7 +307,7 @@ function WordChain() {
     <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <MumuGameHost />}<span>{word}!</span></div>)}</div>
     {notice && <p className="word-notice" role="status">{notice}</p>}
     {finished ? <button className="game-primary" onClick={() => { setTurns([]); setFinished(false); setDeadline(0); setNotice(''); setText(''); setNext([]); }}>다시 시작하기</button>
-      : <form className="word-composer" onSubmit={event => { event.preventDefault(); void submit(); }}><input aria-label="다음 단어" placeholder={next.length ? `‘${next.join('’이나 ‘')}’로 시작하는 단어…` : '다음 단어를 입력해줘…'} value={text} maxLength={20} disabled={busy} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={busy || !text.trim()}>➤</button></form>}
+      : <form className="word-composer" onSubmit={event => { event.preventDefault(); void submit(); }}><input ref={input} aria-label="다음 단어" enterKeyHint="send" autoComplete="off" placeholder={next.length ? `‘${next.join('’이나 ‘')}’로 시작하는 단어…` : '다음 단어를 입력해줘…'} value={text} maxLength={20} readOnly={busy} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={busy || !text.trim()}>➤</button></form>}
   </>;
 }
 
