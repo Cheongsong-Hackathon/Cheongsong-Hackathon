@@ -12,7 +12,6 @@ import Chat, { type Msg } from './Chat';
 import { sendTalk } from './talkClient';
 import Launcher from './Launcher';
 import Journal from './Journal';
-import MumuShop from './MumuShop';
 import PlaceExplore from './PlaceExplore';
 import LocationPicker, { type SavedLocation } from './LocationPicker';
 import useAppViewport from './useAppViewport';
@@ -37,10 +36,10 @@ import {
   type PartyResult,
 } from './screens';
 
-import MumuPlay, { MumuPet, MumuSpin } from './MumuPlay';
+import MumuPlay from './MumuPlay';
 import MumuGames, { type MumuGame } from './MumuGames';
 
-type Tab = 'community' | 'shop' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'pet' | 'spin' | 'game';
+type Tab = 'community' | 'profile' | 'home' | 'browse' | 'explore' | 'journal' | 'records' | 'talk' | 'play' | 'game';
 const TABS: { id: Tab; label: string; icon: string }[] = [
  {id:'home',label:'홈',icon:'M4 11l8-7 8 7v9h-5v-6H9v6H4z'},
  {id:'browse',label:'탐색',icon:'M10 3a7 7 0 1 0 0 14a7 7 0 1 0 0-14M15 15l6 6'},
@@ -93,6 +92,7 @@ export default function App() {
   });
   const [tab, setTab] = useState<Tab>(LOGIN_RETURN ? 'profile' : 'home');
   const [profileLocation, setProfileLocation] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
@@ -103,11 +103,11 @@ export default function App() {
   const voiceNext = useRef(false);
   useEffect(() => { if (tab === 'talk') voiceNext.current = false; }, [tab]);
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
-  const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'spin' || tab === 'game';
-  const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
+  const isMumuRoom = tab === 'play' || tab === 'talk' || tab === 'game';
+  const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
-  useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab]);
+  useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab, profileSaved]);
   const [ch, setCh] = useState<Character | null>(null);
   const [scarfPreference, setScarfPreference] = useState<boolean | null>(() => {
     try { const saved = localStorage.getItem(scarfStorageKey()); return saved === 'true' ? true : saved === 'false' ? false : null; }
@@ -152,6 +152,7 @@ export default function App() {
   const [cond, setCond] = useState<Conditions | null>(null);
   const [recs, setRecs] = useState<{ items: Item[]; free: FreeRec[]; widened: boolean; seen: string[] } | null>(null);
   const [confirm, setConfirm] = useState<Item | null>(null);
+  const [browseReturn, setBrowseReturn] = useState<'browse' | 'community' | 'profile'>('browse');
   const [requested, setRequested] = useState<Booking | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [party, setParty] = useState<PartyResult | null>(null);
@@ -323,8 +324,13 @@ export default function App() {
   // 홈 탭 안의 흐름: 마음 확인 → 추천 → 예약 확인 → 요청 완료
   const locationLabel=savedLocation?.label??(consent==='yes'?'현재 위치':'기본 동네');
   const placePick=(item:Item)=>{setConfirm(item);setTab('home');};
+  const openBrowseSpot=(item:Item, source:typeof browseReturn='browse')=>{
+    setBrowseReturn(source);
+    setConfirm(item);
+    setTab('browse');
+  };
   const showLocation=()=>{setProfileLocation(true);setTab('profile');};
-  const showReservations=()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
+  const showReservations=()=>{setProfileSaved(false);setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
   const homeScreen = <>
    <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}}/></div>
    {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
@@ -350,19 +356,18 @@ export default function App() {
             <LocationConsent onAnswer={answerConsent} location={locationPicker} />
           ) : (
             <div className="app">
-              <BookingNotification booking={active} error={refreshError} enabled={!safety && launched && landed && !!consent} onRetry={refresh} onView={()=>{setProfileLocation(false);setBookingExpanded(true);setTab('profile');}} />
+              <BookingNotification booking={active} error={refreshError} enabled={!safety && launched && landed && !!consent} onRetry={refresh} onView={showReservations} />
               <main className={`screen${isMumuRoom ? ' mumu-room-screen' : ''}`} ref={screenRef}>
 
                 {tab === 'explore' && <button className="btn text" onClick={() => setTab('talk')}>‹ 무무와 대화로</button>}
-                {tab === 'community' && <Community onNotifications={showReservations}/>}
-                {tab === 'shop' && <MumuShop ch={ch} onEquip={equipItem} equipBusy={equipBusy} onBack={() => setTab('profile')} />}
+                {tab === 'community' && <Community onNotifications={showReservations} position={position} onVisit={(item) => openBrowseSpot(item, 'community')} />}
                 {tab === 'browse' &&
                   (confirm ? (
-                    <Confirm item={confirm} busy={busy} onBack={() => setConfirm(null)} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
+                    <Confirm key={confirm.id} item={confirm} showReviews busy={busy} onBack={() => { setConfirm(null); setTab(browseReturn); }} onBook={(slot, mood) => book(confirm, slot, mood).then(() => setTab('home'))} />
                   ) : (
-                    <PlaceExplore key={tab} nearby={false} position={position} locationKey={JSON.stringify(savedLocation)+consent} locationLabel={locationLabel} onLocation={showLocation} onPick={placePick} onNotifications={showReservations}/>
+                    <PlaceExplore key={tab} nearby={false} position={position} locationKey={JSON.stringify(savedLocation)+consent} locationLabel={locationLabel} onLocation={showLocation} onPick={openBrowseSpot} onNotifications={showReservations}/>
                   ))}
-                {tab === 'profile' && <ProfilePage data={records} loading={recordsLoading} error={recordsError} locationLabel={locationLabel} locationOpen={profileLocation} locationPicker={locationPicker} bookingExpanded={bookingExpanded} onBookingExpanded={setBookingExpanded} onBackFromLocation={()=>setProfileLocation(false)} onLocation={showLocation} onRecords={()=>setTab('records')} onNewJournal={()=>{setJournalStart('record');setJournalKey(k=>k+1);setTab('journal');}} onJournals={()=>{setJournalStart('library');setJournalKey(k=>k+1);setTab('journal');}} onShop={()=>setTab('shop')} onExplore={()=>setTab('browse')} onPick={placePick} onPostpone={()=>setSheet({kind:'postpone'})} onNotifications={showReservations}
+                {tab === 'profile' && <ProfilePage data={records} loading={recordsLoading} error={recordsError} locationLabel={locationLabel} locationOpen={profileLocation} locationPicker={locationPicker} savedOpen={profileSaved} onSavedOpen={setProfileSaved} bookingExpanded={bookingExpanded} onBookingExpanded={setBookingExpanded} onBackFromLocation={()=>setProfileLocation(false)} onLocation={showLocation} onRecords={()=>setTab('records')} onNewJournal={()=>{setJournalStart('record');setJournalKey(k=>k+1);setTab('journal');}} onJournals={()=>{setJournalStart('library');setJournalKey(k=>k+1);setTab('journal');}} onExplore={()=>setTab('browse')} onPick={(item)=>openBrowseSpot(item, 'profile')} onNotifications={showReservations}
                   bookingDetails={active?<ActiveExperience active={active} onComplete={b=>setSheet({kind:'complete',booking:b})} onArrivalConfirmed={refresh} onCancel={async b=>{const r=await api.cancel(b.id);if(r.code!==200)return notify(r.error??'취소하지 못했어.');refresh();}}/>:null}/>}
                 {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
                 <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
@@ -397,8 +402,6 @@ export default function App() {
                   <MumuPlay
                     hearts={playHearts}
                     onHeart={earnPlayHeart}
-                    onPet={() => setTab('pet')}
-                    onSpin={() => setTab('spin')}
                     onGame={(game) => { setMumuGame(game); setTab('game'); }}
                     onChat={() => { setChatReturn('play'); setTab('talk'); }}
                     onVoice={canListen ? () => {
@@ -408,8 +411,6 @@ export default function App() {
                     } : undefined}
                   />
                 )}
-                {tab === 'pet' && <MumuPet hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
-                {tab === 'spin' && <MumuSpin hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
                 {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} onGame={(game) => { setMumuGame(game); setTab('game'); }} />}
               </main>
@@ -421,6 +422,7 @@ export default function App() {
                     aria-current={primaryTab === t.id}
                     onClick={() => {
                       setConfirm(null);
+                      setProfileSaved(false);
                       setTab(t.id);
                     }}
                   >

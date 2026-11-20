@@ -126,7 +126,10 @@
   position: absolute;
   inset: 72px 36px 17px;
   width: calc(100% - 72px);
+  touch-action: none;
+  user-select: none;
 }
+.room-voice { position: absolute; bottom: 9px; left: 9px; border: 1px solid #fff; border-radius: 50%; width: 36px; height: 36px; background: #faf4ff; cursor: pointer; }
 .room-character img, .pet-character img {
   display: block;
   width: 100%;

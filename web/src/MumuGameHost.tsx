@@ -1,6 +1,6 @@
-import motion from './assets/mumu/motion-game-host.webp';
+import motion from './assets/mumu/motion-game-host.gif';
 
-export const GAME_HOST_MOTION_MS = 1260;
+export const GAME_HOST_MOTION_MS = 1440;
 
 export default function MumuGameHost({ className = '' }: { className?: string }) {
   return <div className={`game-host ${className}`}>

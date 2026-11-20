@@ -106,7 +106,7 @@ function Tarot({ hearts, onBack }: { hearts: number; onBack: () => void }) {
     {header}
     <div className={`tarot-entry-content tarot-entry-content--${step}`}>
       <MumuGameScene theme="tarot">
-        {step === 'intro' ? <>오늘의 마음을 돌아볼까?<br />카드가 전하는 메시지를 만나봐! 💜</> : <>마음에 드는 카드를<br />한 장 골라봐! 💜</>}
+        {step === 'intro' ? '오늘의 메시지를 뽑아볼까?' : <>마음에 드는 카드를<br />한 장 골라봐! 💜</>}
       </MumuGameScene>
       <section className="game-panel tarot-pick">
         <h2>{step === 'intro' ? '카드 한 장을 골라봐!' : '카드 한 장을 골라줘!'}</h2>
@@ -200,14 +200,13 @@ function Balance() {
     <div className="balance-progress"><strong>{Math.min(votes.length + 1, rounds.length)} / {rounds.length}</strong><progress max={rounds.length} value={Math.min(votes.length + 1, rounds.length)} /></div>
     {current ? <>
       <section className="game-panel balance-question">
-        <small className="balance-theme">{topics[topic].icon} {topics[topic].name}</small>
-        <h2>✨ {current[0]} ✨</h2>
+        <small className="balance-theme">{topics[topic].name}</small>
+        <h2>{current[0]}</h2>
         <div>{current.slice(1).map((choice, index) => <button type="button" key={choice} onClick={() => setVotes(previous => [...previous, index])}>
-          <span className="balance-option-art" aria-hidden="true">{index === 0 ? topics[topic].icon : '🌟'}</span>
           <strong>{choice}</strong>
         </button>)}</div>
       </section>
-      <MumuGameScene theme="balance" layout="side">음~ 너라면<br />어느 쪽이야? 🤔</MumuGameScene>
+      <MumuGameScene theme="balance" layout="side">음~ 너라면<br />어느 쪽이야?</MumuGameScene>
     </> : <>
       <MumuGameScene theme="balance" layout="side">{rounds.length}가지 선택 완료! 💜</MumuGameScene>
       <section className="game-panel balance-result"><h2>내 선택 돌아보기</h2><ol>{rounds.map(([question, left, right], index) => <li key={index}>{question} <strong>{votes[index] === 0 ? left : right}</strong></li>)}</ol></section>

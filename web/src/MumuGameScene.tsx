@@ -9,13 +9,14 @@ export default function MumuGameScene({ theme, children, layout = 'center', tile
   layout?: 'center' | 'side';
   tiles?: boolean;
 }) {
-  const magical = theme === 'tarot' || theme === 'fortune';
-
   return <div className={`game-hero game-scene game-scene--${theme} game-scene--${layout}`}>
     <div className="game-scene-art" aria-hidden="true">
       <i className="scene-clouds" />
       <i className="scene-star scene-star--left" /><i className="scene-star scene-star--right" />
-      {magical && <>
+      {theme === 'tarot' && <>
+        <i className="tarot-room-window" /><i className="tarot-room-shelf" /><i className="tarot-room-table" />
+      </>}
+      {theme === 'fortune' && <>
         <i className="scene-moon" />
         <i className="scene-crystal" />
         <i className="scene-books"><b /><b /><b /></i>
