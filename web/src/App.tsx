@@ -92,6 +92,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>(LOGIN_RETURN ? 'profile' : 'home');
   const [profileLocation, setProfileLocation] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profilePosts, setProfilePosts] = useState(false);
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
   const [journalKey, setJournalKey] = useState(0);
@@ -106,7 +107,7 @@ export default function App() {
   const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
-  useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab, profileSaved]);
+  useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab, profileSaved, profilePosts]);
   const [ch, setCh] = useState<Character | null>(null);
   const [scarfPreference, setScarfPreference] = useState<boolean | null>(() => {
     try { const saved = localStorage.getItem(scarfStorageKey()); return saved === 'true' ? true : saved === 'false' ? false : null; }
@@ -328,8 +329,8 @@ export default function App() {
     setConfirm(item);
     setTab('browse');
   };
-  const showLocation=()=>{setProfileLocation(true);setTab('profile');};
-  const showReservations=()=>{setProfileSaved(false);setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
+  const showLocation=()=>{setProfilePosts(false);setProfileLocation(true);setTab('profile');};
+  const showReservations=()=>{setProfilePosts(false);setProfileSaved(false);setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
   const homeScreen = <>
    <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}}/></div>
    {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
@@ -366,8 +367,12 @@ export default function App() {
                   ) : (
                     <PlaceExplore key={tab} nearby={false} position={position} locationKey={JSON.stringify(savedLocation)+consent} locationLabel={locationLabel} onLocation={showLocation} onPick={openBrowseSpot} onNotifications={showReservations}/>
                   ))}
-                {tab === 'profile' && <ProfilePage data={records} loading={recordsLoading} error={recordsError} locationLabel={locationLabel} locationOpen={profileLocation} locationPicker={locationPicker} savedOpen={profileSaved} onSavedOpen={setProfileSaved} bookingExpanded={bookingExpanded} onBookingExpanded={setBookingExpanded} onBackFromLocation={()=>setProfileLocation(false)} onLocation={showLocation} onRecords={()=>setTab('records')} onNewJournal={()=>{setJournalStart('record');setJournalKey(k=>k+1);setTab('journal');}} onJournals={()=>{setJournalStart('library');setJournalKey(k=>k+1);setTab('journal');}} onExplore={()=>setTab('browse')} onPick={(item)=>openBrowseSpot(item, 'profile')} onNotifications={showReservations}
-                  bookingDetails={active?<ActiveExperience active={active} onComplete={b=>setSheet({kind:'complete',booking:b})} onArrivalConfirmed={refresh} onCancel={async b=>{const r=await api.cancel(b.id);if(r.code!==200)return notify(r.error??'취소하지 못했어.');refresh();}}/>:null}/>}
+                {tab === 'profile' && (profilePosts ? (
+                  <Community onBack={() => setProfilePosts(false)} onNotifications={showReservations} onVisit={item => openBrowseSpot(item, 'profile')} />
+                ) : (
+                  <ProfilePage data={records} loading={recordsLoading} error={recordsError} locationLabel={locationLabel} locationOpen={profileLocation} locationPicker={locationPicker} savedOpen={profileSaved} onSavedOpen={setProfileSaved} onPostsOpen={() => setProfilePosts(true)} bookingExpanded={bookingExpanded} onBookingExpanded={setBookingExpanded} onBackFromLocation={()=>setProfileLocation(false)} onLocation={showLocation} onRecords={()=>setTab('records')} onNewJournal={()=>{setJournalStart('record');setJournalKey(k=>k+1);setTab('journal');}} onJournals={()=>{setJournalStart('library');setJournalKey(k=>k+1);setTab('journal');}} onExplore={()=>setTab('browse')} onPick={(item)=>openBrowseSpot(item, 'profile')} onNotifications={showReservations}
+                    bookingDetails={active?<ActiveExperience active={active} onComplete={b=>setSheet({kind:'complete',booking:b})} onArrivalConfirmed={refresh} onCancel={async b=>{const r=await api.cancel(b.id);if(r.code!==200)return notify(r.error??'취소하지 못했어.');refresh();}}/>:null}/>
+                ))}
                 {tab === 'records' && <button className="btn text" onClick={() => setTab('profile')}>‹ 마이페이지로</button>}
                 <div className="home-host" hidden={tab !== 'home'}>{homeScreen}</div>
                 {tab === 'explore' &&
@@ -422,6 +427,7 @@ export default function App() {
                     onClick={() => {
                       setConfirm(null);
                       setProfileSaved(false);
+                      setProfilePosts(false);
                       setTab(t.id);
                     }}
                   >
