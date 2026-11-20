@@ -263,14 +263,14 @@ function WordChain() {
     if (busy || finished || (deadline && deadline <= Date.now())) return;
     const word = text.trim();
     const left = deadline ? deadline - Date.now() : 0; // 무무가 생각하는 동안은 시간이 흐르지 않게
-    setDeadline(0); setBusy(true); setNotice('무무가 생각하는 중…');
+    // 보내자마자 내 단어를 기록에 먼저 넣고(무무는 "…" 생각 중), 안 되는 단어면 다시 빼고 입력칸에 돌려준다
+    setDeadline(0); setBusy(true); setNotice(''); setTurns([...turns, word]); setText('');
     const r = await api.wordChain({ history: turns, word, level });
     setBusy(false);
-    if (r.code === 0 || r.code >= 500) { if (left) setDeadline(Date.now() + left); return localTurn(word); }
-    if (!r.ok) { setNotice(r.reason ?? '다른 단어로 해 볼래?'); if (left) setDeadline(Date.now() + left); return; }
+    if (r.code === 0 || r.code >= 500) { setTurns(turns); setText(word); if (left) setDeadline(Date.now() + left); return localTurn(word); }
+    if (!r.ok) { setTurns(turns); setText(word); setNotice(r.reason ?? '다른 단어로 해 볼래?'); if (left) setDeadline(Date.now() + left); return; }
     const used = [...turns, word];
     setBest(value => Math.max(value, Math.floor(used.length / 2)));
-    setText('');
     if (!r.reply) { setTurns(used); setFinished(true); setNotice(r.comment || '네가 이겼어!'); return; }
     setTurns([...used, r.reply]); setNext(r.next ?? []); setNotice(r.comment ?? ''); resetTimer();
   }
@@ -304,7 +304,7 @@ function WordChain() {
   return <>
     <div className="word-score"><span>연속 성공<br /><strong>{streak}개 🔥</strong></span><b>{turnLimit ? remaining : '∞'}</b><span>최고 기록<br /><strong>{best}개 🏆</strong></span></div>
     <MumuGameScene theme="words" layout="side">그럼 내가 먼저 할게!<br /><strong>{turns[0]}!</strong></MumuGameScene>
-    <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <MumuGameHost />}<span>{word}!</span></div>)}</div>
+    <div className="word-log" ref={log} role="log">{turns.map((word, i) => <div key={word} className={i % 2 ? 'mine' : 'mumu'}>{i % 2 === 0 && <MumuGameHost />}<span>{word}!</span></div>)}{busy && <div className="mumu word-thinking" aria-label="무무가 생각하는 중"><MumuGameHost /><span>…</span></div>}</div>
     {notice && <p className="word-notice" role="status">{notice}</p>}
     {finished ? <button className="game-primary" onClick={() => { setTurns([]); setFinished(false); setDeadline(0); setNotice(''); setText(''); setNext([]); }}>다시 시작하기</button>
       : <form className="word-composer" onSubmit={event => { event.preventDefault(); void submit(); }}><input ref={input} aria-label="다음 단어" enterKeyHint="send" autoComplete="off" placeholder={next.length ? `‘${next.join('’이나 ‘')}’로 시작하는 단어…` : '다음 단어를 입력해줘…'} value={text} maxLength={20} readOnly={busy} onChange={event => setText(event.target.value)} /><button type="submit" aria-label="단어 보내기" disabled={busy || !text.trim()}>➤</button></form>}
