@@ -410,3 +410,4 @@
 .mumu-chat .mumu-chat-modes { margin: 0 0 2px; }
 .mumu-chat .composer { padding-top: 4px; }
 #root .mumu-chat .mumu-quick-replies .chip { font-size: 13px !important; }
+#root .mumu-chat .mumu-quick-replies .chip { font-size: 12px !important; }
