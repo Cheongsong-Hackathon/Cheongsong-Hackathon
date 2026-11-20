@@ -1,5 +1,5 @@
 ﻿import type { Item, LatLng } from './api';
-export type TalkOffer = { items: Item[]; assumptions?: string; quickReplies?: string[]; support?: { text: string; lines: { name: string; tel: string }[] } };
+export type TalkOffer = { items: Item[]; prefs?: { need: string | null; energy: string | null; want: string[]; avoid: string[] }; assumptions?: string; quickReplies?: string[]; support?: { text: string; lines: { name: string; tel: string }[] } };
 export type TalkReply = Partial<TalkOffer> & { code: number; sessionId?: number | null; action?: 'ask' | 'recommend' | 'none' | 'safety'; state?: string; reply?: string; error?: string };
 /** Existing POST /api/talk contract. No intent inference or payment decisions on the client. */
 export async function sendTalk(sessionId: number | null, message: string, position: LatLng | null): Promise<TalkReply> {
