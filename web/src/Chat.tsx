@@ -1,44 +1,28 @@
-import { conversationExpressions } from './chatExpression';
-import { useCharacterExpression } from './CharacterExpression';
-// 선택형 속마음 대화: 무무의 공감·위로만. 추천이나 예약을 권하지 않는다.
+import MumuArtwork, {MumuLoading} from './MumuArtwork';
+import {PhoneStatus} from './MumuWelcome';
+// Existing conversation API supplies replies and optional experience recommendations.
 import { useEffect, useRef, useState } from 'react';
-import Bunny from './Bunny';
 import type { Item } from './api';
 import type { TalkOffer } from './talkClient';
-import { TopBar } from './screens';
-
-// 답장을 기다리는 동안 무엇을 하는 중인지 보여 준다 (AI 읽기 → 카카오 가게 검색 → 구글 사진, 몇 초 걸림)
-const STEPS = ['기분 읽는 중…', '근처 가게 찾는 중…', '사진 가져오는 중…', '거의 다 됐어…'];
-function Waiting() {
-  const [i, setI] = useState(-1);
-  useEffect(() => {
-    const t = setInterval(() => setI((x) => Math.min(x + 1, STEPS.length - 1)), 1500);
-    return () => clearInterval(t);
-  }, []);
-  return i < 0 ? null : <small className="waiting-step" role="status">{STEPS[i]}</small>;
-}
 
 export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support'] };
 
 export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
   const [text, setText] = useState('');
-  const { expression } = useCharacterExpression();
-  const expressions = conversationExpressions(p.msgs, expression);
-  const currentExpression = expressions[expressions.length - 1] ?? expression;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [p.msgs.length, p.busy, p.retry]);
 
   return (
-    <div className="chat">
-      <TopBar onBack={p.onBack} />
+    <div className="chat mumu-chat">
+      <PhoneStatus/><header className="mumu-chat-header"><button aria-label="홈으로" onClick={p.onBack}>‹</button><MumuArtwork className="chat-header-logo"/><strong>무무와 대화</strong></header><div className="mumu-chat-hero"><MumuArtwork kind="community"/><p>오늘은 어떤 기분이야?<br/>무무한테 편하게 말해줘! 💜</p></div><div className="mumu-chat-modes">{['💬 고민 털어놓기','🌱 기분 점검하기','✨ 해결책 받기'].map(t=><button key={t} disabled={p.busy} onClick={()=>p.onSend(t.slice(3))}>{t}</button>)}</div>
       <p className="notice">무무와 대화 · 무무는 AI 캐릭터예요. 대화는 비공개이고 전문 상담을 대신하지 않아요.</p>
       <div className="log" aria-live="polite">
         {p.msgs.map((m, i) =>
           m.who === 'bunny' ? (
             <div key={i} className="mumu-chat-turn"><div className="say">
-              <Bunny size={40} faceOnly expression={expressions[i]} />
+              <MumuArtwork kind="community" className="chat-avatar"/>
               <div className="bubble bunny">{m.text}</div>
             </div>
             {!!m.offer?.items.length && <section className="card mumu-talk-offer"><span className="eyebrow">대화에서 찾은 작은 경험</span><strong>지금 너에게 어울릴 만한 체험 {m.offer.items.length}개를 찾았어</strong>{m.offer.assumptions && <p className="small mute">{m.offer.assumptions}</p>}<button className="btn" disabled={p.busy} onClick={() => p.onExperiences(m.offer!.items)}>무무가 찾은 체험 보기 ›</button></section>}
@@ -53,13 +37,13 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         )}
         {p.busy && (
           <div className="say">
-            <Bunny size={40} faceOnly expression={currentExpression} />
+            <MumuArtwork className="chat-avatar"/>
             <div className="bubble bunny typing" aria-label="무무가 생각하는 중">
               <i />
               <i />
               <i />
             </div>
-            <Waiting />
+            <MumuLoading message="무무가 생각하고 있어요"/>
           </div>
         )}
         {p.retry && <div className="card" role="status">

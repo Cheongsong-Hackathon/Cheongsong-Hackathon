@@ -2,7 +2,6 @@ import { MumuWardrobeProvider } from './MumuWardrobe';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
-import './typography.css';
 import './journal.css';
 import { AccessoryColorsProvider } from './AccessoryColors';
 import { CharacterExpressionProvider } from './CharacterExpression';
@@ -14,3 +13,11 @@ import './mumu-design.css';
 import './trip-design.css';
 
 import './profile-nearby.css';
+
+import './palette.css';
+
+import './typography.css';
+
+import './mumu-artwork.css';
+
+import './mumu-flows.css';

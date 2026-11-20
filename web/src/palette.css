@@ -1,0 +1,23 @@
+/* App palette: lavender / soft lavender / pale lavender / charcoal.
+   Adjust these tokens to change the shared interface colors. */
+:root{--primary:#a68be8;--accent:#ddd1fa;--bg:#f8f5ff;--card:#fff;--ink:#403a50;--mute:#756b85;--line:#ddd1fa;--purple:var(--primary);--purple-d:#74619e;--lav:#ede7fa;--lav2:#f8f5ff;--hl:var(--accent)}
+body{background:#ede7fa}.frame,.screen{background:var(--bg)}
+.new-home,.new-welcome,.trip-main,.trip-explore,.trip-conditions,.nearby-page,.profile-page{background:var(--bg);color:var(--ink)}
+.trip-brand>strong,.new-brand>strong{color:#74619e}
+.new-primary{background:var(--primary);color:var(--ink);box-shadow:0 4px 12px #a68be830}
+.new-primary:disabled{opacity:.6}
+.trip-condition-card,.trip-analysis,.trip-place,.nearby-place-row,.profile-stats,.profile-menu-card,.profile-activity-grid button,.profile-activity-panel{background:var(--card);border-color:var(--line)}
+.trip-page-title,.nearby-intro h1,.profile-identity h2,.trip-main-comfort h1,.trip-section-title,.profile-section-title,.nearby-list-title{color:var(--ink)}
+.trip-options>button[aria-pressed=true],.trip-category-options>button[aria-pressed=true],.nearby-categories>button[aria-pressed=true],.trip-explore-categories>button[aria-pressed=true],.profile-taste-options>button[aria-pressed=true],.trip-community .community-filters button[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:var(--ink)}
+.trip-rank{background:var(--accent);color:var(--ink)}
+.profile-plus{background:var(--accent);border-color:#a68be8;color:var(--ink)}.profile-plus>span,.profile-plus>small{color:var(--ink)}
+.tabs{background:#ffffffed;border-top-color:var(--line)}.tabs button{color:#756b85}.tabs button.active,.tabs button[aria-current=page]{color:#74619e;background:#ede7fa}
+.profile-dialog{background:var(--bg);color:var(--ink);border-color:#ddd1fa}.profile-dialog::backdrop{background:#403a5055}
+.nearby-map-marker span{background:var(--primary);color:var(--ink);box-shadow:0 2px 5px #74619e40}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #74619e;outline-offset:3px}
+
+:root{--primary:#A68BE8;--accent:#DDD1FA;--bg:#F8F5FF;--card:#EDE7FA;--ink:#403A50;--mute:#756b85;--line:#DDD1FA}
+.trip-place-content strong,.nearby-row-open strong,.profile-menu-card strong,.profile-stats strong,.new-home-hero h1,.welcome-copy h1{color:var(--ink)}
+.profile-plus{background:var(--primary);border-color:var(--primary);color:var(--ink)}
+.tabs button.on{color:#74619e;background:#EDE7FA;border-radius:14px}
+.new-primary{color:#403A50}.mood-line textarea{background:#EDE7FA;border-color:#DDD1FA;color:#403A50}.mood-line textarea:focus{border-color:#A68BE8}
