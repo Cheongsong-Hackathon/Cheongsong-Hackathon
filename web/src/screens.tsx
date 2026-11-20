@@ -7,6 +7,7 @@ import Art from './Art';
 import PlaceArt from './PlaceArt';
 import PlaceReviewPanel from './PlaceReviewPanel';
 import Bunny from './Bunny';
+import { PhoneStatus } from './MumuWelcome';
 import Arrival from './Arrival';
 import AccessoryColorPicker from './AccessoryColorPicker';
 import { COLOR_ITEMS } from './AccessoryColors';
@@ -153,6 +154,7 @@ const FREE_ART: Record<string, string> = { 카페: 'tea', 도서관: 'book', 공
 export function Recs(p: { items: Item[]; free: FreeRec[]; widened: boolean; busy: boolean; onPick: (i: Item) => void; onMore: () => void; onBack: () => void }) {
   return (
     <div className="page">
+      <PhoneStatus />
       <TopBar onBack={p.onBack} />
       <h1 className="title">
         지금 너에게 어울리는 경험<span className="spark" aria-hidden="true">˚✧</span>
@@ -215,6 +217,7 @@ export function Confirm(p: { item: Item; busy: boolean; showReviews?: boolean; o
   const [mood, setMood] = useState<number | null>(null); // 체험 전 기분: 다녀온 뒤 "전 → 후"와 기분 기록에 쓴다 (안 골라도 됨)
   return (
     <div className="page">
+      <PhoneStatus />
       <TopBar onBack={p.onBack} />
       <h1 className="title">
         {p.showReviews ? '스팟 상세' : '여기 가 볼래?'}<span className="spark" aria-hidden="true">˚✧</span>
@@ -252,6 +255,7 @@ export function Confirm(p: { item: Item; busy: boolean; showReviews?: boolean; o
 export function Requested({ booking, ch, onHome }: { booking: Booking; ch: Character | null; onHome: () => void }) {
   return (
     <div className="page center-col">
+      <PhoneStatus />
       <Bunny size={170} happy layerScarf item={ch?.equipped ?? null} stage={ch?.stage ?? 1} />
       <h1 className="title center">네이버에서 예약을 마무리해 줘!</h1>
       <div className="card soft">
@@ -425,6 +429,7 @@ export function Records(p: { view?: 'shop' | 'records'; ch: Character | null; da
   const pct = c ? (c.nextStageExp ? Math.min(100, ((c.exp - c.stageMinExp) / span) * 100) : 100) : 0;
   return (
     <div className="page">
+      <PhoneStatus />
       <TopBar />
       <div className="row record-hero">
         <h1 className="title">
@@ -555,6 +560,7 @@ export function LoadState({ loading, message, onRetry }: { loading: boolean; mes
 export function Explore({ items, error, onRetry, onPick }: { items: Item[] | null; error: string; onRetry: () => void; onPick: (i: Item) => void }) {
   return (
     <div className="page">
+      <PhoneStatus />
       <TopBar />
       <DemoNote />
       <h1 className="title">무무가 찾은 체험</h1>

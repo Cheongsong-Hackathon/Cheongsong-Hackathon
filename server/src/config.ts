@@ -42,6 +42,10 @@ export const config = {
   ncpClientId: env.NCP_CLIENT_ID ?? '',
   ncpClientSecret: env.NCP_CLIENT_SECRET ?? '',
   ttsSpeaker: env.TTS_SPEAKER ?? 'nara',
+  // 날씨 반영(비·눈·한파·폭염이면 실내 위주). 기상청(공공데이터포털 단기예보 조회서비스, 일반 인증키 Decoding)이 먼저,
+  // 없으면 OpenWeatherMap, 둘 다 비우면 날씨 없이 추천
+  kmaServiceKey: env.KMA_SERVICE_KEY ?? '',
+  openWeatherKey: env.OPENWEATHER_API_KEY ?? '',
   googlePlacesKey: env.GOOGLE_PLACES_KEY ?? '', // 제휴 매장 실제 사진. 비우면 지금 그림 그대로
   // 시연 초기화(/api/demo/reset) 비밀 값. 비우면 이 컴퓨터(localhost)에서만 초기화할 수 있다
   resetToken: env.RESET_TOKEN ?? '',

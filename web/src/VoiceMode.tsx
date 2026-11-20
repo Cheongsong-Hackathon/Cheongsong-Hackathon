@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { Msg } from './Chat';
+import { GAME_NAMES, type MumuGame } from './MumuGames';
 import { canListen, listen, speak, stopSpeaking } from './voice';
 import face from './assets/mumu/mood-happy.webp';
 import talking from './assets/mumu/motion-cheer.webp';
@@ -16,7 +17,7 @@ const STATUS: Record<Phase, string> = {
   paused: '무무를 누르면 다시 들을게',
 };
 
-export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: string) => void; onRetry: () => void; onExperiences: (items: Item[]) => void; onClose: () => void }) {
+export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: string) => void; onRetry: () => void; onExperiences: (items: Item[]) => void; onClose: () => void; onGame?: (game: MumuGame) => void }) {
   const [phase, setPhaseState] = useState<Phase>(canListen ? 'listening' : 'paused');
   const [caption, setCaption] = useState('');
   const [error, setError] = useState(canListen ? '' : '이 브라우저는 음성 인식을 지원하지 않아요. 크롬이나 엣지에서 열어 주세요.');
@@ -81,6 +82,7 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
     </button>
     <p className="voice-caption">{caption || (phase === 'paused' && reply ? reply.text : '')}</p>
     {reply?.support && <aside className="voice-support"><p>{reply.support.text}</p>{reply.support.lines.map((line) => <a key={line.tel} href={`tel:${line.tel.replace(/[^+0-9]/g, '')}`}>{line.name} {line.tel}</a>)}</aside>}
+    {reply?.play && p.onGame && <button type="button" className="new-primary" onClick={() => p.onGame!(reply.play!)}>🎮 무무랑 {GAME_NAMES[reply.play]} 하러 가기 →</button>}
     {!!reply?.offer?.items.length && <button type="button" className="new-primary" onClick={() => p.onExperiences(reply.offer!.items)}>무무가 찾은 곳 {reply.offer.items.length}개 보기 →</button>}
     {p.retry && <button type="button" className="voice-retry" onClick={() => { setPhase('thinking'); p.onRetry(); }}>다시 보내기</button>}
     {error && <p className="voice-error" role="alert">{error}</p>}

@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { justPick, mergePrefs, TalkOut } from '../src/services/talk.js';
+import { evidenceOf, justPick, mergePrefs, ruleSkill, TalkOut } from '../src/services/talk.js';
+
+test('추천 근거 칩: 점수를 올린 사실만 사람 말로, 감점·가까움은 빼고 걸어서 몇 분은 늘', () => {
+  assert.deepEqual(
+    evidenceOf(['쉬기에 맞음(가만히 쉬기, 조용함) +4', '지금 기운으로 할 만함 +2', '전에 해 보고 기분이 올랐음 +3', '가까움 +1', '쉬기와 반대(소리 내기) -4'], 8),
+    ['가만히 쉬기·조용함 → 쉬고 싶은 마음에 맞음', '지금 기운으로 할 만함', '전에 다녀와서 기분이 올랐던 곳', '걸어서 8분'],
+  );
+  assert.deepEqual(evidenceOf(['원하는 것(바깥) +2', '지금 기운엔 조금 버거움 -3'], 15), ['말한 대로 바깥', '걸어서 15분']);
+});
+
+test('스킬: AI가 놓쳐도 말 속 단어로 놀이(게임 종류)·기록을 고른다', () => {
+  assert.deepEqual(ruleSkill('타로 봐 줘'), { skill: '놀이', game: 'tarot' });
+  assert.deepEqual(ruleSkill('오늘 운세 어때'), { skill: '놀이', game: 'fortune' });
+  assert.deepEqual(ruleSkill('끝말잇기 하자'), { skill: '놀이', game: 'words' });
+  assert.equal(ruleSkill('심심해 놀자').skill, '놀이');
+  assert.equal(ruleSkill('지난번에 갔던 데 어땠지?').skill, '기록');
+  assert.equal(ruleSkill('지쳐서 조용히 쉬고 싶어').skill, '없음');
+});
 
 const out = (o: Record<string, unknown> = {}) => TalkOut.parse({ reply: '', risk: 'NONE', ...o });
 

@@ -22,6 +22,7 @@ export type Item = {
   availableSlots: string[];
   slots: string[];
   reason?: string;
+  evidence?: string[]; // 추천 근거 칩 (서버가 점수를 올린 사실만 사람 말로) → 대화 카드의 "왜 여기?"
   surprise?: boolean; // "평소와 다른 하나": 맞춤 추천 끝에 일부러 섞은 다른 종류 (많아도 1개)
 };
 export type Booking = {

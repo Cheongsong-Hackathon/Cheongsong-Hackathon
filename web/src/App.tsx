@@ -6,6 +6,7 @@ import Community from './Community';
 import BookingNotification, { BookingAlerts } from './BookingNotification';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { canListen } from './voice';
+import { PhoneStatus } from './MumuWelcome';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import { sendTalk } from './talkClient';
@@ -303,7 +304,7 @@ export default function App() {
       return;
     }
     if (r.sessionId) setSessionId(r.sessionId);
-    setMsgs((m) => [...m, { who: 'bunny', text: (r.reply ?? '').replace(/무드패스|토끼/g, '무무'), offer: r.action === 'recommend' && r.items?.length ? { items: r.items, assumptions: r.assumptions } : undefined, quickReplies: r.quickReplies, support: r.support }]);
+    setMsgs((m) => [...m, { who: 'bunny', text: (r.reply ?? '').replace(/무드패스|토끼/g, '무무'), offer: r.action === 'recommend' && r.items?.length ? { items: r.items, assumptions: r.assumptions, prefs: r.prefs, science: r.science } : undefined, quickReplies: r.quickReplies, support: r.support, play: r.action === 'play' ? r.game : undefined }]);
   }
 
   async function backFromSafety() {
@@ -394,7 +395,7 @@ export default function App() {
                   ))}
                 {tab === 'records' && (
                   recordsLoading || recordsError ? (
-                    <div className="page">
+                    <div className="page"><PhoneStatus />
                       <LoadState loading={recordsLoading} message={recordsError || '마음 기록을 불러오는 중이야…'} onRetry={loadRecords} />
                     </div>
                   ) : <Records
@@ -427,7 +428,7 @@ export default function App() {
                   />
                 )}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
-                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} />}
+                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} onGame={(game) => { setMumuGame(game); setTab('game'); }} onPick={placePick} />}
               </main>
               {!(tab === 'journal' && journalFocus) && <nav className={`tabs${isMumuRoom ? ' mumu-room-tabs' : ''}`} aria-label="메뉴">
                 {TABS.map((t) => (

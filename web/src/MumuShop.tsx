@@ -1,6 +1,7 @@
 import { OutfitContext, useOutfit } from './Outfit';
 import { useState } from 'react';
 import Bunny from './Bunny';
+import { PhoneStatus } from './MumuWelcome';
 import ClothingIcon from './ClothingIcon';
 import { AccessoryColorOverride, useAccessoryColors, type ColorItem } from './AccessoryColors';
 import { useMumuWardrobe } from './MumuWardrobe';
@@ -41,7 +42,7 @@ export default function MumuShop({ ch, onBack, onEquip, equipBusy }: { ch: Chara
  const previewItem=picked&&!clothes(picked)?picked:ch?.equipped??null;
  const model=<OutfitContext.Provider value={{scarf:picked==='scarf'?true:outfit.scarf}}><Bunny size={240} layerScarf stage={ch?.stage??1} item={previewItem} previewClothes={{owned:state.owned,equipped:picked&&clothes(picked)?picked:state.equipped,colors:{...state.colors,...colors}}} /></OutfitContext.Provider>;
  const options=panel==='closet'?ITEMS.filter(item=>owned(item.id)):ITEMS;
- return <div className="page mumu-shop mumu-simple-shop">
+ return <div className="page mumu-shop mumu-simple-shop"><PhoneStatus />
   <button className="btn text back-link" onClick={onBack}>‹ 마이페이지</button>
   <header className="mumu-shop-heading"><span>MU MU DRESS ROOM</span><h1 className="title">무무의 작은 옷방</h1><p>오늘의 무무에게 어울리는 한 벌</p></header>
   <div className="mumu-simple-stage">{picked&&!clothes(picked)?<AccessoryColorOverride item={picked as ColorItem} color={color}>{model}</AccessoryColorOverride>:model}<span>{selected?`${selected.name} 시착 중`:'어떤 모습도 사랑스러운 무무'}</span></div>

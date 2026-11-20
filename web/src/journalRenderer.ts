@@ -1,4 +1,4 @@
-import mumuIcon from './assets/mumu/face.webp';
+import mumuIcon from './assets/mumu/face.webp'; // 도감 카드의 무무 얼굴
 import { paintSticker } from './journalStickers';
 export type JournalDecoration = { id: string; text: string; x: number; y: number; size: number; color: string; kind?: 'sticker' | 'text'; sticker?: string; font?: string; align?: CanvasTextAlign };
 export type JournalEntry = {

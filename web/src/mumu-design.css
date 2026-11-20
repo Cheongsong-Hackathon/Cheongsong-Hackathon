@@ -1,6 +1,8 @@
 /* Shared visual language from the supplied welcome and mood-selection references. */
 :root { --purple:#74619e; --purple-d:#74619e; --lav:#ede7fa; --ink:#403a50; --mute:#74619e; --bg:#f8f5ff; }
-.new-phone-status { display:flex; justify-content:space-between; align-items:center; padding:8px 18px 0; height:10px; font-size:12px; color:#403a50; flex-shrink:0; }
+/* 상태 표시줄(시간·와이파이·배터리): 글자(12px)·아이콘(14px)이 들어갈 높이를 주고, 휴대폰 둥근 모서리에 안 잘리게 양옆을 띄운다 (실행기 화면과 같은 느낌) */
+.new-phone-status { display:flex; justify-content:space-between; align-items:center; box-sizing:border-box; padding:8px 28px 0; height:32px; min-height:32px; font-size:12px; line-height:1; color:#403a50; flex-shrink:0; overflow:visible; }
+.new-phone-status svg { flex-shrink:0; }
 .new-brand { display:flex; align-items:center; justify-content:space-between; min-height:52px; flex-shrink:0; }
 .new-brand > strong { font-size:23px; font-weight:900; color:#74619e; letter-spacing:-1px; }
 .new-brand > button { padding:8px; border:0; background:none; cursor:pointer; }
