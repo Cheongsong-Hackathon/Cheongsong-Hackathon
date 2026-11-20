@@ -75,7 +75,6 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         <button type="button" aria-label="채팅방 안내" aria-expanded={showInfo} onClick={() => setShowInfo(value => !value)}>•••</button>
       </header>
       {showInfo && <p className="notice">무무는 AI 캐릭터예요. 전문 상담을 대신하지 않아요.</p>}
-      <div className="mumu-chat-hero">{canListen ? <button type="button" className="voice-open" aria-label="무무와 음성 대화" onClick={() => setVoiceMode(true)}><img src={portrait} alt="" /></button> : <img src={portrait} alt="" />}</div>
       <div className="mumu-chat-modes">
         {STARTERS.map(([icon, label, say]) => <button key={label} type="button" disabled={p.busy || p.retry} onClick={() => p.onSend(say)}>{icon} {label}</button>)}
       </div>
