@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { stickerGroups, stickerNames, stickerShapes } from './journalStickers';
 import { themes, type JournalEntry, type JournalDecoration } from './journalRenderer';
+import mumuFace from './assets/mumu/face.webp';
 export type Tool = '테마 변경' | '배경' | '스티커' | '텍스트' | '프레임';
 export function StickerIcon({ id }: { id: string }) {
+  if (id === 'bunny') return <svg viewBox="0 0 68 68" aria-hidden="true"><image href={mumuFace} width="68" height="68" /></svg>;
   return <svg viewBox="0 0 68 68" aria-hidden="true">{stickerShapes(id).map((s, i) => <path key={i} d={s.d} fill={s.fill} stroke={s.stroke} strokeWidth={s.width ?? 2} strokeLinecap="round" strokeLinejoin="round" />)}</svg>;
 }
 const colors = ['#29232e', '#ae875e', '#a48acf', '#efb1cf', '#f5cb9a', '#ffe39a', '#b5dcd0'];

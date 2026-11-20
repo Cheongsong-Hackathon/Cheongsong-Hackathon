@@ -11,7 +11,7 @@ type Profile={name:string;handle:string;bio:string};
 function profileKey(){try{return `mumu.profile.${localStorage.getItem('moodpass-user')??'guest'}`;}catch{return 'mumu.profile.guest';}}
 function readProfile():Profile{try{const v=JSON.parse(localStorage.getItem(profileKey())??'null');if(v&&typeof v.name==='string'&&typeof v.handle==='string'&&typeof v.bio==='string')return v;}catch{}return {name:'나의 하루',handle:'mumu',bio:'오늘도 무무와 함께, 작은 기분전환 💜'};}
 function readTaste():string[]{try{const v=JSON.parse(localStorage.getItem('mumu.tastes')??'[]');return Array.isArray(v)?v.filter(t=>typeof t==='string'):[];}catch{return [];}}
-export default function ProfilePage(p:{data:RecordsData|null;loading:boolean;error:string;locationLabel:string;locationOpen:boolean;locationPicker:ReactNode;savedOpen:boolean;onSavedOpen:(open:boolean)=>void;bookingDetails:ReactNode;bookingExpanded:boolean;onBookingExpanded:(open:boolean)=>void;onBackFromLocation:()=>void;onLocation:()=>void;onRecords:()=>void;onNewJournal:()=>void;onJournals:()=>void;onExplore:()=>void;onPick:(item:Item)=>void;onNotifications:()=>void}){
+export default function ProfilePage(p:{data:RecordsData|null;loading:boolean;error:string;locationLabel:string;locationOpen:boolean;locationPicker:ReactNode;savedOpen:boolean;onSavedOpen:(open:boolean)=>void;onPostsOpen:()=>void;bookingDetails:ReactNode;bookingExpanded:boolean;onBookingExpanded:(open:boolean)=>void;onBackFromLocation:()=>void;onLocation:()=>void;onRecords:()=>void;onNewJournal:()=>void;onJournals:()=>void;onExplore:()=>void;onPick:(item:Item)=>void;onNotifications:()=>void}){
  const [profile,setProfile]=useState(readProfile),[draft,setDraft]=useState(profile),[taste,setTaste]=useState<string[]>(readTaste),[modal,setModal]=useState(''),[error,setError]=useState(''),[panel,setPanel]=useState('');const dialog=useRef<HTMLDialogElement>(null);
  const [,updateSaved]=useState(0);useEffect(()=>{const update=()=>updateSaved(v=>v+1);window.addEventListener('mumu-saved-places',update);window.addEventListener('storage',update);return()=>{window.removeEventListener('mumu-saved-places',update);window.removeEventListener('storage',update);};},[]);
  const ids=savedPlaceIds(),saved=savedPlaceDetails(),community=readCommunityPosts(),reviews=placeReviews(),done=p.data?.done??[];
@@ -27,12 +27,12 @@ export default function ProfilePage(p:{data:RecordsData|null;loading:boolean;err
  return <div className="profile-page"><TripHeader title="마이" onNotice={p.onNotifications} onSearch={p.onExplore}/>
  <section className="profile-identity"><button className="profile-avatar-edit" aria-label="프로필 수정" onClick={()=>open('profile')}><span className="profile-avatar-blank" aria-hidden="true"/><i>✎</i></button><div><h2>{profile.name}</h2><span>@{profile.handle}</span><p>{profile.bio}</p></div><div className="character-space" aria-hidden="true"/></section>
  <AccountCard/>
- <div className="profile-stats">{activities.map(([key,title,count])=><button key={key} type="button" aria-pressed={key==='saved'?undefined:panel===key} onClick={()=>{
+ <div className="profile-stats">{activities.map(([key,title,count])=><button key={key} type="button" aria-pressed={key==='saved'||key==='posts'?undefined:panel===key} onClick={()=>{
    if(key==='saved'){setPanel('');p.onSavedOpen(true);}
+   else if(key==='posts')p.onPostsOpen();
    else setPanel(panel===key?'':key);
  }}><span>{title}</span><strong>{count}</strong></button>)}</div>
  {panel&&<section className="profile-activity-panel"><header><h2>{activities.find(([key])=>key===panel)?.[1]}</h2><button aria-label="활동 목록 닫기" onClick={()=>setPanel('')}>×</button></header>
- {panel==='posts'&&(posts.length?posts.map(post=><article key={post.id}><small>{post.tag}</small>{post.title&&<h3>{post.title}</h3>}<p>{post.text}</p></article>):<p>아직 작성한 이야기가 없어요.</p>)}
  {panel==='comments'&&(commented.length?commented.map(post=><article key={post.id}><strong>{post.title??`${post.author}의 글`}</strong>{post.comments?.filter(comment=>comment.mine).map(comment=><p key={comment.id}>{comment.text}</p>)}</article>):<p>아직 남긴 댓글이 없어요.</p>)}
  {panel==='reviews'&&(reviews.length?reviews.map(review=><article key={review.place.id}><button type="button" className="profile-review-link" onClick={()=>p.onPick(review.place)}>{review.place.placeName} <span>★ {review.rating.toFixed(1)}</span></button><p>{review.text}</p></article>):<p>아직 남긴 리뷰가 없어요. 탐색에서 장소를 열어 리뷰를 작성해 보세요.</p>)}</section>}
  <button className="profile-plus" onClick={()=>open('plus')}><span>♛</span><strong>무무 플러스</strong><small>더 많은 기분전환을 만나봐요!</small><b>›</b></button>
