@@ -38,6 +38,7 @@ test('가기로 한 곳 기록: 종류는 서버 목록에서만, 화면이 보�
     kind: 'board', placeName: '보드게임놀이터', lat: 35.869, lng: 128.5955,
   });
   assert.equal(parseLiveBooking({ experienceId: 'live:bar:1', placeName: 'x', lat: 35, lng: 128 }), null); // 목록에 없는 종류
+  assert.equal(parseLiveBooking({ experienceId: 'live:karaoke:1', placeName: '��노래방', lat: 35, lng: 128 }), null); // 인코딩이 깨진 이름
   assert.equal(parseLiveBooking({ experienceId: 'live:board:1', placeName: '', lat: 35, lng: 128 }), null);
   assert.equal(parseLiveBooking({ experienceId: 'live:board:1', placeName: 'x'.repeat(61), lat: 35, lng: 128 }), null);
   assert.equal(parseLiveBooking({ experienceId: 'live:board:1', placeName: 'x' }), null); // 좌표 없음

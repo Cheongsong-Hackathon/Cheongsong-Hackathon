@@ -102,6 +102,7 @@ export function parseLiveBooking(body: any): { kind: string; placeName: string; 
   if (!m || !(m[1] in LIVE_KINDS)) return null;
   const placeName = typeof body?.placeName === 'string' ? body.placeName.trim() : '';
   const pos = validLatLng(body?.lat, body?.lng);
-  if (!placeName || placeName.length > 60 || !pos) return null;
+  // 인코딩이 깨진 이름(U+FFFD)은 받지 않는다: 알림·기록에 깨진 글자로 남았던 적이 있음
+  if (!placeName || placeName.length > 60 || placeName.includes('�') || !pos) return null;
   return { kind: m[1], placeName, lat: pos.lat, lng: pos.lng };
 }

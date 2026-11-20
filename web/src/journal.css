@@ -185,7 +185,7 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 /* 무무: three primary destinations. */
 .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tabs button { min-height: 64px; font-size: 13px; font-weight: 700; }
-.tabs button:nth-child(2) svg { width: 27px; height: 27px; }
+.tabs button:nth-child(2) svg { width: 22px; height: 22px; }
 .mumu-profile { padding-top: 24px; gap: 18px; }
 .mumu-profile-hero { flex-direction: row; align-items: center; background: linear-gradient(120deg, #eee5fa, #fff3f7); }
 .mumu-profile-hero h2 { font-size: 17px; margin-bottom: 8px; }
