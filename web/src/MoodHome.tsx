@@ -33,13 +33,13 @@ export default function MoodHome({busy,onRecommend,onNotifications,onVoice}:{bus
   <MumuHomeCharacter key={selected ?? 'default'} portrait={selected === null ? undefined : portraits[selected]} label={selected === null ? undefined : `무무의 표정 · ${MOODS[selected].title}`}/>
   <h1>오늘 하루는 어땠어?</h1><p>기분만 말해, 갈 곳은 무무가 찾아줄게.</p>
  </section>
- {onVoice&&<div className="voice-first"><button type="button" className="voice-main" disabled={busy} onClick={onVoice}><span aria-hidden="true">🎙</span>무무에게 말하기</button>{!writeOpen&&<button type="button" className="voice-write" onClick={()=>setWriteOpen(true)}>말하기 어려우면 글로 써도 돼 ✎</button>}</div>}
+ {onVoice&&<div className="voice-first"><button type="button" className="voice-main" disabled={busy} onClick={onVoice}><span aria-hidden="true">🎙</span>무무랑 대화하기</button>{!writeOpen&&<button type="button" className="voice-write" onClick={()=>setWriteOpen(true)}>말하기 어려우면 글로 써도 돼 ✎</button>}</div>}
  {writeOpen&&<form className="mood-line" onSubmit={e=>{e.preventDefault();submit();}}>
   <textarea value={text} onChange={e=>{setText(e.target.value);if(selected!==null&&e.target.value!==MOODS[selected].text)setSelected(null);}} placeholder="아무 말이나 괜찮아. 예: 발표 망쳐서 아무것도 하기 싫어" maxLength={300} rows={2} aria-label="오늘 기분 한 줄" disabled={busy}
    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();submit();}}}/>
   {canListen&&<button type="button" className={`mood-line-mic${mic?' listening':''}`} aria-label={mic?'그만 듣기':'말로 하기'} aria-pressed={!!mic} disabled={busy} onClick={talk}>🎤 {mic?'듣고 있어… 다 말했으면 눌러 줘':'말로 하기'}</button>}
   {micError&&<p className="mood-line-hint" role="alert">{micError}</p>}
-  <button className="new-primary" disabled={busy||!text.trim()}>{busy?'무무가 마음을 읽는 중…':onVoice?'글로 보내기':'무무에게 말하기'} <span>→</span></button>
+  <button className="new-primary" disabled={busy||!text.trim()}>{busy?'무무가 마음을 읽는 중…':onVoice?'글로 보내기':'무무랑 대화하기'} <span>→</span></button>
  </form>}
  <p className="mood-line-hint">{onVoice?'기분을 골라도 돼':'말하기 어려우면 골라도 돼'}</p>
  <div className="new-mood-grid" role="radiogroup" aria-label="오늘의 기분 고르기">{MOODS.map((m,i)=><button key={m.title} type="button" role="radio" aria-checked={i===selected} className={selected===i?'selected':''} disabled={busy} onClick={()=>pick(i)}><span className="new-mood-emoji" aria-hidden="true">{m.emoji}</span><strong>{m.title}</strong>{selected===i&&<span className="mood-check" aria-hidden="true">✓</span>}</button>)}</div>

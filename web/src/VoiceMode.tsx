@@ -27,6 +27,8 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
   const mic = useRef<{ stop: () => void } | null>(null);
   const alive = useRef(true);
   const seen = useRef(p.msgs.length);
+  // 이번 음성 대화에서 말을 보낸 뒤의 답만 보여 주고 읽는다. 지난 대화(늦게 불러와지는 기록 포함)는 무시: 처음엔 무무만 가운데
+  const asked = useRef(false);
   const quiet = useRef(0); // 연달아 아무 말이 없던 횟수: 두 번이면 쉬기 (마이크를 계속 켜 두지 않게)
   const send = useRef(p.onSend);
   send.current = p.onSend; // App의 send는 렌더마다 바뀌고(대화 세션 id) 듣기는 비동기라 항상 최신 것을 쓴다
@@ -46,6 +48,7 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
       if (!t) return ++quiet.current >= 2 ? setPhase('paused') : void hear();
       quiet.current = 0;
       setPhase('thinking');
+      asked.current = true;
       send.current(t);
     } catch (e) {
       mic.current = null;
@@ -58,7 +61,7 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
     const last = p.msgs[p.msgs.length - 1];
     const fresh = p.msgs.length > seen.current && last?.who === 'bunny';
     seen.current = p.msgs.length;
-    if (!fresh) return;
+    if (!fresh || !asked.current) return;
     setCaption(last.text);
     setPhase('speaking');
     // 장소를 찾았으면 첫 번째 곳을 말로 짧게 소개한다
@@ -76,7 +79,7 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
     else if (phase === 'listening') mic.current?.stop();
   };
   const last = p.msgs[p.msgs.length - 1];
-  const reply = last?.who === 'bunny' && phase !== 'listening' ? last : null;
+  const reply = last?.who === 'bunny' && asked.current && phase !== 'listening' ? last : null;
   const hasPlaces = !!reply?.offer?.items.length && !!p.onPick;
   return <div className={`voice-mode ${phase}${hasPlaces ? ' has-places' : ''}`} role="dialog" aria-label="무무와 음성 대화">
     <button type="button" className="voice-end" aria-label="음성 대화 끝내기" onClick={p.onClose}>✕</button>

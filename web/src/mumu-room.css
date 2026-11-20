@@ -370,3 +370,10 @@
 .voice-places { width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left; }
 .voice-places .trip-place { background: #fff; }
 .voice-list { border: 0; background: none; color: #6f4bb8; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+/* GPT 음성 모드처럼: 무무가 화면 가운데에서 숨 쉬듯 빛나는 원 */
+.voice-mumu { width: 250px; height: 250px; box-shadow: 0 0 0 0 #b98cf466, 0 18px 50px #8b4cdb33; animation: voice-breathe 3.2s ease-in-out infinite; }
+.voice-mumu img { width: 200px; height: 200px; }
+.voice-mode.listening .voice-mumu { animation-duration: 1.6s; }
+.voice-mode.thinking .voice-mumu img { animation: voice-bob 1.6s ease-in-out infinite; }
+@keyframes voice-breathe { 50% { transform: scale(1.04); box-shadow: 0 0 0 18px #b98cf41f, 0 22px 60px #8b4cdb40; } }
+@media (prefers-reduced-motion: reduce) { .voice-mumu, .voice-mode.thinking .voice-mumu img { animation: none !important; } }
