@@ -27,7 +27,7 @@ export default function MoodHome({busy,onRecommend,onNotifications,onVoice}:{bus
  const [mic,setMic]=useState<{stop:()=>void}|null>(null);const [micError,setMicError]=useState('');
  const talk=async()=>{if(mic)return mic.stop();setMicError('');setSelected(null);const l=listen(setText);setMic(l);try{await l.done;}catch(e){setMicError((e as Error).message);}finally{setMic(null);}};
  const submit=()=>{const t=text.trim();if(t&&!busy)onRecommend(t,selected!==null&&text===MOODS[selected].text?selected:null);};
- return <div className="new-home" aria-busy={busy}>{busy&&<div className="mumu-loading-overlay"><MumuLoading message="무무가 마음에 맞는 장소를 찾고 있어요"/></div>}<PhoneStatus/><header className="new-brand"><MumuArtwork className="mumu-brand-logo"/><button aria-label="예약 알림 보기" onClick={onNotifications}><svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4ZM10 21h4"/><circle cx="19" cy="4" r="2" fill="#8a4ee8" stroke="none"/></svg></button></header>
+ return <div className="new-home" aria-busy={busy}>{busy&&<div className="mumu-loading-overlay"><MumuLoading message="무무가 마음에 맞는 장소를 찾고 있어요"/></div>}<PhoneStatus/><header className="new-brand"><MumuArtwork className="mumu-brand-logo"/><button type="button" aria-label="예약 알림 보기" aria-haspopup="dialog" onClick={onNotifications}><svg viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l2 2H4ZM10 21h4"/><circle cx="19" cy="4" r="2" fill="#8a4ee8" stroke="none"/></svg></button></header>
  <section className="new-home-hero">
   <div className="new-clouds" aria-hidden="true"/>
   <MumuHomeCharacter key={selected ?? 'default'} portrait={selected === null ? undefined : portraits[selected]} label={selected === null ? undefined : `무무의 표정 · ${MOODS[selected].title}`}/>

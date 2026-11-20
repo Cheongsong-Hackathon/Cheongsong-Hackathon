@@ -49,20 +49,30 @@ async function photo(file: File) {
     return c.toDataURL('image/jpeg', .85);
   } finally { URL.revokeObjectURL(url); }
 }
-function ThemePreview({ entry, theme }: { entry: Entry; theme: number }) {
+function JournalPreview({ entry, theme }: { entry: Entry; theme?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
+    const target = canvas.current;
+    if (!target) return;
     let cancelled = false;
-    const buffer = document.createElement('canvas');
-    draw(buffer, { ...entry, theme, decorations: [] }).then(() => {
-      if (!cancelled && canvas.current) {
-        canvas.current.width = 720; canvas.current.height = 900;
-        canvas.current.getContext('2d')?.drawImage(buffer, 0, 0);
-      }
-    }).catch(() => {});
-    return () => { cancelled = true; };
+    const render = () => {
+      const buffer = document.createElement('canvas');
+      draw(buffer, theme === undefined ? entry : { ...entry, theme, decorations: [] }).then(() => {
+        if (!cancelled) target.getContext('2d')?.drawImage(buffer, 0, 0);
+      }).catch(() => {});
+    };
+    const observer = theme === undefined && typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return;
+      observer?.disconnect();
+      render();
+    }, { rootMargin: '100px' }) : null;
+    if (observer) observer.observe(target);
+    else render();
+    return () => { cancelled = true; observer?.disconnect(); };
   }, [entry, theme]);
-  return <canvas ref={canvas} className="journal-theme-canvas" aria-label={`${themes[theme]} 실제 배치 미리보기`} />;
+  return <canvas ref={canvas} width={720} height={900}
+    className={theme === undefined ? 'journal-saved-canvas' : 'journal-theme-canvas'}
+    aria-hidden={theme === undefined} aria-label={theme === undefined ? undefined : `${themes[theme]} 실제 배치 미리보기`} />;
 }
 
 export default function Journal({ onFocusChange, initialStep = 'library', onExit }: { onFocusChange: (focus: boolean) => void; initialStep?: 'library' | 'record'; onExit?: () => void }) {
@@ -175,7 +185,7 @@ export default function Journal({ onFocusChange, initialStep = 'library', onExit
     {step === 'library' ? <>
       <p className="small mute">사진과 도감은 이 브라우저에만 저장돼요. 브라우저 데이터를 지우면 사라지니, 소중한 기록은 이미지로 내려받아 주세요.</p>
       <h2 className="label">나의 도감 <span className="pill">{saved.length}</span></h2>
-      {loading ? <p role="status">도감을 펼치는 중이에요…</p> : !saved.length ? <div className="journal-empty"><span aria-hidden="true">♡</span><strong>첫 번째 페이지를 기다리고 있어요</strong><p>사진 없이 글과 스티커만으로도 남길 수 있어요.</p></div> : <div className="journal-library">{saved.map(row => <button className="journal-saved" key={row.entry.id} onClick={() => { reset(row.entry); setStep('edit'); }}><img src={row.image} alt={row.entry.title} /><strong>{row.entry.title}</strong><small>{row.entry.date}</small></button>)}</div>}
+      {loading ? <p role="status">도감을 펼치는 중이에요…</p> : !saved.length ? <div className="journal-empty"><span aria-hidden="true">♡</span><strong>첫 번째 페이지를 기다리고 있어요</strong><p>사진 없이 글과 스티커만으로도 남길 수 있어요.</p></div> : <div className="journal-library">{saved.map(row => <button className="journal-saved" key={row.entry.id} onClick={() => { reset(row.entry); setStep('edit'); }}><JournalPreview entry={row.entry} /><strong>{row.entry.title}</strong><small>{row.entry.date}</small></button>)}</div>}
     </> : step === 'record' ? <>
       <h1 className="title journal-record-title">오늘의 경험을<br />도감에 남겨볼까요? 📷</h1>
       <div className="journal-photos"><button className="journal-add-photo" onClick={() => file.current?.click()} disabled={busy || entry.photos.length >= 5}><b>＋</b><span>{busy ? '사진 준비 중…' : '사진 추가'}</span><small>(최대 5장)</small></button>{entry.photos.map((src, i) => <div className="journal-photo" key={src + i}><img src={src} alt={`선택한 사진 ${i + 1}`} /><button aria-label={`사진 ${i + 1} 빼기`} disabled={busy} onClick={() => patch({ photos: entry.photos.filter((_, n) => n !== i), captions: entry.photos.flatMap((_, n) => n === i ? [] : [entry.captions?.[n] ?? '']) })}>×</button></div>)}</div>
@@ -189,7 +199,7 @@ export default function Journal({ onFocusChange, initialStep = 'library', onExit
       <button className="btn big journal-next" disabled={busy || !entry.title.trim() || !entry.date} onClick={() => { setThemePage(Math.floor(entry.theme / 4)); setStep('theme'); }}>다음</button>
     </> : step === 'theme' ? <>
       <h1 className="title journal-theme-title">어떤 분위기로 꾸밀까요?<br />원하는 테마를 골라보세요!</h1>
-      <div className="journal-themes">{themes.slice(themePage * 4, themePage * 4 + 4).map((name, n) => { const i = themePage * 4 + n; return <button key={name} className={`journal-theme theme-${i}${entry.theme === i ? ' selected' : ''}`} aria-pressed={entry.theme === i} onClick={() => patch({ theme: i })}><ThemePreview entry={entry} theme={i} /><strong>{name}</strong><span className="sr-only">{themeDescriptions[i]}</span>{entry.theme === i && <span className="journal-check">✓</span>}</button>; })}</div>
+      <div className="journal-themes">{themes.slice(themePage * 4, themePage * 4 + 4).map((name, n) => { const i = themePage * 4 + n; return <button key={name} className={`journal-theme theme-${i}${entry.theme === i ? ' selected' : ''}`} aria-pressed={entry.theme === i} onClick={() => patch({ theme: i })}><JournalPreview entry={entry} theme={i} /><strong>{name}</strong><span className="sr-only">{themeDescriptions[i]}</span>{entry.theme === i && <span className="journal-check">✓</span>}</button>; })}</div>
       <div className="journal-pagination" aria-label="테마 페이지">{[0, 1].map(n => <button aria-label={`테마 ${n + 1}페이지`} aria-pressed={themePage === n} onClick={() => setThemePage(n)} key={n}><span /></button>)}</div>
       <button className="btn big journal-next" onClick={() => setStep('edit')}>다음</button>
     </> : step === 'edit' ? <>

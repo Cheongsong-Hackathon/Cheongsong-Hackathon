@@ -1,104 +1,176 @@
-import { useState } from 'react';
-import MumuGameHost from './MumuGameHost';
+import { useRef, useState } from 'react';
+import { api, type SajuInput, type SajuRecord } from './api';
 import MumuGameScene from './MumuGameScene';
 
-const readings = [
-  {
-    title: '종합운', icon: '♛', keywords: '도전 · 정리 · 활력',
-    messages: ['새로운 변화를 준비하기 좋은 때예요. 미뤄둔 일 하나만 가볍게 시작해봐요.', '오늘은 서두르지 않아도 괜찮아요. 마음에 걸리는 일부터 차근차근 정리해봐요.', '익숙한 하루에 작은 변화를 더해보세요. 평소와 다른 길에서 즐거움을 발견할지도 몰라요.'],
-  },
-  {
-    title: '연애운', icon: '💗', keywords: '공감 · 여유 · 대화',
-    messages: ['가벼운 안부 한마디가 마음을 가까이 이어줄지도 몰라요.', '좋은 대화는 듣는 데서 시작해요. 상대의 이야기에 여유 있게 귀 기울여봐요.', '솔직한 표현이 어색하다면 작은 고마움부터 말해봐요.'],
-  },
-  {
-    title: '학업·취업운', icon: '💼', keywords: '집중 · 꾸준함 · 준비',
-    messages: ['할 일이 많다면 가장 짧게 끝낼 수 있는 것부터 손대보세요.', '새로운 정보를 늘리기보다 이미 배운 내용을 한 번 정리해봐요.', '지금까지 쌓인 경험을 한 문장씩 적어보면 다음 방향이 보일지도 몰라요.'],
-  },
-  {
-    title: '재물운', icon: '🍀', keywords: '균형 · 점검 · 계획',
-    messages: ['오늘의 지출을 한 번 돌아보고 다음에 필요한 것만 적어봐요.', '사고 싶은 게 떠오르면 잠시 시간을 두고 내일 다시 살펴봐요.', '작게 아낀 돈을 나중에 하고 싶은 일에 따로 모아두는 건 어때요?'],
-  },
+const topics = [
+  { id: 'daily', label: '오늘의 흐름' }, { id: 'love', label: '연애·관계' },
+  { id: 'career', label: '진로·학업·일' }, { id: 'choice', label: '선택·고민' },
 ] as const;
+const branches = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+const pillarLabels = [['year', '년주'], ['month', '월주'], ['day', '일주'], ['hour', '시주']] as const;
+const hour = (value: number) => String((value + 24) % 24).padStart(2, '0');
 
-const lucky = [
-  { color: '라벤더 퍼플', item: '다이어리', advice: '오늘 떠오른 작은 계획을 한 줄만 적어봐요.' },
-  { color: '소프트 민트', item: '텀블러', advice: '시원한 물 한 잔과 함께 잠깐 숨을 돌려봐요.' },
-  { color: '살구빛 핑크', item: '이어폰', advice: '좋아하는 노래 한 곡을 틀고 천천히 걸어봐요.' },
-] as const;
+function FortuneResult({ record }: { record: SajuRecord }) {
+  return <section className="game-panel fortune-result">
+    <h2>사주 원국</h2>
+    <p>양력 {record.solarBirthDate} · 한국 표준시</p>
+    <table className="saju-pillars" aria-label="사주 네 기둥">
+      <thead><tr><td></td>{pillarLabels.map(([key, label]) => <th key={key} scope="col">{label}</th>)}</tr></thead>
+      <tbody>
+        <tr><th scope="row">천간</th>{pillarLabels.map(([key]) => {
+          const value = record.pillars[key];
+          return <td key={key} data-element={value?.stemElement}>{value ? <><strong>{value.stem}</strong><small>{value.stemElement}</small></> : '—'}</td>;
+        })}</tr>
+        <tr><th scope="row">지지</th>{pillarLabels.map(([key]) => {
+          const value = record.pillars[key];
+          return <td key={key} data-element={value?.branchElement}>{value ? <><strong>{value.branch}</strong><small>{value.branchElement}</small></> : '—'}</td>;
+        })}</tr>
+      </tbody>
+    </table>
+    {!record.pillars.hour && <p className="fortune-privacy">태어난 시간을 몰라 시주를 제외했어요. 절입 계산은 정오를 기준으로 했어요.</p>}
+    {record.nearSolarTerm && <p className="fortune-privacy">절입에 가까운 날이에요. 출생 시각과 절기 계산 방식에 따라 년주 또는 월주가 달라질 수 있어요.</p>}
+    <h2>오행 균형</h2>
+    <ul className="saju-elements">{record.elements.distribution.map(row => <li key={row.element}>
+      <span data-element={row.element}>{row.element}</span>
+      <meter min={0} max={record.elements.total} value={row.count} aria-label={`${row.element} ${row.count}개`} />
+      <span>{row.count}개 · {row.percentage}%</span>
+    </li>)}</ul>
+    <p><strong>많은 오행</strong> {record.elements.dominant.join(' · ')}<br /><strong>없는 오행</strong> {record.elements.lacking.join(' · ') || '없음'}</p>
+    <p className="fortune-privacy">표에 보이는 천간과 지지의 오행을 센 값이에요.</p>
+    <aside><h2>일간 · {record.dayMaster.stem} ({record.dayMaster.element})</h2><p>{record.dayMaster.summary}</p></aside>
+    <aside><h2>{record.reading.title}</h2><p>{record.reading.advice}</p></aside>
+  </section>;
+}
 
 export default function MumuFortune() {
+  const [view, setView] = useState<'form' | 'result' | 'history'>('form');
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
-  const [gender, setGender] = useState('');
-  const [seed, setSeed] = useState<number | null>(null);
-  const [category, setCategory] = useState(0);
-  const [shareStatus, setShareStatus] = useState('');
-  const today = new Date().toLocaleDateString('sv-SE');
+  const [timeMode, setTimeMode] = useState<'unknown' | 'exact' | 'branch'>('unknown');
+  const [branch, setBranch] = useState('자시');
+  const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
+  const [leap, setLeap] = useState(false);
+  const [gender, setGender] = useState<SajuInput['gender'] | ''>('');
+  const [topic, setTopic] = useState<NonNullable<SajuInput['topic']>>('daily');
+  const [result, setResult] = useState<SajuRecord | null>(null);
+  const [history, setHistory] = useState<SajuRecord[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState('');
+  const resultStart = useRef<HTMLDivElement>(null);
+  const today = new Date(Date.now() + 9 * 60 * 60_000).toISOString().slice(0, 10);
 
-  function reveal() {
-    const key = `${birthDate}|${birthTime}|${gender}|${today}`;
-    setSeed(Array.from(key).reduce((value, letter) => (value * 31 + letter.charCodeAt(0)) % 997, 0));
-    setCategory(0);
+  function openResult(record: SajuRecord) {
+    setResult(record);
+    setCopied('');
+    setView('result');
+    requestAnimationFrame(() => resultStart.current?.scrollIntoView({ block: 'start' }));
   }
 
-  const reading = readings[category];
-  const variant = ((seed ?? 0) + category) % lucky.length;
-  const fortune = lucky[variant];
-  const rating = 3 + ((seed ?? 0) + category * 2) % 3;
+  async function reveal() {
+    if (busy || !gender) return;
+    setBusy(true);
+    setError('');
+    const selectedTime = timeMode === 'exact' ? birthTime : timeMode === 'branch' ? branch : 'unknown';
+    const response = await api.analyzeSaju({ birthDate, birthTime: selectedTime, calendarType, lunarLeapMonth: calendarType === 'lunar' && leap, gender, topic });
+    if (response.code === 201) openResult(response);
+    else setError(response.error ?? '사주를 계산하지 못했어요. 다시 시도해 주세요.');
+    setBusy(false);
+  }
 
-  async function shareResult() {
-    const text = `무무의 사주풀이 · 오늘의 ${reading.title}\n${reading.messages[variant]}\n행운의 색: ${fortune.color} · 행운의 아이템: ${fortune.item}`;
-    setShareStatus('');
+  async function openHistory() {
+    setView('history');
+    setBusy(true);
+    setError('');
+    const response = await api.sajuHistory();
+    if (response.code === 200) setHistory(response.history);
+    else setError(response.error ?? '사주 기록을 불러오지 못했어요.');
+    setBusy(false);
+  }
+
+  async function clearHistory() {
+    if (!window.confirm('저장된 사주풀이 기록을 모두 지울까요?')) return;
+    setBusy(true);
+    setError('');
+    const response = await api.clearSajuHistory();
+    if (response.code === 200) { setHistory(response.history); setResult(null); }
+    else setError(response.error ?? '기록을 지우지 못했어요.');
+    setBusy(false);
+  }
+
+  async function share(record: SajuRecord) {
+    const text = `무무의 사주풀이 · ${record.reading.title}\n${record.reading.advice}`;
     try {
-      if (navigator.share) {
-        await navigator.share({ title: '무무의 사주풀이', text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        setShareStatus('결과를 복사했어요.');
-      }
+      if (navigator.share) await navigator.share({ title: '무무의 사주풀이', text });
+      else { await navigator.clipboard.writeText(text); setCopied('결과를 복사했어요.'); }
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === 'AbortError')) {
-        setShareStatus('결과를 공유하지 못했어요.');
-      }
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setCopied('결과를 공유하지 못했어요.');
     }
   }
 
-  if (seed === null) return <>
-    <MumuGameScene theme="fortune">무무와 함께<br />재미로 보는 사주풀이!<br />오늘의 운세를 확인해볼까? 💜</MumuGameScene>
-    <form className="game-panel fortune-form" onSubmit={event => { event.preventDefault(); reveal(); }}>
-      <h2>🗓 내 정보를 알려줘!</h2>
-      <p>재미로 보는 운세에 사용할 정보를 입력해줘.</p>
-      <label><span>생년월일</span><input type="date" required max={today} value={birthDate} onChange={event => setBirthDate(event.target.value)} /></label>
-      <label><span>태어난 시간 <small>(선택)</small></span><input type="time" value={birthTime} onChange={event => setBirthTime(event.target.value)} /></label>
-      <fieldset>
-        <legend>성별 <small>(선택)</small></legend>
-        <div>{['여성', '남성'].map(value => <button key={value} type="button" aria-pressed={gender === value} onClick={() => setGender(gender === value ? '' : value)}>{value}</button>)}</div>
-      </fieldset>
-      <small className="fortune-privacy">입력한 정보는 이 화면에서만 사용해요.</small>
-      <button className="game-primary" type="submit">✨ 사주풀이 보기</button>
-    </form>
-  </>;
-
   return <>
-    <MumuGameScene theme="fortune" layout="side">짠!<br />오늘의 사주풀이가<br />완성됐어! 💜</MumuGameScene>
-    <div className="fortune-categories" role="group" aria-label="운세 종류">
-      {readings.map((value, index) => <button type="button" key={value.title} aria-pressed={category === index} onClick={() => { setCategory(index); setShareStatus(''); }}>{value.icon} {value.title}</button>)}
-    </div>
-    <section className="game-panel fortune-result" aria-live="polite">
-      <header><span aria-hidden="true">📜</span><div><h2>오늘의 {reading.title}</h2><div className="fortune-rating" aria-label={`별 5개 중 ${rating}개`}>{'★'.repeat(rating)}<span>{'★'.repeat(5 - rating)}</span></div></div></header>
-      <p>{reading.messages[variant]}</p>
-      <div className="tarot-guide fortune-guide">
-        <div>🌱<strong>행운 키워드</strong><small>{reading.keywords}</small></div>
-        <div>🔮<strong>행운의 색</strong><small>{fortune.color}</small></div>
-        <div>⭐<strong>행운의 아이템</strong><small>{fortune.item}</small></div>
+    <nav className="fortune-categories" aria-label="사주 메뉴">
+      <button type="button" disabled={busy} aria-pressed={view !== 'history'} onClick={() => { setError(''); setView('form'); }}>사주풀이</button>
+      <button type="button" disabled={busy} aria-pressed={view === 'history'} onClick={() => void openHistory()}>풀이 기록</button>
+    </nav>
+    {view === 'form' && <>
+      <MumuGameScene theme="fortune">무무와 함께<br />재미로 보는 사주풀이 💜</MumuGameScene>
+      <form className="game-panel fortune-form" onSubmit={event => { event.preventDefault(); void reveal(); }}>
+        <h2>출생 정보</h2>
+        <label>달력
+          <select value={calendarType} onChange={event => {
+            setCalendarType(event.target.value === 'lunar' ? 'lunar' : 'solar');
+            setLeap(false);
+          }}><option value="solar">양력</option><option value="lunar">음력</option></select>
+        </label>
+        <label>생년월일
+          {calendarType === 'lunar'
+            ? <input key="lunar" type="text" required pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" placeholder="예: 2000-02-30" maxLength={10} value={birthDate} onChange={event => setBirthDate(event.target.value)} />
+            : <input key="solar" type="date" required min="1900-01-01" max={today} value={birthDate} onChange={event => setBirthDate(event.target.value)} />}
+        </label>
+        {calendarType === 'lunar' && <label>윤달 <input className="saju-check" type="checkbox" checked={leap} onChange={event => setLeap(event.target.checked)} /></label>}
+        <label>태어난 시간
+          <select value={timeMode} onChange={event => setTimeMode(event.target.value === 'exact' ? 'exact' : event.target.value === 'branch' ? 'branch' : 'unknown')}>
+            <option value="unknown">모름</option><option value="exact">시·분 입력</option><option value="branch">시진으로 선택</option>
+          </select>
+        </label>
+        {timeMode === 'exact' && <label>시·분 <input type="time" required value={birthTime} onChange={event => setBirthTime(event.target.value)} /></label>}
+        {timeMode === 'branch' && <label>시진 <select value={branch} onChange={event => setBranch(event.target.value)}>
+          {branches.map((value, index) => <option key={value} value={`${value}시`}>{value}시 ({hour(2 * index - 1)}:00–{hour(2 * index)}:59)</option>)}
+        </select></label>}
+        <label>성별 <select required value={gender} onChange={event => setGender(event.target.value === 'male' ? 'male' : event.target.value === 'female' ? 'female' : '')}>
+          <option value="" disabled>선택해 주세요</option><option value="female">여성</option><option value="male">남성</option>
+        </select></label>
+        <label>풀이 주제 <select value={topic} onChange={event => {
+          const choice = topics.find(value => value.id === event.target.value);
+          if (choice) setTopic(choice.id);
+        }}>{topics.map(value => <option key={value.id} value={value.id}>{value.label}</option>)}</select></label>
+        <small className="fortune-privacy">출생 정보와 풀이를 서버에 저장해요. 이 브라우저의 풀이 기록에서 확인하거나 지울 수 있어요.</small>
+        <button className="game-primary" type="submit" disabled={busy}>{busy ? '계산 중…' : '✨ 사주풀이 보기'}</button>
+        {error && <p role="alert">{error}</p>}
+      </form>
+    </>}
+    {view === 'result' && result && <>
+      <div ref={resultStart}><MumuGameScene theme="fortune" layout="side">사주풀이가 완성됐어! 💜</MumuGameScene></div>
+      <FortuneResult record={result} />
+      <div className="fortune-actions">
+        <button type="button" className="game-primary" onClick={() => void share(result)}>결과 공유하기</button>
+        <button type="button" onClick={() => setView('form')}>다시 입력하기</button>
       </div>
-      <aside className="tarot-advice"><div><strong>🌱 무무의 한마디</strong><p>{fortune.advice} 💜</p></div><MumuGameHost /></aside>
-    </section>
-    <div className="fortune-actions">
-      <button type="button" className="game-primary" onClick={() => void shareResult()}>⇧ 결과 공유하기</button>
-      <button type="button" onClick={() => { setSeed(null); setShareStatus(''); }}>⟳ 다시 보기</button>
-    </div>
-    {shareStatus && <p className="fortune-privacy" role="status">{shareStatus}</p>}
+      {copied && <p className="fortune-privacy" role="status">{copied}</p>}
+    </>}
+    {view === 'history' && <section className="game-panel tarot-history">
+      <h2>저장된 사주풀이</h2>
+      {busy ? <p role="status">잠시만 기다려 주세요…</p> : error ? <>
+        <p role="alert">{error}</p><button type="button" className="btn ghost" onClick={() => void openHistory()}>다시 불러오기</button>
+      </> : history.length ? <>
+        <ul>{history.map(record => <li key={record.id}>
+          <button type="button" className="saju-history-entry" onClick={() => openResult(record)}>
+            <strong>{record.reading.title}</strong><time dateTime={record.timestamp}>{new Date(record.timestamp).toLocaleString('ko-KR')}</time>
+          </button>
+        </li>)}</ul>
+        <button type="button" className="btn ghost" onClick={() => void clearHistory()}>기록 지우기</button>
+      </> : <p>아직 저장된 풀이가 없어요.</p>}
+    </section>}
   </>;
 }

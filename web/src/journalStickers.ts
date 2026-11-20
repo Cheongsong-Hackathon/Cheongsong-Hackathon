@@ -13,7 +13,6 @@ export function stickerShapes(id: string): StickerShape[] {
   const shape = (d: string, fill: string, stroke?: string, width = 2.3): StickerShape => ({ d, fill, stroke, width });
   const face = [shape('M26 35a2 2 0 1 0 .1 0M42 35a2 2 0 1 0 .1 0', ink), shape('M30 41q4 5 8 0', 'none', ink, 1.7), shape('M17 40a5 3 0 1 0 10 0a5 3 0 1 0-10 0M41 40a5 3 0 1 0 10 0a5 3 0 1 0-10 0', pink)];
   if (id === 'cloud' || id === 'happy') return [shape('M15 48C3 46 5 34 11 30C4 20 18 13 25 17C30 5 45 10 46 17C60 13 65 25 58 32C68 41 57 52 49 49C44 61 30 56 28 51C21 57 13 55 15 48Z', '#f3eafa', lavender), ...face, ...(id === 'happy' ? [shape('M10 10L7 4M21 8V1M53 10L58 4M3 19L0 14M63 21L67 15', 'none', lavender, 2.5)] : [])];
-  if (id === 'bunny') return [shape('M12 29L9 8Q11 3 18 9L26 19Q34 15 43 19L54 8Q60 4 59 14L57 32Q66 56 40 60Q8 65 7 42Q6 34 12 29Z', '#fff7fc', lavender), ...face];
   if (id === 'heart') return [shape('M34 57C-9 30 7 1 31 18C51-8 79 20 34 57Z', '#dcc7f3'), shape('M33 45C13 31 18 17 31 25C43 12 55 27 33 45Z', '#f8f1ff')];
   if (id === 'double-heart') return [shape('M28 48C-4 26 8 7 25 22C42 4 62 24 28 48ZM45 59C24 45 35 31 45 41C55 27 71 44 45 59Z', 'none', pink, 3)];
   if (id === 'stars') return [shape('M17 8l5 11 12 2-9 9 2 13-10-6-11 6 2-13-8-9 12-2Z', '#cfb4ec'), shape('M48 27l5 10 11 2-8 8 2 12-10-5-10 5 2-12-8-8 11-2Z', '#ffe592'), shape('M47 2l2 5 6 1-4 4 1 5-5-2-5 2 1-5-4-4 6-1Z', '#e5d4f5')];
@@ -26,7 +25,11 @@ export function stickerShapes(id: string): StickerShape[] {
   if (id === 'pin') return [shape('M33 61Q3 33 14 14C28-7 57 6 55 26Q54 41 33 61Z', '#eeb9c9', '#c7879f'), shape('M24 24a9 9 0 1 0 18 0a9 9 0 1 0-18 0', '#fff8f5')];
   return [shape('M13 55Q0 9 58 5Q65 52 13 55ZM13 55L49 16', '#bfd3a1', '#8fa775')];
 }
-export function paintSticker(c: CanvasRenderingContext2D, id: string, x: number, y: number, size: number) {
+export function paintSticker(c: CanvasRenderingContext2D, id: string, x: number, y: number, size: number, mumu: HTMLImageElement | null) {
+  if (id === 'bunny') {
+    if (mumu) c.drawImage(mumu, x - size / 2, y - size, size, size);
+    return;
+  }
   c.save(); c.translate(x - size / 2, y - size); c.scale(size / 68, size / 68);
   for (const s of stickerShapes(id)) { const path = new Path2D(s.d); if (s.fill !== 'none') { c.fillStyle = s.fill; c.fill(path); } if (s.stroke) { c.strokeStyle = s.stroke; c.lineWidth = s.width ?? 2; c.lineCap = 'round'; c.lineJoin = 'round'; c.stroke(path); } }
   c.restore();
