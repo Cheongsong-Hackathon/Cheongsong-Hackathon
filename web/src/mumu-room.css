@@ -406,3 +406,7 @@
 #root .room-message > input { min-height: 48px; font-size: 15px !important; }
 .room-message > button.mic { font-size: inherit; }
 .room-message > button.mic svg { width: 22px; }
+/* 채팅: 시작 버튼 줄과 입력창 사이를 좁게, 추천 대답 칩 글씨는 13px */
+.mumu-chat .mumu-chat-modes { margin: 0 0 2px; }
+.mumu-chat .composer { padding-top: 4px; }
+#root .mumu-chat .mumu-quick-replies .chip { font-size: 13px !important; }
