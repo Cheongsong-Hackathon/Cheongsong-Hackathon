@@ -243,6 +243,30 @@ svg.journal-field-icon { fill: none; stroke: #6f5a8b; stroke-width: 1.8; stroke-
 .mumu-notification-body small { float:right; font-size:9px; }
 .mumu-notification-body strong { max-width:100%; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mumu-notification-close { align-self:flex-start; width:28px; height:28px; padding:0; border:0; background:none; color:#ac9c9d; font-size:19px; cursor:pointer; }
+.mumu-alert-layer { position:absolute; inset:0; z-index:50; }
+.mumu-alert-backdrop { position:absolute; inset:0; background:#32274720; }
+.mumu-alert-panel {
+  position:absolute; top:56px; right:12px; width:min(320px,calc(100% - 24px));
+  border:1px solid #e8ddf5; border-radius:20px; background:#fffaff;
+  color:#403a50; box-shadow:0 10px 30px #4c336333;
+}
+.mumu-alert-panel > header { display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid #eee5f6; }
+.mumu-alert-panel h2 { margin:0; }
+.mumu-alert-panel > header button, .mumu-alert-retry {
+  min-height:32px; min-width:32px; border:0; border-radius:9px;
+  background:#f1e8fb; color:#5c427d; cursor:pointer;
+}
+.mumu-alert-content { max-height:min(352px,52vh); overflow-y:auto; overscroll-behavior:contain; padding:5px 12px 10px; }
+.mumu-alert-content > p, .mumu-alert-content > div p { margin:9px 0 4px; color:#655873; }
+.mumu-alert-content ul { list-style:none; margin:0; padding:0; }
+.mumu-alert-entry { display:flex; align-items:flex-start; gap:8px; padding:8px 0; }
+.mumu-alert-entry + .mumu-alert-entry { border-top:1px solid #eee5f6; }
+.mumu-alert-entry img { width:36px; height:36px; object-fit:contain; border-radius:9px; background:#f5edff; }
+.mumu-alert-entry div { display:grid; min-width:0; gap:2px; }
+.mumu-alert-entry small { color:#69488f; }
+.mumu-alert-entry strong, .mumu-alert-entry span { overflow-wrap:anywhere; }
+.mumu-alert-entry time { color:#706279; font-size:.75rem; }
+.journal-saved-canvas { display:block; width:100%; height:auto; aspect-ratio:4/5; border-radius:6px; background:#f3eafa; }
 .mumu-booking-details > summary { cursor:pointer; padding:12px; color:#9a7fb4; font-size:13px; }
 .mumu-shop-default-character { display:flex; flex-direction:column; align-items:center; padding:10px 0 22px; }
 .mumu-shop-default-character p { color:#a08b9e; font-size:12px; }

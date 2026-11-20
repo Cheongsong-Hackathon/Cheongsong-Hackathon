@@ -4,3 +4,4 @@ dist/
 .superpowers/
 *.log
 .playwright-mcp/
+server/.tarot-data/

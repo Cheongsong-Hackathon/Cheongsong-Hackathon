@@ -1,4 +1,4 @@
-import mumuIcon from './assets/mumu-purple.webp';
+import mumuIcon from './assets/mumu/face.webp';
 import { paintSticker } from './journalStickers';
 export type JournalDecoration = { id: string; text: string; x: number; y: number; size: number; color: string; kind?: 'sticker' | 'text'; sticker?: string; font?: string; align?: CanvasTextAlign };
 export type JournalEntry = {
@@ -205,7 +205,7 @@ export async function drawJournal(canvas: HTMLCanvasElement, e: JournalEntry) {
   if (e.frame === 'scallop') { c.strokeStyle = '#fffaf3'; c.lineWidth = 16; c.setLineDash([2, 14]); c.lineCap = 'round'; c.strokeRect(6, 6, 708, 888); }
   c.restore();
   for (const d of e.decorations) {
-    if (d.sticker) paintSticker(c, d.sticker, d.x, d.y, d.size);
+    if (d.sticker) paintSticker(c, d.sticker, d.x, d.y, d.size, mascotImage);
     else text(c, d.text, d.x, d.y, d.size, d.color, journalFonts[d.font ?? '기본'] ?? sans, 640, d.align ?? 'center');
   }
 }

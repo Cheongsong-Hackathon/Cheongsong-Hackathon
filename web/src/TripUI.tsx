@@ -14,7 +14,7 @@ export function TripHeader({title,onNotice,onSearch,onBack,searchLabel='장소 �
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </button> : <MumuArtwork className="mumu-brand-logo"/>}
       <div>
-        {onNotice&&<button type="button" aria-label="예약 알림 보기" onClick={onNotice}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5l-2 3ZM10 21h4M12 2v2"/></svg></button>}
+        {onNotice&&<button type="button" aria-label="예약 알림 보기" aria-haspopup="dialog" onClick={onNotice}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5l-2 3ZM10 21h4M12 2v2"/></svg></button>}
         {onSearch&&<button type="button" aria-label={searchLabel} onClick={onSearch}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg></button>}
       </div>
     </header>

@@ -1,42 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { PhoneStatus } from './MumuWelcome';
-import { api } from './api';
+import { api, type TarotCard, type TarotCollection, type TarotDraw, type TarotMode, type TarotTopic } from './api';
 import MumuFortune from './MumuFortune';
-import MumuGameHost, { GAME_HOST_MOTION_MS } from './MumuGameHost';
+import MumuGameHost from './MumuGameHost';
 import MumuGameScene from './MumuGameScene';
-import tarotCardsMotion from './assets/mumu/motion-tarot.webp';
+import tarotCardMotion from './assets/mumu/tarot-card-motion.gif';
 
 export type MumuGame = 'tarot' | 'words' | 'balance' | 'fortune';
 export const gameCards = [
-  { id: 'tarot', icon: '🃏', title: '오늘의 타로', subtitle: '카드 한 장 뽑기' },
+  { id: 'tarot', icon: '🃏', title: '오늘의 타로', subtitle: '타로 카드 뽑기' },
   { id: 'words', icon: '💬', title: '끝말잇기', subtitle: '무무와 단어 대결' },
   { id: 'balance', icon: '⚖️', title: '밸런스 게임', subtitle: '둘 중 하나 고르기' },
   { id: 'fortune', icon: '🔮', title: '무무의 사주풀이', subtitle: '재미로 보는 오늘 운세' },
 ] as const;
-
-function TarotCard({ name, symbol = '✦' }: { name?: string; symbol?: string }) {
-  return <span className={`tarot-card${name ? ' revealed' : ''}`} aria-hidden="true">
-    <span>☾</span><b>{symbol}</b><span>{name ?? '✧'}</span>
-  </span>;
-}
-
-function TarotChoices({ onDraw }: { onDraw: (index: number) => void }) {
-  const [motionReady, setMotionReady] = useState(false);
-  return <div className={`tarot-cards-stage${motionReady ? ' has-motion' : ''}`}>
-    <span className="tarot-cards-motion" aria-hidden="true">
-      <img src={tarotCardsMotion} alt="" onLoad={() => setMotionReady(true)} onError={() => setMotionReady(false)} />
-    </span>
-    <div className="tarot-choices">
-      {[0, 1, 2].map(index => <button type="button" key={index} aria-label={`${index + 1}번 타로 카드`} onClick={() => onDraw(index)}><TarotCard /></button>)}
-    </div>
-  </div>;
-}
-
-const tarotDeck = [
-  { name: '별 (The Star)', label: 'THE STAR', symbol: '✦', tags: '희망 · 회복 · 새로운 시작', reading: '지금은 지친 마음에 조용히 빛이 들어오는 때예요. 작은 기대 하나부터 다시 키워봐요.', advice: '손에 닿는 따뜻한 차 한 잔으로 오늘을 쉬어가도 좋아요.' },
-  { name: '달 (The Moon)', label: 'THE MOON', symbol: '☾', tags: '직관 · 여유 · 돌아보기', reading: '답을 서두르기보다 마음에 떠오르는 생각을 가만히 살펴봐요.', advice: '한 줄 일기를 써 보면 오늘의 마음이 조금 더 선명해질 거예요.' },
-  { name: '태양 (The Sun)', label: 'THE SUN', symbol: '☀', tags: '기쁨 · 활력 · 자신감', reading: '작은 즐거움을 미루지 말고 지금 누려 보세요. 그 기분이 다음 한 걸음을 가볍게 해줄 거예요.', advice: '좋아하는 노래를 틀고 햇빛이 드는 곳까지 걸어봐요.' },
-];
 
 function GameHeader({ title, hearts, onBack }: { title: string; hearts?: number; onBack: () => void }) {
   return <header className="game-header">
@@ -47,81 +23,191 @@ function GameHeader({ title, hearts, onBack }: { title: string; hearts?: number;
   </header>;
 }
 
+const tarotViews = [
+  { id: 'draw', label: '카드 뽑기' },
+  { id: 'collection', label: '카드 도감' },
+  { id: 'history', label: '뽑기 기록' },
+] as const;
+
+const tarotOptionArt = {
+  daily: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></>,
+  love: <path d="M12 21 4 13c-5-5 2-11 8-5 6-6 13 0 8 5Z" />,
+  career: <><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 12a22 22 0 0 0 18 0m-9 1v2" /></>,
+  choice: <path d="M12 21v-6a5 5 0 0 0-5-5H3m9 7v-2a5 5 0 0 1 5-5h4M7 6l-4 4 4 4m10-8 4 4-4 4" />,
+  one: <><rect x="7" y="3" width="10" height="18" rx="2" /><path d="m12 9 2 3-2 3-2-3Z" /></>,
+  three: <>
+    <rect x="3" y="6" width="7" height="14" rx="1.4" transform="rotate(-18 6.5 13)" />
+    <rect x="14" y="6" width="7" height="14" rx="1.4" transform="rotate(18 17.5 13)" />
+    <rect x="8.5" y="4" width="7" height="15" rx="1.4" fill="#faf4ff" />
+  </>,
+};
+
+function TarotOptionIcon({ variant }: { variant: TarotTopic['id'] | TarotMode }) {
+  return <svg className="tarot-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    {tarotOptionArt[variant]}
+  </svg>;
+}
+
 function Tarot({ hearts, onBack }: { hearts: number; onBack: () => void }) {
-  const [step, setStep] = useState<'intro' | 'pick' | 'drawing' | 'result'>('intro');
-  const [card, setCard] = useState(0);
+  const [view, setView] = useState<typeof tarotViews[number]['id']>('draw');
+  const [topics, setTopics] = useState<TarotTopic[]>([]);
+  const [topic, setTopic] = useState<TarotTopic['id']>('daily');
+  const [mode, setMode] = useState<TarotMode>('one');
+  const [cards, setCards] = useState<TarotCard[]>([]);
+  const [collection, setCollection] = useState<TarotCollection | null>(null);
+  const [history, setHistory] = useState<TarotDraw[]>([]);
+  const [result, setResult] = useState<TarotDraw | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [shareStatus, setShareStatus] = useState('');
-  const [offset, setOffset] = useState(() => Math.floor(Math.random() * tarotDeck.length));
-  const header = <GameHeader title={step === 'intro' ? '오늘의 타로' : '무무와 타로'} hearts={step === 'intro' ? hearts : undefined} onBack={onBack} />;
+  const [retry, setRetry] = useState(0);
+  const resultPanel = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    if (step !== 'drawing') return;
-    const timer = window.setTimeout(() => setStep('result'), GAME_HOST_MOTION_MS);
-    return () => window.clearTimeout(timer);
-  }, [step]);
+    if (result) resultPanel.current?.scrollIntoView({ block: 'nearest' });
+  }, [result]);
 
-  function draw(index: number) {
-    setCard((index + offset) % tarotDeck.length);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      // Each view opens with the server's current data, even after a reload.
+      if (view === 'collection') {
+        const [catalog, progress] = await Promise.all([api.tarotCards(), api.tarotCollection()]);
+        if (!active) return;
+        if (catalog.code === 200 && progress.code === 200) {
+          setCards(catalog.cards);
+          setCollection(progress);
+        } else setError(catalog.error ?? progress.error ?? '타로 도감을 불러오지 못했어요.');
+      } else {
+        const [topicList, records] = await Promise.all([
+          api.tarotTopics(),
+          view === 'history' ? api.tarotHistory() : undefined,
+        ]);
+        if (!active) return;
+        if (topicList.code === 200 && (!records || records.code === 200)) {
+          setTopics(topicList.topics);
+          if (records) setHistory(records.history);
+        } else setError(topicList.error ?? records?.error ?? '타로 화면을 불러오지 못했어요.');
+      }
+      setLoading(false);
+    }
+    void load();
+    return () => { active = false; };
+  }, [view, retry]);
+
+  const topicLabel = (id: TarotTopic['id']) => topics.find(item => item.id === id)?.label ?? id;
+
+  async function draw() {
+    setBusy(true);
+    setError('');
     setShareStatus('');
-    setStep(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'result' : 'drawing');
+    const response = await api.drawTarot(topic, mode);
+    if (response.code === 201) {
+      setResult(response.draw);
+      setCollection(response.collection);
+      setHistory(response.history);
+    } else setError(response.error ?? '카드를 뽑지 못했어요. 다시 시도해 주세요.');
+    setBusy(false);
   }
-  if (step === 'drawing') return <>
-    {header}
-    <section className="tarot-drawing" role="status">
-      <MumuGameScene theme="tarot">무무가 오늘의 카드를 뽑고 있어요 ✨</MumuGameScene>
-      <div className="tarot-reveal"><TarotCard /></div>
-    </section>
-  </>;
-  if (step === 'result') {
-    const result = tarotDeck[card];
-    return <>
-      {header}
-      <MumuGameScene theme="tarot" layout="side">짜잔!<br />오늘의 카드는 바로…✨</MumuGameScene>
-      <div className="tarot-reveal"><TarotCard name={result.label} symbol={result.symbol} /></div>
-      <section className="game-panel tarot-result" aria-live="polite">
-        <h2>{result.name}</h2><small>{result.tags}</small><p>{result.reading}</p>
-        <aside className="tarot-advice"><div><strong>🌱 무무의 한마디</strong><p>{result.advice}</p></div><MumuGameHost /></aside>
-      </section>
-      <div className="tarot-result-actions">
-        <button className="game-primary" onClick={() => {
-          setOffset(Math.floor(Math.random() * tarotDeck.length));
-          setStep('pick');
-        }}>⟳ 다시 뽑기</button>
-        <button type="button" aria-label="타로 결과 공유하기" onClick={async () => {
-          const text = `무무와 타로 · ${result.name}\n${result.reading}`;
-          try {
-            if (navigator.share) await navigator.share({ title: '무무와 타로', text });
-            else { await navigator.clipboard.writeText(text); setShareStatus('결과를 복사했어요.'); }
-          } catch (error) {
-            if (!(error instanceof DOMException && error.name === 'AbortError')) setShareStatus('결과를 공유하지 못했어요.');
-          }
-        }}>↥</button>
-      </div>
-      {shareStatus && <small role="status">{shareStatus}</small>}
-    </>;
+
+  async function clearHistory() {
+    if (!window.confirm('뽑기 기록을 모두 지울까요? 모은 카드는 도감에 남아요.')) return;
+    setBusy(true);
+    setError('');
+    const response = await api.clearTarotHistory();
+    if (response.code === 200) setHistory(response.history);
+    else setError(response.error ?? '뽑기 기록을 지우지 못했어요.');
+    setBusy(false);
   }
+
+  async function share(draw: TarotDraw) {
+    const text = [`무무와 타로 · ${topicLabel(draw.topic)}`, ...draw.cards.map(card => `${card.nameKo}: ${card.reading}`)].join('\n');
+    try {
+      if (navigator.share) await navigator.share({ title: '무무와 타로', text });
+      else { await navigator.clipboard.writeText(text); setShareStatus('결과를 복사했어요.'); }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) setShareStatus('결과를 공유하지 못했어요.');
+    }
+  }
+
   return <>
-    {header}
-    <div className={`tarot-entry-content tarot-entry-content--${step}`}>
-      <MumuGameScene theme="tarot">
-        {step === 'intro' ? '오늘의 메시지를 뽑아볼까?' : <>마음에 드는 카드를<br />한 장 골라봐! 💜</>}
-      </MumuGameScene>
-      <section className="game-panel tarot-pick">
-        <h2>{step === 'intro' ? '카드 한 장을 골라봐!' : '카드 한 장을 골라줘!'}</h2>
-        <p>오늘의 기분과 잘 맞는 메시지를 전해줄게.</p>
-        <TarotChoices onDraw={draw} />
-      </section>
-      {step === 'intro' && <>
-        <h2 className="game-guide-title">오늘의 타로 가이드</h2>
-        <div className="tarot-guide">
-          <div>💞<strong>연애</strong><small>마음과 관계의 흐름을 살펴봐요</small></div>
-          <div>☁️<strong>기분</strong><small>오늘의 감정과 컨디션을 확인해요</small></div>
-          <div>🗓️<strong>하루 조언</strong><small>오늘 하루를 보낼 힌트를 얻어요</small></div>
-        </div>
-        <aside className="game-panel game-copy tarot-advice"><MumuGameHost /><div><strong>무무의 한마디 ✨</strong><p>카드를 고르면 오늘의 작은 힌트를 들려줄게.</p></div></aside>
-      </>}
-    </div>
-    <button className="game-primary" onClick={() => step === 'intro' ? setStep('pick') : draw(Math.floor(Math.random() * 3))}>{step === 'intro' ? '🃏 카드 뽑기' : '⤨ 랜덤으로 뽑기'}</button>
+    <GameHeader title="오늘의 타로" hearts={hearts} onBack={onBack} />
+    <nav className="tarot-switch" aria-label="타로 메뉴">
+      {tarotViews.map(item => <button key={item.id} type="button" aria-pressed={view === item.id} disabled={busy} onClick={() => {
+        if (item.id === view) return;
+        setLoading(true);
+        setError('');
+        setView(item.id);
+      }}>{item.label}</button>)}
+    </nav>
+    {loading ? <p className="game-panel" role="status">타로를 불러오고 있어요…</p> :
+      view === 'draw' ? <>
+        <MumuGameScene theme="tarot">{busy ? '무무가 카드를 뽑고 있어요…' : '오늘의 메시지를 뽑아볼까?'}</MumuGameScene>
+        <form className="game-panel tarot-form" onSubmit={event => { event.preventDefault(); if (!busy && topics.length) void draw(); }}>
+          <img className="tarot-card-motion" src={tarotCardMotion} width={512} height={512} alt="" draggable={false} />
+          <fieldset disabled={busy || !topics.length}>
+            <legend>타로 주제</legend>
+            <div className="tarot-options">{topics.map(item => <label key={item.id}>
+              <input type="radio" name="tarot-topic" value={item.id} checked={topic === item.id} onChange={() => setTopic(item.id)} />
+              <TarotOptionIcon variant={item.id} />
+              <span className="tarot-option-text">{item.label}</span>
+            </label>)}</div>
+          </fieldset>
+          <fieldset disabled={busy}>
+            <legend>카드 장수</legend>
+            <div className="tarot-options">
+              <label>
+                <input type="radio" name="tarot-mode" value="one" checked={mode === 'one'} onChange={() => setMode('one')} />
+                <TarotOptionIcon variant="one" />
+                <span className="tarot-option-text"><strong>한 장</strong><small>핵심 메시지</small></span>
+              </label>
+              <label>
+                <input type="radio" name="tarot-mode" value="three" checked={mode === 'three'} onChange={() => setMode('three')} />
+                <TarotOptionIcon variant="three" />
+                <span className="tarot-option-text"><strong>세 장</strong><small>메시지 더 보기</small></span>
+              </label>
+            </div>
+          </fieldset>
+          <button className="game-primary" disabled={busy || !topics.length}>{busy ? '뽑는 중…' : '카드 뽑기'}</button>
+        </form>
+        {result && <section ref={resultPanel} className="game-panel tarot-results" aria-live="polite">
+          <h2>{topicLabel(result.topic)} · 뽑기 결과</h2>
+          {result.cards.map(card => <article className="tarot-reading" key={card.id}>
+            <span className="tarot-card" aria-hidden="true"><span>☾</span><b>✦</b><span>{card.number}</span></span>
+            <div><h3>{card.nameKo} <small>{card.nameEn}</small></h3><p>{card.keywords.join(' · ')}</p><p>{card.reading}</p></div>
+          </article>)}
+          <button type="button" className="btn ghost" onClick={() => void share(result)}>결과 공유하기</button>
+          {shareStatus && <small role="status">{shareStatus}</small>}
+        </section>}
+      </> : view === 'collection' ? collection && <section className="game-panel tarot-collection">
+        <h2>메이저 아르카나</h2>
+        <p>{collection.totalCount}장 중 <strong>{collection.unlockedCount}장</strong> 모았어요.</p>
+        <ul className="tarot-collection-list">{cards.map(card => (
+          <li key={card.id}>{collection.unlockedIds.includes(card.id) ? <details>
+            <summary>✦ {card.nameKo} <small>획득</small></summary>
+            <p>{card.summary}</p>
+          </details> : <span>{card.number}. {card.nameKo} <small>잠김</small></span>}</li>
+        ))}</ul>
+      </section> : <section className="game-panel tarot-history">
+        <h2>지난 카드 뽑기</h2>
+        {history.length ? <>
+          <ul>{history.map(record => <li key={record.id}>
+            <details><summary>
+              <strong>{topicLabel(record.topic)} · {record.mode === 'one' ? '한 장' : '세 장'}</strong>
+              <time dateTime={record.timestamp}>{new Date(record.timestamp).toLocaleString('ko-KR')}</time>
+            </summary>
+            {record.cards.map(card => <p key={card.id}><strong>{card.nameKo}</strong> {card.reading}</p>)}
+            </details>
+          </li>)}</ul>
+          <button type="button" className="btn ghost" disabled={busy} onClick={() => void clearHistory()}>{busy ? '지우는 중…' : '기록 지우기'}</button>
+        </> : !error && <p>아직 뽑기 기록이 없어요.</p>}
+      </section>}
+    {error && <div className="game-panel" role="alert">
+      <p>{error}</p>
+      <button type="button" className="btn ghost" disabled={busy} onClick={() => { setError(''); setLoading(true); setRetry(count => count + 1); }}>다시 불러오기</button>
+    </div>}
   </>;
 }
 

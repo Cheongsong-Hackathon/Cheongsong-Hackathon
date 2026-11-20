@@ -75,6 +75,43 @@ export type Records = {
 };
 
 export type Me = { loggedIn: boolean; nickname: string | null; remember: boolean };
+export type TarotTopic = { id: 'daily' | 'love' | 'career' | 'choice'; label: string };
+export type TarotMode = 'one' | 'three';
+export type TarotCard = { id: string; number: number; nameEn: string; nameKo: string; keywords: string[]; summary: string };
+export type TarotDraw = {
+  id: string;
+  timestamp: string;
+  topic: TarotTopic['id'];
+  mode: TarotMode;
+  cards: (TarotCard & { reading: string })[];
+};
+export type TarotCollection = { unlockedIds: string[]; totalCount: number; unlockedCount: number };
+export type SajuElement = '목' | '화' | '토' | '금' | '수';
+export type SajuInput = {
+  birthDate: string;
+  birthTime?: string;
+  calendarType?: 'solar' | 'lunar';
+  lunarLeapMonth?: boolean;
+  gender: 'male' | 'female';
+  topic?: 'daily' | 'love' | 'career' | 'choice';
+};
+type SajuPillar = { stem: string; branch: string; stemElement: SajuElement; branchElement: SajuElement };
+export type SajuRecord = {
+  id: string;
+  timestamp: string;
+  input: Required<SajuInput>;
+  solarBirthDate: string;
+  nearSolarTerm: boolean;
+  pillars: { year: SajuPillar; month: SajuPillar; day: SajuPillar; hour: SajuPillar | null };
+  elements: {
+    distribution: { element: SajuElement; count: number; percentage: number }[];
+    dominant: SajuElement[];
+    lacking: SajuElement[];
+    total: number;
+  };
+  dayMaster: { stem: string; element: SajuElement; summary: string };
+  reading: { title: string; advice: string };
+};
 type Res<T> = T &{ error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
 
 // 로그인 없이 브라우저마다 따로 쓰도록, 처음 열 때 만든 무작위 키를 모든 요청에 실어 보낸다.
@@ -108,6 +145,17 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<Re
 }
 
 export const api = {
+  analyzeSaju: (input: SajuInput) => call<SajuRecord>('POST', '/saju/analyze', input),
+  sajuHistory: () => call<{ history: SajuRecord[] }>('GET', '/saju/history'),
+  clearSajuHistory: () => call<{ history: SajuRecord[] }>('DELETE', '/saju/history'),
+  tarotTopics: () => call<{ topics: TarotTopic[] }>('GET', '/tarot/topics'),
+  tarotCards: () => call<{ cards: TarotCard[] }>('GET', '/tarot/cards'),
+  tarotCollection: () => call<TarotCollection>('GET', '/tarot/collection'),
+  tarotHistory: () => call<{ history: TarotDraw[] }>('GET', '/tarot/history'),
+  clearTarotHistory: () => call<{ history: TarotDraw[] }>('DELETE', '/tarot/history'),
+  drawTarot: (topic: TarotTopic['id'], mode: TarotMode) => call<{
+    draw: TarotDraw; drawnCards: TarotDraw['cards']; collection: TarotCollection; history: TarotDraw[];
+  }>('POST', '/tarot/draw', { topic, mode }),
   checkin: (b: { text: string; emotion: string | null; energy: number; mood: number }) => call<Checkin>('POST', '/checkin', b),
   recommend: (b: { checkinId: number; minutes: number; walk: number; budget: number; exclude: string[] } & Partial<LatLng>) =>
     // items: 제휴 매장 체험 (내 위치 주변에 없으면 빈 배열), free: 같은 위치 기준 무료 장소
