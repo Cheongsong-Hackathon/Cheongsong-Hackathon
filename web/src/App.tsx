@@ -106,7 +106,8 @@ export default function App() {
   useEffect(() => { if (tab === 'talk') voiceNext.current = false; }, [tab]);
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
   const isMumuRoom = ['play', 'talk', 'game', 'wardrobe'].includes(tab);
-  const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal'].includes(tab) ? 'profile' : 'home';
+  // 홈에서 연 대화창은 홈 탭에 속한다 (무무 탭으로 보이던 것 수정)
+  const primaryTab = tab === 'talk' && chatReturn === 'home' ? 'home' : isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal'].includes(tab) ? 'profile' : 'home';
   const [journalFocus, setJournalFocus] = useState(false);
   const screenRef = useRef<HTMLElement>(null);
   useEffect(() => { screenRef.current?.scrollTo(0, 0); }, [tab, profileSaved, profilePosts]);
