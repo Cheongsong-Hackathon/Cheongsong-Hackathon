@@ -398,3 +398,11 @@
 .voice-mode.thinking .voice-mumu img { animation: voice-bob 1.6s ease-in-out infinite; }
 @keyframes voice-breathe { 50% { transform: scale(1.04); box-shadow: 0 0 0 18px #b98cf41f, 0 22px 60px #8b4cdb40; } }
 @media (prefers-reduced-motion: reduce) { .voice-mumu, .voice-mode.thinking .voice-mumu img { animation: none !important; } }
+
+/* 채팅: 추천 대답 칩은 대화 글씨(12px)보다 2px 크게, 입력창은 조금 키우고, 마이크는 보내기 아이콘과 같은 크기 */
+#root .mumu-chat .mumu-quick-replies .chip { font-size: 14px !important; }
+.mumu-chat .mumu-chat-modes { margin: 0 0 8px; }
+.room-message { min-height: 50px; }
+#root .room-message > input { min-height: 48px; font-size: 15px !important; }
+.room-message > button.mic { font-size: inherit; }
+.room-message > button.mic svg { width: 22px; }
