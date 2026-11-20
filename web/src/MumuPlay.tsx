@@ -15,17 +15,19 @@ type Props = {
   onSpin: () => void;
   onChat: () => void;
   onGame: (game: MumuGame) => void;
+  onVoice?: () => void; // 무무를 누르면 음성 대화 (없으면 쓰다듬기)
 };
 
 function Hearts({ value }: { value: number }) {
   return <span className="room-hearts" aria-label={`하트 ${value}개`}>💗 {value.toLocaleString('ko-KR')}</span>;
 }
 
-export default function MumuPlay({ hearts, onHeart, onPet, onSpin, onChat, onGame }: Props) {
+export default function MumuPlay({ hearts, onHeart, onPet, onSpin, onChat, onGame, onVoice }: Props) {
   const [snacking, setSnacking] = useState(false);
   const [snackReady, setSnackReady] = useState(false);
   const [replay, setReplay] = useState(0);
   const [showAll, setShowAll] = useState(false);
+  const roomGreeting = onVoice ? '나를 누르면 말로 얘기할 수 있어!' : '오늘도 놀아줄 거지?';
   useEffect(() => {
     if (!snacking || !snackReady) return;
     const timer = window.setTimeout(() => setSnacking(false), 1530);
@@ -48,8 +50,8 @@ export default function MumuPlay({ hearts, onHeart, onPet, onSpin, onChat, onGam
       <div className="room-light" aria-hidden="true" />
       <div className="room-shelf" aria-hidden="true" />
       <div className="room-rug" aria-hidden="true" />
-      <div className="room-bubble" role="status">{snacking ? '간식 고마워!' : '오늘도 놀아줄 거지?'}</div>
-      <button className="room-character" type="button" aria-label="무무 쓰다듬기" onClick={onPet}>
+      <div className="room-bubble" role="status">{snacking ? '간식 고마워!' : roomGreeting}</div>
+      <button className="room-character" type="button" aria-label={onVoice ? '무무와 음성 대화' : '무무 쓰다듬기'} onClick={onVoice ?? onPet}>
         <img key={`${replay}-${snacking}`} src={snacking ? `${snack}?reaction=${replay}` : homePortrait} alt="" draggable={false}
           onLoad={snacking ? () => setSnackReady(true) : undefined}
           onError={snacking ? () => setSnacking(false) : undefined} />

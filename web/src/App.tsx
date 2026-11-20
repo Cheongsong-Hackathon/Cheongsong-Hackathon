@@ -5,6 +5,7 @@ import ProfilePage from './ProfilePage';
 import Community from './Community';
 import BookingNotification from './BookingNotification';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { canListen } from './voice';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import { sendTalk } from './talkClient';
@@ -68,14 +69,20 @@ const GREETING: Msg = {
   quickReplies: ['지쳐서 조용히 쉬고 싶어', '답답해서 기분 전환하고 싶어', '심심해, 재밌는 거 없을까', '그냥 추천해 줘'],
 };
 
+// 카카오 로그인 뒤 서버가 /?login=ok|fail 로 돌려보낸다 (결과 안내와 주소 정리는 AccountCard가)
+const LOGIN_RETURN = new URLSearchParams(location.search).has('login');
+
 type Sheet = { kind: 'conditions' } | { kind: 'postpone' } | { kind: 'complete'; booking: Booking } | null;
 
 export default function App() {
   useEffect(() => { document.title = '무무'; }, []);
-  const [launched, setLaunched] = useState(false); // false면 휴대폰 메인 화면
-  const [onboarded,setOnboarded]=useState(false);
-  const [loginPassed,setLoginPassed]=useState(false);
-  const [landed, setLanded] = useState(false); // 앱을 열면 랜딩을 한 번 보여 준다
+  // 카카오 로그인에서 돌아오면(LOGIN_RETURN) 휴대폰 메인·랜딩·온보딩·로그인 화면을 건너뛰고 바로 앱 안으로
+  const [launched, setLaunched] = useState(LOGIN_RETURN); // false면 휴대폰 메인 화면
+  const [onboarded,setOnboarded]=useState(LOGIN_RETURN);
+  const [loginPassed,setLoginPassed]=useState(LOGIN_RETURN);
+  const [landed, setLanded] = useState(LOGIN_RETURN); // 앱을 열면 랜딩을 한 번 보여 준다
+  // 이미 카카오로 로그인한 사람에게는 로그인 화면을 보여 주지 않는다
+  useEffect(() => { api.me().then((r) => { if (r.loggedIn) setLoginPassed(true); }); }, []);
   const [consent, setConsent] = useState<string | null>(() => store.get('location')); // 'yes' | 'no' | null
   const [savedLocation, setSavedLocation] = useState<SavedLocation | null>(() => {
     try {
@@ -83,7 +90,7 @@ export default function App() {
       return v && typeof v.label === 'string' && v.label.trim() && Number.isFinite(v.lat) && Math.abs(v.lat) <= 90 && Number.isFinite(v.lng) && Math.abs(v.lng) <= 180 ? v : null;
     } catch { return null; }
   });
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>(LOGIN_RETURN ? 'profile' : 'home');
   const [profileLocation, setProfileLocation] = useState(false);
   const [bookingExpanded, setBookingExpanded] = useState(false);
   const [journalStart, setJournalStart] = useState<'library' | 'record'>('library');
@@ -91,6 +98,9 @@ export default function App() {
   const [playHearts, setPlayHearts] = useState(1250);
   const [mumuGame, setMumuGame] = useState<MumuGame>('tarot');
   const [chatReturn, setChatReturn] = useState<'home' | 'play'>('home');
+  // 무무 방에서 무무를 누르면 대화 화면이 음성 대화 모드로 열린다 (한 번만: 대화 화면이 열리면 지운다)
+  const voiceNext = useRef(false);
+  useEffect(() => { if (tab === 'talk') voiceNext.current = false; }, [tab]);
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
   const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'spin' || tab === 'game';
   const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
@@ -382,11 +392,25 @@ export default function App() {
                   />
                 )}
                 <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal key={journalKey} initialStep={journalStart} onExit={() => setTab('profile')} onFocusChange={setJournalFocus} /></div>
-                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onSpin={() => setTab('spin')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} />}
+                {tab === 'play' && (
+                  <MumuPlay
+                    hearts={playHearts}
+                    onHeart={earnPlayHeart}
+                    onPet={() => setTab('pet')}
+                    onSpin={() => setTab('spin')}
+                    onGame={(game) => { setMumuGame(game); setTab('game'); }}
+                    onChat={() => { setChatReturn('play'); setTab('talk'); }}
+                    onVoice={canListen ? () => {
+                      voiceNext.current = true;
+                      setChatReturn('play');
+                      setTab('talk');
+                    } : undefined}
+                  />
+                )}
                 {tab === 'pet' && <MumuPet hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
                 {tab === 'spin' && <MumuSpin hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
-                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
+                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} />}
               </main>
               {!(tab === 'journal' && journalFocus) && <nav className={`tabs${isMumuRoom ? ' mumu-room-tabs' : ''}`} aria-label="메뉴">
                 {TABS.map((t) => (

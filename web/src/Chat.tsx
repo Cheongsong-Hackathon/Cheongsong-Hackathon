@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { Item } from './api';
 import type { TalkOffer } from './talkClient';
 import portrait from './assets/mumu/mood-happy.png';
+import { canListen, setVoicePref, speak, stopSpeaking, voicePref } from './voice';
+import VoiceMode from './VoiceMode';
 
 export type Msg = { who: 'bunny' | 'me'; text: string; offer?: Pick<TalkOffer, 'items' | 'assumptions'>; quickReplies?: string[]; support?: TalkOffer['support'] };
 
@@ -14,12 +16,23 @@ const solutions = [
   { icon: '📍', title: '가벼운 기분 전환', detail: '집 근처 산책 코스나 조용한 카페 추천' },
 ];
 
-export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; onPlay: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void }) {
+export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack?: () => void; onPlay: () => void; msgs: Msg[]; busy: boolean; onSend: (t: string) => void; retry: boolean; onRetry: () => void; voiceStart?: boolean }) {
   const [text, setText] = useState('');
   const [showSolutions, setShowSolutions] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const toggleSolutions = () => setShowSolutions(open => !open);
   const log = useRef<HTMLDivElement>(null);
+  // 음성 대화 모드(무무를 누르거나 🎙): ChatGPT 음성 모드처럼 듣기 → 답하기 → 다시 듣기. 🔊는 글 대화에서 답장을 읽어 줄지
+  const [voiceMode, setVoiceMode] = useState(!!p.voiceStart && canListen);
+  const [voiceOn, setVoiceOn] = useState(voicePref);
+  const spoken = useRef(p.msgs.length);
+  useEffect(() => {
+    const last = p.msgs[p.msgs.length - 1];
+    if (p.msgs.length > spoken.current && last?.who === 'bunny' && voiceOn && !voiceMode) void speak(last.text);
+    spoken.current = p.msgs.length;
+  }, [p.msgs.length, voiceOn]);
+  useEffect(() => () => { stopSpeaking(); }, []);
+  const toggleVoice = () => { const on = !voiceOn; setVoiceOn(on); setVoicePref(on); if (!on) stopSpeaking(); };
   useEffect(() => {
     if (log.current && (p.msgs.length > 1 || p.busy || p.retry)) {
       log.current.scrollTop = log.current.scrollHeight;
@@ -32,6 +45,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
       <header className="mumu-chat-header">
         <button type="button" aria-label="뒤로 가기" onClick={p.onBack}>‹</button>
         <div><img src={portrait} alt="" /><strong>무무와 함께</strong></div>
+        <button type="button" className="voice-toggle" aria-label={voiceOn ? '무무 목소리 끄기' : '무무 목소리 켜기'} aria-pressed={voiceOn} onClick={toggleVoice}>{voiceOn ? '🔊' : '🔇'}</button>
         <button type="button" aria-label="채팅방 안내" aria-expanded={showInfo} onClick={() => setShowInfo(value => !value)}>•••</button>
       </header>
       {showInfo && <p className="notice">무무는 AI 캐릭터예요. 전문 상담을 대신하지 않아요.</p>}
@@ -39,7 +53,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         <span aria-current="page">💬 무무랑 채팅하기</span>
         <button type="button" onClick={p.onPlay}>🎮 무무랑 놀기</button>
       </div>
-      <div className="mumu-chat-hero"><img src={portrait} alt="" /><p>오늘은 어떤 기분이야?<br />무무한테 편하게 말해줘! 💜</p></div>
+      <div className="mumu-chat-hero">{canListen ? <button type="button" className="voice-open" aria-label="무무와 음성 대화" onClick={() => setVoiceMode(true)}><img src={portrait} alt="" /><span>🎙 눌러서 말하기</span></button> : <img src={portrait} alt="" />}<p>오늘은 어떤 기분이야?<br />무무한테 편하게 말해줘! 💜</p></div>
       <div className="mumu-chat-modes">
         <button type="button" disabled={p.busy || p.retry} onClick={() => p.onSend('고민 털어놓기')}>💬 고민 털어놓기</button>
         <button type="button" disabled={p.busy || p.retry} onClick={() => p.onSend('기분 점검하기')}>🌱 기분 점검하기</button>
@@ -85,6 +99,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
           setShowSolutions(false);
         }}><span aria-hidden="true">{solution.icon}</span><span><strong>{solution.title}</strong><small>{solution.detail}</small></span><span aria-hidden="true">›</span></button>)}
       </section>}
+      {voiceMode && <VoiceMode msgs={p.msgs} retry={p.retry} onSend={p.onSend} onRetry={p.onRetry} onExperiences={p.onExperiences} onClose={() => setVoiceMode(false)} />}
       <form
         className="composer"
         onSubmit={(e) => {
@@ -97,6 +112,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
         <button type="button" className="room-plus" aria-label="솔루션 열기" aria-expanded={showSolutions} onClick={toggleSolutions}>+</button>
         <div className="room-message">
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder="무무에게 이야기해보세요…" maxLength={500} aria-label="메시지" />
+          {canListen && <button type="button" className="mic" aria-label="음성 대화" onClick={() => setVoiceMode(true)}>🎙</button>}
           <button type="submit" aria-label="보내기" disabled={p.busy || p.retry || !text.trim()}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 18-7-5 18-5-7-8-4Zm8 4 10-11" /></svg>
           </button>

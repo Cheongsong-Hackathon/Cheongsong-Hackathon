@@ -149,6 +149,12 @@ if (demoItems.length) {
 }
 const health0 = await api('GET', '/health');
 if (health0.json.llm?.model) {
+  // 기억은 [선택 동의] "무무가 기억하기"를 켠 사용자만. 끈 사용자는 배우지 않는다
+  await api('POST', '/chat', { message: '나는 사람 많은 곳보다 조용한 도서관이 훨씬 편해' }, 'smoke-user-d');
+  await new Promise((r) => setTimeout(r, 4000));
+  check('기억하기를 안 켠 사용자: 기억 없음', ((await api('GET', '/memories', undefined, 'smoke-user-d')).json.items ?? []).length === 0);
+  const on = await api('PATCH', '/me', { remember: true }, 'smoke-user-c');
+  check('기억하기 켜기 (둘러보기 사용자도)', on.json.remember === true && on.json.loggedIn === false, on.json);
   // 기억 갱신은 답장 뒤에 따로 돌아서, 잠깐 기다리며 확인한다
   await api('POST', '/chat', { message: '나는 사람 많은 곳보다 조용한 도서관이 훨씬 편해' }, 'smoke-user-c');
   let learned: any[] = [];

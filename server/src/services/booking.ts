@@ -1,6 +1,6 @@
 // 04 예약·체험 → 05 기분 기록. 실제 예약은 네이버 지도(네이버 예약)에서 하고, 여기서는 "가기로 한 것"만 기록한다 (기분 전후 기록·토끼 성장용).
 import { config } from '../config.js';
-import { query, toId, tx } from '../db.js';
+import { query, toId, tx, type Q } from '../db.js';
 import { haversineM, validLatLng } from '../geo.js';
 import { GrowthService } from './growth.js';
 import { naverMapUrl } from './kakao.js';
@@ -177,15 +177,19 @@ export async function records(userId: number) {
   return { done, week, postpones };
 }
 
+/** 사용자 기록 전부 (캐릭터·계정 제외). 탈퇴(account.ts)도 같은 트랜잭션 안에서 쓴다 */
+export async function wipeRecords(q: Q, userId: number) {
+  await q(`DELETE FROM bookings WHERE user_id = $1`, [userId]);
+  await q(`DELETE FROM checkins WHERE user_id = $1`, [userId]);
+  await q(`DELETE FROM postpones WHERE user_id = $1`, [userId]);
+  await q(`DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = $1)`, [userId]);
+  await q(`DELETE FROM chat_sessions WHERE user_id = $1`, [userId]);
+  await q(`DELETE FROM memories WHERE user_id = $1`, [userId]); // 무무의 기억도 같이
+  await q(`DELETE FROM saved_spots WHERE user_id = $1`, [userId]);
+}
+
 /** 내 기록 모두 지우기. 캐릭터 성장은 줄이지 않는다. */
 export async function deleteRecords(userId: number) {
-  await tx(async (q) => {
-    await q(`DELETE FROM bookings WHERE user_id = $1`, [userId]);
-    await q(`DELETE FROM checkins WHERE user_id = $1`, [userId]);
-    await q(`DELETE FROM postpones WHERE user_id = $1`, [userId]);
-    await q(`DELETE FROM messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE user_id = $1)`, [userId]);
-    await q(`DELETE FROM chat_sessions WHERE user_id = $1`, [userId]);
-    await q(`DELETE FROM memories WHERE user_id = $1`, [userId]); // 토끼의 기억도 같이
-  });
+  await tx((q) => wipeRecords(q, userId));
   return { deleted: true };
 }

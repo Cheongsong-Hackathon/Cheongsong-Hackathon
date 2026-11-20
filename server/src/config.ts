@@ -35,7 +35,13 @@ export const config = {
   demoCenter: { lat: num(env.DEMO_CENTER_LAT, 35.8318613), lng: num(env.DEMO_CENTER_LNG, 128.7585416) },
   llm: llm('LLM'),
   llmFallback: llm('LLM_FALLBACK'),
-  kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표. 비우면 두 기능만 꺼진다
+  kakaoKey: env.KAKAO_REST_API_KEY ?? '', // 무료 장소 검색, 주소 → 좌표, 카카오 로그인. 비우면 세 기능이 꺼진다
+  kakaoClientSecret: env.KAKAO_CLIENT_SECRET ?? '', // 카카오 로그인 토큰 발급 (카카오 콘솔에서 켜 둔 경우 필수)
+  sessionSecret: env.SESSION_SECRET ?? '', // 로그인 쿠키 서명. 비우면 로그인이 꺼지고 둘러보기만 된다
+  // 무무 목소리 (네이버 클라우드 AI·NAVER API 애플리케이션, CLOVA Voice Premium 선택). 비우면 브라우저 내장 목소리
+  ncpClientId: env.NCP_CLIENT_ID ?? '',
+  ncpClientSecret: env.NCP_CLIENT_SECRET ?? '',
+  ttsSpeaker: env.TTS_SPEAKER ?? 'nara',
   googlePlacesKey: env.GOOGLE_PLACES_KEY ?? '', // 제휴 매장 실제 사진. 비우면 지금 그림 그대로
   // 시연 초기화(/api/demo/reset) 비밀 값. 비우면 이 컴퓨터(localhost)에서만 초기화할 수 있다
   resetToken: env.RESET_TOKEN ?? '',

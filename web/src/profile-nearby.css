@@ -3,3 +3,28 @@
 @media(max-width:350px){.nearby-page,.profile-page{padding-left:12px;padding-right:12px}.nearby-row-image{width:69px;height:77px}.nearby-row-open strong{font-size:11px}.nearby-row-open small{font-size:8px}.profile-plus{gap:5px;padding:12px 9px}.profile-plus>small{font-size:8px}.profile-identity .character-space{width:35px;min-width:35px}.profile-menu-card>button{gap:5px;padding:12px 9px}.profile-menu-card small{font-size:8px}.profile-activity-grid{gap:5px}}
 
 .nearby-categories svg{display:block;width:22px;height:22px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
+/* 마이 > 계정 (카카오 로그인 · 선택 동의) */
+.account-card { margin:0 0 14px; padding:14px 16px; border-radius:18px; background:#fff; box-shadow:0 4px 10px #a28db91a; color:#322945; display:flex; flex-direction:column; gap:10px; }
+.account-card header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.account-card header strong { font-size:14px; }
+.account-card header a { font-size:11px; color:#8a4ee8; }
+.account-card p { margin:0; font-size:12px; color:#7d7590; }
+.account-kakao { min-height:44px; border:0; border-radius:12px; background:#fee500; color:#191600; font:inherit; font-weight:800; font-size:14px; cursor:pointer; }
+.account-kakao:disabled { opacity:.45; cursor:default; }
+.account-later, .account-close { border:0; background:none; color:#9690a5; font:inherit; font-size:12px; cursor:pointer; }
+.account-close { font-size:20px; line-height:1; }
+.account-check, .account-toggle { display:flex; align-items:flex-start; gap:8px; font-size:13px; }
+.account-check input, .account-toggle input { margin-top:3px; accent-color:#8a4ee8; }
+.account-check span, .account-toggle span { flex:1; display:flex; flex-direction:column; gap:2px; }
+.account-check small, .account-toggle small { font-size:11px; color:#9690a5; }
+.account-check a { font-size:11px; color:#8a4ee8; }
+.account-name { display:flex; gap:8px; }
+.account-name input { flex:1; min-width:0; padding:9px 12px; border:1.5px solid #e3d6f7; border-radius:12px; font:inherit; font-size:13px; }
+.account-name button, .account-actions button { padding:8px 14px; border:1.5px solid #e3d6f7; border-radius:12px; background:#fff; color:#5b4f73; font:inherit; font-size:12px; cursor:pointer; }
+.account-actions { display:flex; justify-content:space-between; }
+.account-actions .danger { color:#c2416b; border-color:#f3cdd9; }
+.account-msg { color:#6f4bb8 !important; }
+/* 로그인 화면(.mumu-login)의 이메일 폼용 label·input 규칙이 동의 카드를 덮지 않게 */
+.account-card .account-check, .account-card .account-toggle { flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; }
+.account-card input[type="checkbox"] { width:auto; flex:none; padding:0; margin:3px 0 0; border:0; background:none; }
+.mumu-login .account-card { width:100%; box-sizing:border-box; }
