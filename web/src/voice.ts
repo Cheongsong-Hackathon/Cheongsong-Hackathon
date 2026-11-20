@@ -65,8 +65,8 @@ export async function speak(text: string): Promise<void> {
   const u = new SpeechSynthesisUtterance(t.slice(0, 300));
   u.lang = 'ko-KR';
   // 무무는 아기 같은 목소리로: 음높이는 조금만 올리고(1.5는 너무 높아 기계음), 천천히 또박또박
-  u.pitch = 1.3; // 0~2, 1이 기본
-  u.rate = 0.9; // 0.1~10, 1이 기본
+  u.pitch = 1.1; // 0~2, 1이 기본
+  u.rate = 0.85; // 0.1~10, 1이 기본
   const v = koVoice ?? (koVoice = pickVoice());
   if (v) u.voice = v;
   utter = u;
