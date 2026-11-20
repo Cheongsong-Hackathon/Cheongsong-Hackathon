@@ -64,7 +64,7 @@ export async function speak(text: string): Promise<void> {
   if (!('speechSynthesis' in window)) return;
   const u = new SpeechSynthesisUtterance(t.slice(0, 300));
   u.lang = 'ko-KR';
-  u.pitch = 1.15;
+  u.pitch = 1.5; // 무무는 어린 목소리로: 성인 목소리를 높여서 (0~2, 1이 기본)
   const v = koVoice ?? (koVoice = pickVoice());
   if (v) u.voice = v;
   utter = u;
@@ -76,8 +76,8 @@ export async function speak(text: string): Promise<void> {
   if (utter === u) utter = null;
 }
 
-// 무료 TTS: 기기 안의 한국어 목소리 중 자연스러운 것을 먼저 고른다 (엣지 "SunHi Online (Natural)", 크롬 "Google 한국의", 애플 "유나")
-const PREFER = [/Natural|Online/i, /Google/i, /Yuna|유나/i];
+// 무료 TTS: 기기 안의 한국어 목소리 중 구글 목소리(크롬 "Google 한국의")를 먼저, 없으면 자연스러운 것 (엣지 SunHi, 애플 유나). 시연은 크롬 기준
+const PREFER = [/Google/i, /Natural|Online/i, /Yuna|유나/i];
 let koVoice: SpeechSynthesisVoice | null = null;
 function pickVoice(): SpeechSynthesisVoice | null {
   const ko = koreanVoices();
