@@ -77,7 +77,21 @@ type Stored = {
   lastTop?: { walk: number; price: number; energyNeed: number };
   locked?: ('walk' | 'minutes' | 'budget')[]; // 사용자가 "멀어", "비싸"로 직접 좁힌 조건
   watch?: boolean; // 위험도 WATCH가 한 번이라도 나오면 이 대화 동안 상담 번호를 함께 보여 줌
+  offer?: 'play' | 'place'; // 무무가 방금 먼저 권한 것 (다음 말이 "응"이면 바로 연다)
+  offered?: boolean; // 이 대화에서 이미 한 번 권했음 (다시 권하지 않는다)
 };
+
+/** 무무가 먼저 권하기: 이야기를 두 번 나눴고 읽은 게 있을 때 한 번만. 기운이 낮으면 집에서 놀기, 아니면 근처 장소 */
+export function nextOffer(p: Stored, talks: number): 'play' | 'place' | null {
+  if (p.offered || talks < 2 || (!p.need && !p.energy)) return null;
+  return p.energy === '거의 없음' || p.energy === '낮음' ? 'play' : 'place';
+}
+const OFFER_LINE = { play: '기운이 없어 보이는데, 나가기 전에 나랑 가볍게 한 판 놀래?', place: '근처에 기분 전환할 만한 데 찾아 줄까?' };
+const OFFER_REPLIES = { play: ['응, 놀자', '근처 갈 곳 찾아 줘', '괜찮아'], place: ['응, 찾아 줘', '같이 놀자', '괜찮아'] };
+/** 권하는 말을 붙일 때는 무무의 마지막 질문 문장을 뺀다 (질문이 두 개가 되지 않게). 질문뿐이면 전부 빠진다 */
+export const dropLastQuestion = (reply: string) => reply.trim().replace(/(^|[.!?~]\s+)[^.!?~]*\?\s*$/, '$1').trim();
+/** 권한 것에 대한 대답이 "응"인가 */
+export const saidYes = (m: string) => !/아니|싫|괜찮아|됐어|얘기나/.test(m) && /^\s*(응|ㅇㅇ|웅|어|그래|좋아|네|넵|ㅇㅋ|오케이|콜)/.test(m);
 type Session = { id: number; prefs: Stored; asks: number; seen: string[] };
 
 // ---- 추천 근거 (화면 "왜 여기?"): 점수를 실제로 올린 사실만, 사람이 읽는 말로 ----
@@ -287,10 +301,13 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   void learnFromTurn(userId, message, client); // 기억 갱신은 기다리지 않는다
 
   s.prefs = mergePrefs(s.prefs, out, message);
+  // 무무가 방금 권한 것에 "응"이라고 했으면 그대로 연다 (권한 건 한 턴만 유효)
+  const accepted = s.prefs.offer && saidYes(message) ? s.prefs.offer : null;
+  delete s.prefs.offer;
 
   // 스킬: AI가 고른 것, 놓쳤으면 말 속 단어로
   const rule = ruleSkill(message);
-  const skill = out && out.skill !== '없음' ? out.skill : rule.skill;
+  const skill = accepted === 'play' ? '놀이' : out && out.skill !== '없음' ? out.skill : rule.skill;
   if (skill === '놀이') {
     const game = out && out.game !== '없음' ? out.game : rule.game;
     const reply = (out?.skill === '놀이' && out.reply) || '좋아, 같이 놀자!';
@@ -307,13 +324,16 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
 
   // 기본은 대화. 추천은 친구가 원하거나(말·AI 판단) 앞서 본 추천에 반응할 때만
   const reacted = !!s.prefs.lastTop && keywordFeedback(message) !== '없음';
-  if (out?.action !== 'recommend' && !wantsPlace(message) && !reacted) {
+  if (out?.action !== 'recommend' && !wantsPlace(message) && !reacted && accepted !== 'place') {
     s.asks++; // 이 대화에서 이야기만 나눈 횟수
-    const reply = (out?.action === 'talk' && out.reply) || '그랬구나. 더 얘기해 줄래?';
+    // 알맞은 때 무무가 먼저 한 번 권한다: 기운이 낮으면 집에서 놀기, 아니면 근처 장소. 카드는 "응" 한 뒤에만
+    const offer = nextOffer(s.prefs, s.asks);
+    if (offer) Object.assign(s.prefs, { offer, offered: true });
+    const said = (out?.action === 'talk' && out.reply) || '그랬구나. 더 얘기해 줄래?';
+    const reply = offer ? `${dropLastQuestion(said)} ${OFFER_LINE[offer]}`.trim() : said;
     await say(s.id, 'assistant', reply);
     await save(s);
-    // 추천은 칩으로 살짝만: 두 번째 이야기부터
-    const quickReplies = s.asks >= 2 ? ['같이 놀자', '근처 갈 곳 찾아 줘'] : ['같이 놀자'];
+    const quickReplies = offer ? OFFER_REPLIES[offer] : s.asks >= 2 ? ['같이 놀자', '근처 갈 곳 찾아 줘'] : ['같이 놀자'];
     return { status: 200, body: { sessionId: s.id, action: 'talk', reply, quickReplies, ...support(s.prefs), ...(out ? {} : { fallback: true }) } };
   }
 

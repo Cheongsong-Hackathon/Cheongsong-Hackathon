@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { evidenceOf, justPick, mergePrefs, ruleSkill, TalkOut, wantsPlace } from '../src/services/talk.js';
+import { dropLastQuestion, evidenceOf, justPick, mergePrefs, nextOffer, ruleSkill, saidYes, TalkOut, wantsPlace } from '../src/services/talk.js';
 
 test('추천 근거 칩: 점수를 올린 사실만 사람 말로, 감점·가까움은 빼고 걸어서 몇 분은 늘', () => {
   assert.deepEqual(
@@ -110,4 +110,25 @@ test('피할 것은 말에 관련된 얘기가 있을 때만 받음: "심심해"
   assert.deepEqual(q.avoid, ['몸 쓰기', '사람 많음']); // 지쳐서 → 몸 쓰기, 사람 많은 → 사람 많음. 실내는 말 안 함
   const r = mergePrefs({}, out({ need: '풀기', avoid: ['실내'] }), '답답해서 기분 전환하고 싶어');
   assert.deepEqual(r.avoid, []); // "답답해"는 기분이지 실내가 싫다는 말이 아님
+});
+
+test('무무가 먼저 제안: 두 번 이야기한 뒤 한 번만, 기운이 낮으면 놀이·아니면 근처 장소', () => {
+  assert.equal(nextOffer({ need: '쉬기', energy: '낮음' }, 1), null); // 아직 이야기를 덜 나눔
+  assert.equal(nextOffer({}, 3), null); // 읽은 게 없으면 제안하지 않음
+  assert.equal(nextOffer({ need: '쉬기', energy: '거의 없음' }, 2), 'play');
+  assert.equal(nextOffer({ need: '쉬기', energy: '낮음' }, 2), 'play');
+  assert.equal(nextOffer({ need: '즐기기', energy: '보통' }, 2), 'place');
+  assert.equal(nextOffer({ need: '풀기' }, 4), 'place');
+  assert.equal(nextOffer({ need: '풀기', offered: true }, 4), null); // 이 대화에서 이미 제안했으면 다시 권하지 않음
+});
+
+test('제안에 대한 대답: "응"은 받고, "아니·괜찮아"는 받지 않음', () => {
+  for (const m of ['응', 'ㅇㅇ', '그래', '좋아!', '응 찾아 줘', '웅 놀자', '오케이']) assert.equal(saidYes(m), true, m);
+  for (const m of ['아니', '괜찮아', '싫어', '됐어', '아니 괜찮아', '그냥 얘기나 하자', '응 아니야']) assert.equal(saidYes(m), false, m);
+});
+
+test('권하는 말을 붙일 때 무무의 마지막 질문은 뺌 (질문 두 개 방지)', () => {
+  assert.equal(dropLastQuestion('주말엔 더 적적하지. 어떤 재미를 찾고 싶어?'), '주말엔 더 적적하지.');
+  assert.equal(dropLastQuestion('고생 많았어. 지금은 푹 쉬자.'), '고생 많았어. 지금은 푹 쉬자.');
+  assert.equal(dropLastQuestion('지금 기분은 어때?'), '');
 });
