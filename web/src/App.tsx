@@ -5,6 +5,7 @@ import ProfilePage from './ProfilePage';
 import Community from './Community';
 import BookingNotification from './BookingNotification';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { canListen } from './voice';
 import { api, getPos, type Booking, type Character, type FreeRec, type Item, type LatLng, type Records as RecordsData } from './api';
 import Chat, { type Msg } from './Chat';
 import { sendTalk } from './talkClient';
@@ -97,6 +98,9 @@ export default function App() {
   const [playHearts, setPlayHearts] = useState(1250);
   const [mumuGame, setMumuGame] = useState<MumuGame>('tarot');
   const [chatReturn, setChatReturn] = useState<'home' | 'play'>('home');
+  // 무무 방에서 무무를 누르면 대화 화면이 음성 대화 모드로 열린다 (한 번만: 대화 화면이 열리면 지운다)
+  const voiceNext = useRef(false);
+  useEffect(() => { if (tab === 'talk') voiceNext.current = false; }, [tab]);
   const earnPlayHeart = () => setPlayHearts(value => value + 1);
   const isMumuRoom = tab === 'play' || tab === 'pet' || tab === 'talk' || tab === 'game';
   const primaryTab = isMumuRoom ? 'play' : ['community','browse'].includes(tab) ? tab : ['profile','records','journal','shop'].includes(tab) ? 'profile' : 'home';
@@ -388,10 +392,10 @@ export default function App() {
                   />
                 )}
                 <div className={`journal-host${journalFocus ? ' is-focused' : ''}`} hidden={tab !== 'journal'}><Journal key={journalKey} initialStep={journalStart} onExit={() => setTab('profile')} onFocusChange={setJournalFocus} /></div>
-                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} />}
+                {tab === 'play' && <MumuPlay hearts={playHearts} onHeart={earnPlayHeart} onPet={() => setTab('pet')} onGame={(game) => { setMumuGame(game); setTab('game'); }} onChat={() => { setChatReturn('play'); setTab('talk'); }} onVoice={canListen ? () => { voiceNext.current = true; setChatReturn('play'); setTab('talk'); } : undefined} />}
                 {tab === 'pet' && <MumuPet hearts={playHearts} onHeart={earnPlayHeart} onBack={() => setTab('play')} />}
                 {tab === 'game' && <MumuGames key={mumuGame} game={mumuGame} hearts={playHearts} onBack={() => setTab('play')} />}
-                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} />}
+                {tab === 'talk' && <Chat onExperiences={(items) => { setExplore(items); setConfirm(null); setTab('explore'); }} onBack={() => setTab(chatReturn)} onPlay={() => setTab('play')} msgs={msgs} busy={busy} onSend={send} retry={!!chatRetry} onRetry={() => chatRetry && send(chatRetry, true)} voiceStart={voiceNext.current} />}
               </main>
               {!(tab === 'journal' && journalFocus) && <nav className={`tabs${isMumuRoom ? ' mumu-room-tabs' : ''}`} aria-label="메뉴">
                 {TABS.map((t) => (

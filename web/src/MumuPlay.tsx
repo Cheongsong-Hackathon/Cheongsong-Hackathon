@@ -12,6 +12,7 @@ type Props = {
   onPet: () => void;
   onChat: () => void;
   onGame: (game: MumuGame) => void;
+  onVoice?: () => void; // 무무를 누르면 음성 대화 (없으면 쓰다듬기)
 };
 
 const actions = [
@@ -23,7 +24,7 @@ function Hearts({ value }: { value: number }) {
   return <span className="room-hearts" aria-label={`하트 ${value}개`}>💗 {value.toLocaleString('ko-KR')}</span>;
 }
 
-export default function MumuPlay({ hearts, onHeart, onPet, onChat, onGame }: Props) {
+export default function MumuPlay({ hearts, onHeart, onPet, onChat, onGame, onVoice }: Props) {
   const [reaction, setReaction] = useState<(typeof actions)[number] | null>(null);
   const [replay, setReplay] = useState(0);
   const [showAll, setShowAll] = useState(false);
@@ -49,8 +50,9 @@ export default function MumuPlay({ hearts, onHeart, onPet, onChat, onGame }: Pro
       <div className="room-light" aria-hidden="true" />
       <div className="room-shelf" aria-hidden="true" />
       <div className="room-rug" aria-hidden="true" />
-      <div className="room-bubble" role="status">{reaction?.line ?? '오늘도 놀아줄 거지?'}</div>
-      <button className="room-character" type="button" aria-label="무무 쓰다듬기" onClick={onPet}>
+      <div className="room-bubble" role="status">{reaction?.line ?? (onVoice ? '나를 누르면 말로 얘기할 수 있어!' : '오늘도 놀아줄 거지?')}</div>
+      {/* 무무를 누르면 음성 대화 (쓰다듬기는 아래 ✋ 버튼) */}
+      <button className="room-character" type="button" aria-label={onVoice ? '무무와 음성 대화' : '무무 쓰다듬기'} onClick={onVoice ?? onPet}>
         <img key={replay} className={reaction?.className} src={reaction?.className === 'snack' ? `${reaction.src}?reaction=${replay}` : homePortrait} alt="" draggable={false}/>
       </button>
       <div className="room-energy" role="meter" aria-label="기분 에너지" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, 58 + (hearts - 1250) * 10)}>
