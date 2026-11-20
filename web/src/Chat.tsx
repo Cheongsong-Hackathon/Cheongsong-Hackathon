@@ -118,7 +118,7 @@ export default function Chat(p: { onExperiences: (items: Item[]) => void; onBack
           <button className="btn ghost" disabled={p.busy} onClick={p.onRetry}>다시 보내기</button>
         </div>}
       </div>
-      {voiceMode && <VoiceMode msgs={p.msgs} retry={p.retry} onSend={p.onSend} onRetry={p.onRetry} onExperiences={p.onExperiences} onGame={p.onGame} onClose={() => setVoiceMode(false)} />}
+      {voiceMode && <VoiceMode msgs={p.msgs} retry={p.retry} onSend={p.onSend} onRetry={p.onRetry} onExperiences={p.onExperiences} onGame={p.onGame} onPick={p.onPick} onClose={() => setVoiceMode(false)} />}
       <form
         className="composer"
         onSubmit={(e) => {

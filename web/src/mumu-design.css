@@ -76,3 +76,9 @@
 .mood-line textarea:focus { outline:none; border-color:#9c5dec; }
 .mood-line textarea::placeholder { color:#b3abc2; }
 .mood-line-hint { margin:0 0 10px; font-size:12px; color:#9690a5; text-align:center; }
+/* 홈: 말하기가 메인(🎙 크게), 글은 보조 */
+.voice-first { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 2px 0 16px; }
+.voice-main { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 64px; border: 0; border-radius: 32px; background: linear-gradient(110deg, #9c5dec, #7944d3); color: #fff; font: inherit; font-size: 18px; font-weight: 800; box-shadow: 0 8px 18px #8b4cdb33; cursor: pointer; }
+.voice-main span { font-size: 24px; }
+.voice-main:disabled { opacity: .55; cursor: default; }
+.voice-write { border: 0; background: none; color: #8a80a0; font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

@@ -332,7 +332,7 @@ export default function App() {
   const showLocation=()=>{setProfileLocation(true);setTab('profile');};
   const showReservations=()=>{setProfileSaved(false);setProfileLocation(false);setBookingExpanded(true);setTab('profile');};
   const homeScreen = <>
-   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}}/></div>
+   <div hidden={!!requested||!!confirm||!!recs}><Home position={position} locationLabel={locationLabel} locationKey={JSON.stringify(savedLocation)+consent} onLocation={showLocation} onPick={placePick} onExplore={()=>setTab('browse')} onSafety={enterSafety} onNotifications={showReservations} onChat={message=>{setChatReturn('home');setTab('talk');send(message);}} onVoice={canListen?()=>{voiceNext.current=true;setChatReturn('home');setTab('talk');}:undefined}/></div>
    {requested?<Requested booking={requested} ch={ch} onHome={()=>setRequested(null)}/>:confirm?<Confirm item={confirm} busy={busy} onBack={()=>setConfirm(null)} onBook={(slot,mood)=>book(confirm,slot,mood)}/>:recs?<Recs items={recs.items} free={recs.free} widened={recs.widened} busy={busy} onPick={setConfirm} onMore={()=>cond&&recommend(cond,recs.seen)} onBack={()=>setRecs(null)}/>:null}
   </>;
 

@@ -3,6 +3,7 @@ import type { Item } from './api';
 import type { Msg } from './Chat';
 import { GAME_NAMES, type MumuGame } from './MumuGames';
 import { canListen, listen, speak, stopSpeaking } from './voice';
+import { PlaceTile } from './TripUI';
 import face from './assets/mumu/mood-happy.webp';
 import talking from './assets/mumu/motion-cheer.webp';
 import thinking from './assets/mumu/motion-tea.webp';
@@ -17,7 +18,7 @@ const STATUS: Record<Phase, string> = {
   paused: '무무를 누르면 다시 들을게',
 };
 
-export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: string) => void; onRetry: () => void; onExperiences: (items: Item[]) => void; onClose: () => void; onGame?: (game: MumuGame) => void }) {
+export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: string) => void; onRetry: () => void; onExperiences: (items: Item[]) => void; onClose: () => void; onGame?: (game: MumuGame) => void; onPick?: (item: Item) => void }) {
   const [phase, setPhaseState] = useState<Phase>(canListen ? 'listening' : 'paused');
   const [caption, setCaption] = useState('');
   const [error, setError] = useState(canListen ? '' : '이 브라우저는 음성 인식을 지원하지 않아요. 크롬이나 엣지에서 열어 주세요.');
@@ -60,7 +61,9 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
     if (!fresh) return;
     setCaption(last.text);
     setPhase('speaking');
-    void speak(last.text).then(() => { if (alive.current && phaseRef.current === 'speaking') void hear(); });
+    // 장소를 찾았으면 첫 번째 곳을 말로 짧게 소개한다
+    const first = last.offer?.items[0];
+    void speak(first ? `${last.text} ${first.placeName || first.title}까지 걸어서 ${first.walkMinutes}분이야.` : last.text).then(() => { if (alive.current && phaseRef.current === 'speaking') void hear(); });
   }, [p.msgs.length]);
 
   useEffect(() => {
@@ -74,7 +77,8 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
   };
   const last = p.msgs[p.msgs.length - 1];
   const reply = last?.who === 'bunny' && phase !== 'listening' ? last : null;
-  return <div className={`voice-mode ${phase}`} role="dialog" aria-label="무무와 음성 대화">
+  const hasPlaces = !!reply?.offer?.items.length && !!p.onPick;
+  return <div className={`voice-mode ${phase}${hasPlaces ? ' has-places' : ''}`} role="dialog" aria-label="무무와 음성 대화">
     <button type="button" className="voice-end" aria-label="음성 대화 끝내기" onClick={p.onClose}>✕</button>
     <p className="voice-status" aria-live="polite">{p.retry ? '답장을 받지 못했어' : STATUS[phase]}</p>
     <button type="button" className="voice-mumu" aria-label={phase === 'speaking' ? '무무 말 끊고 말하기' : phase === 'listening' ? '다 말했어' : '다시 듣기'} onClick={tap} disabled={phase === 'thinking'}>
@@ -83,7 +87,8 @@ export default function VoiceMode(p: { msgs: Msg[]; retry: boolean; onSend: (t: 
     <p className="voice-caption">{caption || (phase === 'paused' && reply ? reply.text : '')}</p>
     {reply?.support && <aside className="voice-support"><p>{reply.support.text}</p>{reply.support.lines.map((line) => <a key={line.tel} href={`tel:${line.tel.replace(/[^+0-9]/g, '')}`}>{line.name} {line.tel}</a>)}</aside>}
     {reply?.play && p.onGame && <button type="button" className="new-primary" onClick={() => p.onGame!(reply.play!)}>🎮 무무랑 {GAME_NAMES[reply.play]} 하러 가기 →</button>}
-    {!!reply?.offer?.items.length && <button type="button" className="new-primary" onClick={() => p.onExperiences(reply.offer!.items)}>무무가 찾은 곳 {reply.offer.items.length}개 보기 →</button>}
+    {!!reply?.offer?.items.length && p.onPick && <div className="voice-places">{reply.offer.items.slice(0, 3).map((item, i) => <PlaceTile key={item.id} item={item} rank={i + 1} compact onPick={p.onPick!} />)}</div>}
+    {!!reply?.offer?.items.length && <button type="button" className={p.onPick ? 'voice-list' : 'new-primary'} onClick={() => p.onExperiences(reply.offer!.items)}>무무가 찾은 곳 {reply.offer.items.length}개 보기 →</button>}
     {p.retry && <button type="button" className="voice-retry" onClick={() => { setPhase('thinking'); p.onRetry(); }}>다시 보내기</button>}
     {error && <p className="voice-error" role="alert">{error}</p>}
   </div>;

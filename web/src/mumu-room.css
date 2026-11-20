@@ -362,3 +362,11 @@
 .chat-why a { color: #8a4ee8; }
 .chat-why small { display: block; color: #8a80a0; font-size: 11px; line-height: 1.4; }
 .chat-places-more { align-self: flex-end; border: 0; background: none; color: #8a4ee8; font: inherit; font-size: 12px; cursor: pointer; }
+/* 음성 대화 모드 안 장소 카드: 장소가 나오면 무무를 작게 줄이고 아래로 스크롤 */
+.voice-mode.has-places { justify-content: flex-start; overflow-y: auto; padding-top: 84px; }
+.voice-mode.has-places .voice-mumu { width: 120px; height: 120px; flex: none; }
+.voice-mode.has-places .voice-mumu img { width: 100px; height: 100px; }
+.voice-mode.has-places .voice-caption { max-height: none; font-size: 14px; }
+.voice-places { width: 100%; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.voice-places .trip-place { background: #fff; }
+.voice-list { border: 0; background: none; color: #6f4bb8; font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
