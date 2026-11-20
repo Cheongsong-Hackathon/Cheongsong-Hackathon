@@ -107,9 +107,6 @@ export default function MumuPlay({ hearts, onHeart, onGame, onVoice, onWardrobe 
   return <div className="mumu-room">
     <PhoneStatus />
     <header className="room-play-title"><img src={happy} alt="" /><h1>무무와 함께</h1><MumuCoin /></header>
-    <div className="room-switch" aria-label="무무 화면">
-      <span aria-current="page">🎮 무무랑 놀기</span>
-    </div>
     <header className="room-intro">
       <div><h2>무무와 놀아요!</h2><p id="room-gesture-hint">쓰다듬기 · 원 그리기 · 입 톡 누르기</p></div>
       <Hearts value={hearts} />
