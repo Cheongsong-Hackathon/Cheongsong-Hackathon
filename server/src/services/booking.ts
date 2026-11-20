@@ -186,7 +186,6 @@ export async function wipeRecords(q: Q, userId: number) {
   await q(`DELETE FROM chat_sessions WHERE user_id = $1`, [userId]);
   await q(`DELETE FROM memories WHERE user_id = $1`, [userId]); // 무무의 기억도 같이
   await q(`DELETE FROM saved_spots WHERE user_id = $1`, [userId]);
-  await q(`DELETE FROM lifts WHERE user_id = $1`, [userId]);
 }
 
 /** 내 기록 모두 지우기. 캐릭터 성장은 줄이지 않는다. */

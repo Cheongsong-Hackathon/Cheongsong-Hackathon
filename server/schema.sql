@@ -15,16 +15,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS kakao_id text UNIQUE;
 -- [선택 동의] 대화 기록 30일 보관 · 무무가 기억하기. 끄면 대화 원문은 1일 뒤 지우고 기억은 저장하지 않는다
 ALTER TABLE users ADD COLUMN IF NOT EXISTS remember boolean NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS agreed_at timestamptz;
--- 즉시 기분 전환(lift): AI가 고른 방법과 기분 점수 전/후만 남긴다 (말한 내용은 저장하지 않음)
-CREATE TABLE IF NOT EXISTS lifts (
-  id serial PRIMARY KEY,
-  user_id int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  mode text NOT NULL,
-  before int CHECK (before BETWEEN 1 AND 10),
-  after int CHECK (after BETWEEN 1 AND 10),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  after_at timestamptz
-);
 -- 둘러보기 사용자를 90일 안 쓰면 지우기 위한 마지막 사용 시각
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen timestamptz NOT NULL DEFAULT now();
 

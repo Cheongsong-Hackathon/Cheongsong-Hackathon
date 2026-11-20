@@ -74,9 +74,6 @@ export type Records = {
 };
 
 export type Me = { loggedIn: boolean; nickname: string | null; remember: boolean };
-// 즉시 기분 전환: AI가 고른 방법 하나와 무무의 말. joke·comfort는 content에 웃긴 얘기·다독임
-export type LiftMode = 'joke' | 'comfort' | 'tarot' | 'play' | 'outside' | 'talk';
-export type Lift = { id: number; mode: LiftMode; title: string; say: string; content: string; before: number | null; support?: { text: string; lines: { name: string; tel: string }[] }; safety?: boolean };
 type Res<T> = T &{ error?: string; code: number; blocked?: boolean }; // code = HTTP 상태 (예약의 status와 구분)
 
 // 로그인 없이 브라우저마다 따로 쓰도록, 처음 열 때 만든 무작위 키를 모든 요청에 실어 보낸다.
@@ -134,8 +131,6 @@ export const api = {
   records: () => call<Records>('GET', '/records'),
   deleteRecords: () => call<{ deleted: boolean }>('DELETE', '/records'),
   // 계정: 카카오 로그인(쿠키) 또는 둘러보기(X-User-Key). remember = [선택 동의] 대화 기록·무무가 기억하기
-  lift: (b: { text: string; before: number; avoid?: LiftMode }) => call<Lift>('POST', '/lift', b),
-  liftAfter: (id: number, after: number) => call<{ before: number | null; after: number; delta: number | null }>('POST', `/lift/${id}/after`, { after }),
   me: () => call<Me>('GET', '/me'),
   updateMe: (b: { nickname?: string; remember?: boolean }) => call<Me>('PATCH', '/me', b),
   kakaoStart: (b: { age14: boolean; terms: boolean; privacy: boolean; remember: boolean }) => call<{ url: string }>('POST', '/auth/kakao/start', b),
