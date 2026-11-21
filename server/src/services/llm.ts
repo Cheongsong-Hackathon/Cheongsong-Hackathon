@@ -75,6 +75,7 @@ function record(name: string, ok: boolean, ms: number, detail = '') {
 export const llmCallCount = () => ({
   model: config.llm.apiKey ? config.llm.model : null,
   fallbackModel: config.llmFallback.apiKey ? config.llmFallback.model : null,
+  routes: routeTable(), // 작업별 모델 순서
   ...counts,
 });
 
@@ -157,16 +158,42 @@ export async function callJson<T>(
   return null;
 }
 
-/** .env 설정으로 만든 기본 클라이언트. 키가 하나도 없으면 null → 항상 기본 답장. */
-export const defaultClient: LLMClient | null = (() => {
-  const clients = [
-    ['primary', config.llm] as const,
-    ['fallback', config.llmFallback] as const,
-  ]
+// ---- 작업별 라우팅: 기능마다 어떤 모델을 먼저 쓸지 정하고, 실패·시간 초과면 다른 모델로 넘어간다 ----
+// gemini = LLM_* (Gemini 3.1 Flash-Lite, 빠르고 싸다), hcx = LLM_FALLBACK_* (네이버 HyperCLOVA X, 한국어)
+export type Task = 'talk' | 'reason' | 'memory' | 'checkin' | 'recommend' | 'chat' | 'wordchain';
+type Provider = 'gemini' | 'hcx';
+export const ROUTES: Record<Task, { order: Provider[]; why: string }> = {
+  talk: { order: ['gemini', 'hcx'], why: '기분·필요 읽기(정해진 JSON), 매 턴이라 빠르고 싸야 함' },
+  reason: { order: ['gemini', 'hcx'], why: '추천 이유 여러 줄, 출력이 길어 단가가 중요' },
+  memory: { order: ['gemini', 'hcx'], why: '기억할 사실 뽑기, 사용자가 기다리지 않는 뒤 작업' },
+  checkin: { order: ['gemini', 'hcx'], why: '마음 확인 한 줄 공감·위험도' },
+  recommend: { order: ['gemini', 'hcx'], why: '조건 추천 이유' },
+  chat: { order: ['hcx', 'gemini'], why: '속마음 대화: 한국어 공감 표현' },
+  wordchain: { order: ['hcx', 'gemini'], why: '끝말잇기: 한국어 단어가 진짜 있는지 판정' },
+};
+const PROVIDERS: Record<Provider, ClientOptions> = { gemini: config.llm, hcx: config.llmFallback };
+const clients = Object.fromEntries(
+  (Object.entries(PROVIDERS) as [Provider, ClientOptions][])
     .filter(([, o]) => o.baseUrl && o.model && o.apiKey)
-    .map(([name, o]) => new OpenAICompatClient(name, o));
-  return clients.length ? new FallbackClient(clients) : null;
-})();
+    .map(([p, o]) => [p, new OpenAICompatClient(o.model, o)]),
+) as Partial<Record<Provider, OpenAICompatClient>>;
+const chains = new Map<Task, LLMClient | null>();
+/** 이 작업에 쓸 클라이언트 (라우팅 순서대로 시도). 키가 하나도 없으면 null → 항상 기본 답장 */
+export function clientFor(task: Task): LLMClient | null {
+  if (!chains.has(task)) {
+    const list = ROUTES[task].order.map((p) => clients[p]).filter((c): c is OpenAICompatClient => !!c);
+    chains.set(task, list.length ? Object.assign(new FallbackClient(list), { name: `route:${task}` }) : null);
+  }
+  return chains.get(task)!;
+}
+/** 기본 클라이언트를 받았으면 작업별 라우팅으로 바꾼다 (테스트가 넘긴 가짜 클라이언트는 그대로) */
+export const routed = (task: Task, client: LLMClient | null) => (client === defaultClient ? clientFor(task) : client);
+/** /api/health용: 작업별 모델 순서 (키가 있는 것만) */
+export const routeTable = () =>
+  Object.fromEntries((Object.keys(ROUTES) as Task[]).map((t) => [t, ROUTES[t].order.filter((p) => clients[p]).map((p) => PROVIDERS[p].model)]));
+
+/** 기본(대화) 클라이언트. 키가 하나도 없으면 null → 항상 기본 답장. */
+export const defaultClient: LLMClient | null = clientFor('talk');
 
 export const BUNNY_PROMPT = `너는 "무드패스"의 보라색 토끼 캐릭터야. 지친 친구 옆에 앉아 주는 다정한 친구야.
 무드패스는 "기분을 바꾸고 싶은데 뭘 해야 할지 모르는" 친구에게 가까운 곳의 작은 기분 전환을 찾아 주는 서비스야.

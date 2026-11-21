@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { config, EMOTIONS } from '../config.js';
 import { query } from '../db.js';
-import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
+import { BUNNY_PROMPT, callJson, clientFor, RISK_RULE } from './llm.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
@@ -39,7 +39,7 @@ export function parseCheckin(body: any) {
   };
 }
 
-export async function handleCheckin(userId: number, body: unknown, client = defaultClient) {
+export async function handleCheckin(userId: number, body: unknown, client = clientFor('checkin')) {
   const c = parseCheckin(body);
   const safety = async () => {
     await setSafeMode(userId, true);

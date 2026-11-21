@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { config } from '../config.js';
 import { query, toId } from '../db.js';
 import { searchPos, validLatLng } from '../geo.js';
-import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
+import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE, routed } from './llm.js';
 import { ENERGIES, historyEffects, NEEDS, rankFresh, TAGS, type Energy, type Need, type Prefs, type Scored, type Tag } from './match.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { photoFirst, photoForItem } from './googlePhoto.js';
@@ -300,7 +300,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
     TalkOut,
   );
   if (out?.risk === 'CRISIS') return safetyReply(userId, s.id);
-  void learnFromTurn(userId, message, client); // 기억 갱신은 기다리지 않는다
+  void learnFromTurn(userId, message, routed('memory', client)); // 기억 갱신은 기다리지 않는다
 
   s.prefs = mergePrefs(s.prefs, out, message);
   // 무무가 방금 권한 것에 "응"이라고 했으면 그대로 연다 (권한 건 한 턴만 유효)
@@ -369,7 +369,7 @@ export async function handleTalk(userId: number, body: any, client = defaultClie
   // 시연 위치 고정이면 후보를 넓게(8곳) 보고 사진 있는 곳을 먼저 고른다
   const pool = config.demoPin ? 8 : TALK_SHOW;
   const [reasoned, photos] = await Promise.all([
-    withReasons(userId, message, prefs, ranked.items, client, pool),
+    withReasons(userId, message, prefs, ranked.items, routed('reason', client), pool),
     Promise.all(ranked.items.slice(0, pool).map(photoForItem)),
   ]);
   const { fallback } = reasoned;

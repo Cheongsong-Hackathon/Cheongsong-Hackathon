@@ -1,7 +1,7 @@
 // 선택형 속마음 대화: 토끼의 공감·위로. 추천이나 예약을 권하지 않는다.
 import { z } from 'zod';
 import { query, toId } from '../db.js';
-import { BUNNY_PROMPT, callJson, defaultClient, RISK_RULE } from './llm.js';
+import { BUNNY_PROMPT, callJson, clientFor, RISK_RULE } from './llm.js';
 import { learnFromTurn, memoryContext } from './memory.js';
 import { Risk, SAFETY_REPLY, SafetyGuard, setSafeMode } from './safety.js';
 
@@ -33,7 +33,7 @@ async function getOrCreateSession(userId: number, sessionId: unknown) {
 const say = (sessionId: number, role: string, text: string) =>
   query(`INSERT INTO messages(session_id, role, text) VALUES ($1,$2,$3)`, [sessionId, role, text]);
 
-export async function handleChat(userId: number, sessionIdIn: unknown, message: string, client = defaultClient) {
+export async function handleChat(userId: number, sessionIdIn: unknown, message: string, client = clientFor('chat')) {
   const sessionId = await getOrCreateSession(userId, sessionIdIn);
   await say(sessionId, 'user', message);
 

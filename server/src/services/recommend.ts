@@ -5,7 +5,7 @@ import { query, toId } from '../db.js';
 import { searchPos, validLatLng, walkMinutes, type LatLng } from '../geo.js';
 import { freePlaces, naverMapUrl, pickFree } from './kakao.js';
 import { hasPhoto } from './googlePhoto.js';
-import { BUNNY_PROMPT, callJson, defaultClient } from './llm.js';
+import { BUNNY_PROMPT, callJson, clientFor } from './llm.js';
 import { memoryContext } from './memory.js';
 
 export { walkMinutes };
@@ -176,7 +176,7 @@ export async function nearbyCandidates(pos: LatLng | null) {
   return { cands: toCandidates(await loadExperiences(), places, now), center, source: pos ? 'here' : 'demo' };
 }
 
-export async function recommend(userId: number, body: any, client = defaultClient) {
+export async function recommend(userId: number, body: any, client = clientFor('recommend')) {
   if (await isSafeMode(userId)) return SAFETY_BLOCK;
   const [ck] = await query(
     `SELECT id, text, emotion, energy, mood_score AS mood FROM checkins WHERE id = $1 AND user_id = $2`,

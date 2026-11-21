@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { config } from '../config.js';
 import { query, tx } from '../db.js';
-import { callJson, defaultClient, type LLMClient } from './llm.js';
+import { callJson, clientFor, type LLMClient } from './llm.js';
 import { SafetyGuard } from './safety.js';
 
 export const MEMORY_KINDS = ['취향', '상황', '사건'] as const;
@@ -87,7 +87,7 @@ const EXTRACT_PROMPT = `너는 친구의 이야기를 기억해 두는 토끼야
 {"add":[{"kind":"취향","text":"..."}],"update":[{"id":3,"text":"..."}],"remove":[5]}`;
 
 /** 한 번의 대화·마음 확인에서 기억을 갱신한다. 응답을 늦추지 않도록 호출하는 쪽은 기다리지 않는다(실패해도 조용히 넘어감). */
-export async function learnFromTurn(userId: number, text: string, client: LLMClient | null = defaultClient) {
+export async function learnFromTurn(userId: number, text: string, client: LLMClient | null = clientFor('memory')) {
   try {
     if (!client || text.trim().length < 4 || SafetyGuard.check(text)) return;
     // [선택 동의] "무무가 기억하기"를 켠 사용자만

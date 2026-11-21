@@ -1,7 +1,7 @@
 // 무무와 끝말잇기: 내 단어가 실제 낱말인지와 무무의 다음 단어는 AI가, 규칙(시작 글자·두음법칙·중복·한글)은 서버가 직접 본다.
 // AI가 없거나 실패하면 503 → 화면이 예전처럼 들고 있는 단어 목록으로 이어 간다.
 import { z } from 'zod';
-import { callJson, defaultClient, type LLMClient } from './llm.js';
+import { callJson, clientFor, type LLMClient } from './llm.js';
 
 const BASE = 0xac00;
 /** 두음법칙: 리→이, 력→역, 라→나, 녀→여 처럼 첫소리 ㄹ·ㄴ이 바뀐 글자 (해당 없으면 그대로) */
@@ -35,7 +35,7 @@ const PROMPT = `너는 끝말잇기 상대 "무무"야. 반말로 다정하게.
 3) comment: 친구 단어에 대한 짧은 한마디 (20자 안팎, 예: "오, 어려운 단어 나왔다!")
 {"valid":true,"reason":"","reply":"","comment":""} 형식의 JSON 하나만 출력해.`;
 
-export async function playWordChain(body: any, client: LLMClient | null = defaultClient) {
+export async function playWordChain(body: any, client: LLMClient | null = clientFor('wordchain')) {
   const word = typeof body?.word === 'string' ? body.word.trim() : '';
   const history: string[] = Array.isArray(body?.history) ? body.history.filter(isWord).slice(-100) : [];
   const level = typeof body?.level === 'string' && body.level in LEVEL ? body.level : '보통';

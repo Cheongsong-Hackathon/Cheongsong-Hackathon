@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { souvenirCheck, souvenirFor, stageOf } from '../src/services/growth.js';
 import { LIVE_KINDS } from '../src/services/livePlaces.js';
 import { EXPERIENCES } from '../src/setup.js';
-import { callJson, extractJson, FallbackClient, type LLMClient } from '../src/services/llm.js';
+import { callJson, extractJson, FallbackClient, ROUTES, type LLMClient } from '../src/services/llm.js';
 import type { Place } from '../src/services/places.js';
 import { parseCheckin } from '../src/services/checkin.js';
 import { addMinutes, availableSlots, filterExperiences, finalizePicks, toCandidates, walkMinutes, type Candidate, type Experience } from '../src/services/recommend.js';
@@ -252,4 +252,10 @@ test('미루기 경험치: 하루(한국 시간)에 한 번만', async () => {
   assert.equal(postponeExp(0), config.EXP_POSTPONE);
   assert.equal(postponeExp(1), 0);
   assert.equal(postponeExp(3), 0);
+});
+
+test('작업별 라우팅: 대화·추천 이유·기억은 Gemini 먼저, 속마음·끝말잇기는 HyperCLOVA X 먼저, 모두 다른 모델로 넘어갈 곳이 있음', () => {
+  for (const t of ['talk', 'reason', 'memory', 'checkin', 'recommend'] as const) assert.equal(ROUTES[t].order[0], 'gemini', t);
+  for (const t of ['chat', 'wordchain'] as const) assert.equal(ROUTES[t].order[0], 'hcx', t);
+  for (const t of Object.keys(ROUTES) as (keyof typeof ROUTES)[]) assert.equal(new Set(ROUTES[t].order).size, 2, t);
 });
